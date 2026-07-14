@@ -26,15 +26,19 @@ Known boundaries that are deliberately explicit rather than faked:
 - OpenAI Responses/Codex wire events have a typed decoder and the root README
   exercises an agent with Spark. Anthropic and Ollama request surfaces still need
   live streaming fixtures before their adapters can be called verified.
-- `rho.http::rho_sse_connect()` currently resolves an HTTP response body into an SSE event stream using nanonext `ncurl_aio`; it is correct for complete SSE bodies and test fixtures. A chunk-by-chunk client stream backend should be added when nanonext exposes or Rho implements that transport cleanly.
+- `rho.http::rho_sse_connect()` opens the response with the pinned nanonext
+  `ncurl_stream_aio()` fork and incrementally decodes arbitrary body chunks. The
+  transport remains pinned until the primitive is available from an upstream
+  nanonext release.
 - `rho.duckdb` has a conservative read-only SQL guard; production hardening should add a parser-backed guard before enabling untrusted SQL.
 - The Bash tool currently returns complete combined output. Pi-equivalent
   incremental output updates, bounded tail retention, and persisted full-output
   artifacts remain explicit coding-agent parity work.
-- `RhoMiraiExpressionEvaluator` is isolated. Persistent daemon-global R state is
-  not exposed as a REPL until routing and lifetime are represented explicitly.
+- `RhoMiraiExpressionEvaluator` gives isolated worker evaluation.
+  `RhoCurrentSessionREvaluator` preserves state only in the environment supplied
+  by its caller and requires exclusive execution.
 
 The repository stays private until the parity ledger, package checks, live
-live provider checks, generated documentation, and secret scan pass. Public
+provider checks, generated documentation, and secret scan pass. Public
 release is followed by registration in
 `sounkou-bioinfo/sounkou-bioinfo.r-universe.dev`.

@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-roots <- c("packages", "extensions", "integration", "scripts")
+roots <- c("packages", "extensions", "scripts")
 files <- unlist(
   lapply(roots[dir.exists(roots)], function(root) {
     list.files(root, pattern = "\\.[Rr]$", recursive = TRUE, full.names = TRUE)
