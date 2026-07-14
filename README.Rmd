@@ -85,16 +85,7 @@ run <- rho_prompt(agent, "Reply with exactly rho-live-ok and nothing else.") |>
   rho_await(timeout = 120000)
 ```
 
-Recorded on 2026-07-14 against the live Codex endpoint:
-
-```text
-model: gpt-5.3-codex-spark
-status: completed
-answer: rho-live-ok
-events: 14
-```
-
-The same probe is available as a script; it prints model, status, answer, and
+The probe is also available as a script. It prints model, status, answer, and
 event count, never credential material:
 
 ```bash
