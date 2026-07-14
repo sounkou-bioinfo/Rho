@@ -1,0 +1,18 @@
+---
+title: "Async provider-agent integration"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tinytest)
+library(rho.async)
+library(rho.ai)
+library(rho.agent)
+```
+
+```{r integration}
+agent <- rho_agent(rho_faux_provider(), rho_model("faux", "faux"))
+run <- rho_prompt(agent, "hello integration")
+result <- rho_await(run)
+expect_equal(result@messages[[2]]@content[[1]]@text, "faux: hello integration")
+```

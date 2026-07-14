@@ -1,0 +1,22 @@
+Package: rho.coding
+Type: Package
+Depends: R (>= 4.4.0)
+Title: Rho Coding Tools
+Version: 0.0.0.9000
+Authors@R:
+    person(given = "Sounkou Mahamane", family = "Toure",
+           email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
+Description: Supplies coding-agent tools with explicit execution semantics,
+    including cross-platform Bash selection, process execution in mirai workers,
+    isolated R evaluation, and opt-in current-session R evaluation.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    S7, rho.async, rho.ai, rho.compute, processx
+Suggests:
+    tinytest, knitr
+URL: https://github.com/sounkou-bioinfo/Rho,
+    https://sounkou-bioinfo.github.io/Rho/rho.coding/
+BugReports: https://github.com/sounkou-bioinfo/Rho/issues

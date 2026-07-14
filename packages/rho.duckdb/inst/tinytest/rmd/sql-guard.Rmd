@@ -1,0 +1,14 @@
+---
+title: "SQL guard"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tinytest)
+library(rho.duckdb)
+```
+
+```{r guard}
+expect_silent(rho_assert_readonly_sql("select 1"))
+expect_error(rho_assert_readonly_sql("drop table x"), "read-only|forbidden")
+```

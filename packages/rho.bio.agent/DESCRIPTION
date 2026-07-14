@@ -1,0 +1,22 @@
+Package: rho.bio.agent
+Type: Package
+Depends: R (>= 4.4.0)
+Title: Rho Bio Agent Tools
+Version: 0.0.0.9000
+Authors@R:
+    person(given = "Sounkou Mahamane", family = "Toure",
+           email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
+Description: Connects declared bioinformatics resources and operations to the
+    Rho extension and tool protocols. The package remains downstream of the
+    provider and agent core.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    rho.async, rho.ai, rho.ext, yyjsonr
+Suggests:
+    tinytest, knitr
+URL: https://github.com/sounkou-bioinfo/Rho,
+    https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/
+BugReports: https://github.com/sounkou-bioinfo/Rho/issues

@@ -1,0 +1,26 @@
+---
+title: "Task contract"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tinytest)
+library(rho.async)
+```
+
+```{r immediate-task}
+t <- rho_task(42)
+expect_false(rho_pending(t))
+expect_equal(rho_await(t), 42)
+```
+
+```{r rejected-task}
+t <- rho_rejected("boom")
+expect_error(rho_await(t), "boom")
+```
+
+```{r then-chain}
+t <- rho_task(2)
+out <- rho_then(t, function(x) x + 3)
+expect_equal(rho_await(out), 5)
+```

@@ -1,0 +1,31 @@
+repos <- c(
+  "https://sounkou-bioinfo.r-universe.dev",
+  "https://cloud.r-project.org"
+)
+install.packages(
+  c(
+    "S7",
+    "s7contract",
+    "nanonext",
+    "mirai",
+    "coro",
+    "later",
+    "promises",
+    "tinytest",
+    "knitr",
+    "rmarkdown",
+    "pkgdown",
+    "rdocdump",
+    "roxygen2",
+    "yyjsonr",
+    "base64enc",
+    "digest",
+    "processx",
+    "DBI",
+    "duckdb",
+    "ggplot2",
+    "svglite",
+    "ragg"
+  ),
+  repos = repos
+)

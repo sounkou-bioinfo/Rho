@@ -1,0 +1,50 @@
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+name: R-CMD-check.yaml
+
+permissions: read-all
+
+jobs:
+  core:
+    name: R ${{ matrix.r }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        r: ['4.4', 'release']
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.r }}
+          use-public-rspm: true
+
+      - name: Install Air
+        uses: posit-dev/setup-air@v1
+
+      - name: Install dependencies
+        run: Rscript install-deps.R
+
+      - name: Verify generated tests and style contract
+        run: |
+          make check-purled-tests
+          make check-style
+
+      - name: Install monorepo in dependency order
+        run: make install
+
+      - name: Run test suites
+        run: make test
+
+      - name: Check every package
+        run: make check

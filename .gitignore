@@ -1,0 +1,12 @@
+.Rhistory
+.RData
+.Rproj.user
+*.tar.gz
+*.Rcheck
+.DS_Store
+README.html
+Rplots.pdf
+_site/
+inst/doc
+revdep
+renv/library

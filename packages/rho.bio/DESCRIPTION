@@ -1,0 +1,22 @@
+Package: rho.bio
+Type: Package
+Depends: R (>= 4.4.0)
+Title: Rho Bio Manifest and Run Substrate
+Version: 0.0.0.9000
+Authors@R:
+    person(given = "Sounkou Mahamane", family = "Toure",
+           email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
+Description: Defines typed bioinformatics manifests, resources, operations,
+    resolution receipts, observations, and run records. Validation keeps declared
+    resources and evidence separate from model-generated text.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    S7, rho.async, yyjsonr, digest
+Suggests:
+    tinytest, knitr
+URL: https://github.com/sounkou-bioinfo/Rho,
+    https://sounkou-bioinfo.github.io/Rho/rho.bio/
+BugReports: https://github.com/sounkou-bioinfo/Rho/issues

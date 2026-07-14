@@ -1,0 +1,103 @@
+
+# Rho: async agents in modern R
+
+<!-- badges: start -->
+
+[![R-CMD-check](https://github.com/sounkou-bioinfo/Rho/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sounkou-bioinfo/Rho/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
+
+Rho is an async-first agent runtime for R 4.4 and newer. It uses S7
+classes, generics, methods, and contracts to make provider and agent
+behavior explicit. `nanonext` owns low-level asynchronous I/O. `mirai`
+owns worker evaluation. Blocking is visible at `rho_await()` and other
+declared boundary operations.
+
+The core project is not `rho-bio-agent`. Bioinformatics is a downstream
+application that must depend on a complete provider and agent substrate.
+
+## Core contracts
+
+``` text
+rho.async -> rho.http -> rho.ai -> rho.agent -> rho.ext -> rho.coding
+rho.async -> rho.compute -> rho.graphics
+```
+
+- `rho.async` defines tasks, streams, cancellation, timeouts, and
+  composition.
+- `rho.http` defines HTTP, SSE, and WebSocket transport contracts.
+- `rho.ai` defines models, messages, normalized provider events, tools,
+  usage, provider catalogs, and credentials.
+- `rho.agent` defines the multi-turn loop, tool execution, queues,
+  cancellation, and ordered lifecycle events.
+- `rho.ext` and `rho.coding` build on the agent without changing its
+  core.
+- `rho.compute` adapts mirai workers without leaking mirai policy into
+  the agent. A tool declares whether calls may overlap and chooses its
+  own backend.
+- `rho.coding` includes a cross-platform Bash resolver, an isolated
+  mirai R evaluator, and an explicitly stateful current-session R
+  evaluator.
+
+Built-in provider implementations live in `rho.ai`. The faux provider is
+the deterministic executable specification. Live adapters use `rho.http`
+and emit the same normalized stream protocol. External packages remain
+possible for adapters with a real dependency, licensing, or ABI
+boundary.
+
+Provider credentials are explicit values resolved through a credential
+store. Provider implementations never discover API keys from
+process-global environment variables; request translation receives a
+typed `RhoModelAuth` value.
+
+## Downstream packages
+
+`rho.bio`, `rho.duckdb`, and `rho.bio.agent` are kept downstream of the
+core. They may use R-native affordances such as DuckDB and lazy
+relational composition, but they do not define provider or agent
+semantics.
+
+## Development
+
+``` bash
+make deps
+make install
+make format
+make check-format
+make rd
+make test
+make check
+make rdm
+```
+
+R Markdown files under each package’s `inst/tinytest/rmd/` are the
+authored tests. `make purl-tests` derives the executable test files.
+Roxygen blocks in `R/api.R` are the authored package API documentation;
+`make rd` regenerates `NAMESPACE` and `man/`. Air is the repository
+formatter. `make check-style` checks both the R style contract and Air
+formatting before package tests run.
+
+`make check` builds each source tarball and requires an exact
+`Status: OK` from every `R CMD check`; a NOTE or WARNING fails the
+monorepo gate.
+
+The current behavioral parity target is recorded in
+[`docs/pi-parity.md`](docs/pi-parity.md). A box is only marked complete
+after the corresponding fixture or integration test passes.
+
+The repository remains private until parity, checks, live provider smoke
+tests, documentation, and secret scanning are green. Public release is
+the point at which it will be added to
+`sounkou-bioinfo/sounkou-bioinfo.r-universe.dev`.
+
+## Repository layout
+
+``` text
+packages/     installable R packages
+integration/ cross-package executable specifications
+scripts/      monorepo orchestration
+tools/        shared developer make rules
+```
+
+## License
+
+MIT.

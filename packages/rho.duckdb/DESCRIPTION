@@ -1,0 +1,22 @@
+Package: rho.duckdb
+Type: Package
+Depends: R (>= 4.4.0)
+Title: Rho DuckDB Backend
+Version: 0.0.0.9000
+Authors@R:
+    person(given = "Sounkou Mahamane", family = "Toure",
+           email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
+Description: Adapts DuckDB connections to Rho's asynchronous SQL contracts and
+    provides a conservative read-only query guard for declared bioinformatics
+    resources.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    S7, rho.async, rho.bio, DBI, duckdb
+Suggests:
+    tinytest, knitr
+URL: https://github.com/sounkou-bioinfo/Rho,
+    https://sounkou-bioinfo.github.io/Rho/rho.duckdb/
+BugReports: https://github.com/sounkou-bioinfo/Rho/issues

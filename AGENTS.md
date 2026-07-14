@@ -1,0 +1,1 @@
+See [AGENT.md](AGENT.md). In particular: dot-prefixed pseudo-private helpers are banned; field constraints belong to validated S7 properties; class-varying behavior belongs to S7 generics and methods; and vague “fallback” language must be replaced by explicit successful or unsupported semantics.

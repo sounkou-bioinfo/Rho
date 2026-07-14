@@ -1,0 +1,80 @@
+#' Asynchronous task and stream contracts
+#'
+#' Rho tasks represent one eventual value, while Rho streams represent an
+#' asynchronous sequence of typed stream items. Effectful callers compose
+#' tasks with [rho_then()] or coroutines and block only at [rho_await()].
+#'
+#' `rho_new_state()` and the concrete adapter task classes are exported for
+#' packages implementing new async backends. Polling actions return one of the
+#' typed `RhoPollDecision` subclasses; timing remains inside `rho.async`.
+#'
+#' @name rho_async_contracts
+#' @aliases RhoTask RhoImmediateTask RhoRejectedTask RhoFunctionTask
+#' @aliases RhoNanonextAioTask RhoPromiseTask RhoAsyncError RhoTimeoutError
+#' @aliases RhoStream RhoListStream RhoMappedStream RhoFlatMappedStream
+#' @aliases RhoTaskStream RhoStreamItem RhoStreamValue RhoStreamEnd
+#' @aliases RhoPollDecision RhoPollPending RhoPollComplete RhoPollFailed
+#' @aliases RhoAwaitable RhoStreamLike
+#' @aliases rho_task rho_rejected rho_task_from_function rho_task_from_promise
+#' @aliases rho_coro_task rho_wrap_aio rho_pending rho_await rho_cancel
+#' @aliases rho_then rho_catch rho_as_task rho_as_promise rho_all rho_timeout
+#' @aliases rho_list_stream rho_stream_from_task rho_stream_next
+#' @aliases rho_stream_close rho_stream_collect rho_stream_map
+#' @aliases rho_stream_flat_map rho_stream_value rho_stream_end
+#' @aliases rho_poll rho_poll_pending rho_poll_complete rho_poll_failed
+#' @aliases rho_is_task rho_is_stream rho_new_state
+#' @export RhoTask
+#' @export RhoImmediateTask
+#' @export RhoRejectedTask
+#' @export RhoFunctionTask
+#' @export RhoNanonextAioTask
+#' @export RhoPromiseTask
+#' @export RhoAsyncError
+#' @export RhoTimeoutError
+#' @export RhoStream
+#' @export RhoListStream
+#' @export RhoMappedStream
+#' @export RhoFlatMappedStream
+#' @export RhoTaskStream
+#' @export RhoStreamItem
+#' @export RhoStreamValue
+#' @export RhoStreamEnd
+#' @export RhoPollDecision
+#' @export RhoPollPending
+#' @export RhoPollComplete
+#' @export RhoPollFailed
+#' @export RhoAwaitable
+#' @export RhoStreamLike
+#' @export rho_task
+#' @export rho_rejected
+#' @export rho_task_from_function
+#' @export rho_task_from_promise
+#' @export rho_coro_task
+#' @export rho_wrap_aio
+#' @export rho_pending
+#' @export rho_await
+#' @export rho_cancel
+#' @export rho_then
+#' @export rho_catch
+#' @export rho_as_task
+#' @export rho_as_promise
+#' @export rho_all
+#' @export rho_timeout
+#' @export rho_list_stream
+#' @export rho_stream_from_task
+#' @export rho_stream_next
+#' @export rho_stream_close
+#' @export rho_stream_collect
+#' @export rho_stream_map
+#' @export rho_stream_flat_map
+#' @export rho_stream_value
+#' @export rho_stream_end
+#' @export rho_poll
+#' @export rho_poll_pending
+#' @export rho_poll_complete
+#' @export rho_poll_failed
+#' @export rho_is_task
+#' @export rho_is_stream
+#' @export rho_new_state
+#' @importFrom s7contract new_interface
+NULL
