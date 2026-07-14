@@ -1,7 +1,10 @@
+configured_repos <- getOption("repos")
+configured_repos[configured_repos == "@CRAN@"] <- "https://cloud.r-project.org"
 repos <- c(
-  "https://sounkou-bioinfo.r-universe.dev",
-  "https://cloud.r-project.org"
+  sounkou = "https://sounkou-bioinfo.r-universe.dev",
+  configured_repos
 )
+repos <- repos[!duplicated(unname(repos))]
 install.packages(
   c(
     "S7",
