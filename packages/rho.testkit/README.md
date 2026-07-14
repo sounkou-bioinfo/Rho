@@ -1,0 +1,46 @@
+
+# rho.testki
+
+[`rho.testkit`](https://sounkou-bioinfo.github.io/Rho/rho.testkit/)
+supplies bounded tinytest assertions for Rho tasks and streams. Every
+assertion has an explicit timeout, so a broken asynchronous path fails
+instead of hanging the test process.
+
+## Bounded assertions (runs at render time)
+
+``` r
+library(rho.async)
+library(rho.testkit)
+
+value <- expect_resolves(
+  rho_then(rho_task(20L), function(x) x + 22L),
+  expected = 42L,
+  timeout = 1000
+)
+items <- expect_stream_length(
+  rho_list_stream(letters[1:3]),
+  n = 3L,
+  timeout = 1000
+)
+list(value = value, items = items)
+#> $value
+#> [1] 42
+#>
+#> $items
+#> $items[[1]]
+#> [1] "a"
+#>
+#> $items[[2]]
+#> [1] "b"
+#>
+#> $items[[3]]
+#> [1] "c"
+```
+
+The package also provides a deterministic faux-provider agent fixture.
+Authored tests remain R Markdown documents; the monorepo derives
+executable tinytest files and checks that generated files are current.
+
+See the [`rho.testkit`
+reference](https://sounkou-bioinfo.github.io/Rho/rho.testkit/) and the
+base [`rho.async`](../rho.async/README.md) contracts.

@@ -1,0 +1,50 @@
+---
+output: github_document
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+# rho.ai
+
+[`rho.ai`](https://sounkou-bioinfo.github.io/Rho/rho.ai/) defines the provider
+surface shared by the rest of [Rho](../../README.md): typed messages and
+content, model capabilities, tool contracts, credentials, provider operations,
+and normalized assistant event streams.
+
+## One stream protocol (runs at render time)
+
+```{r provider}
+library(rho.async)
+library(rho.ai)
+
+provider <- rho_faux_provider()
+model <- rho_model(provider = "faux", id = "faux")
+context <- rho_context(messages = list(rho_user_message("hello")))
+
+events <- rho_stream(provider, model, context) |>
+  rho_stream_collect(timeout = 1000)
+vapply(events, rho_assistant_event_type, character(1))
+events[[length(events)]]@message@content[[1L]]@text
+```
+
+The faux provider is deterministic, but it emits the same typed events as the
+OpenAI, OpenAI Codex, Anthropic, and Ollama implementations. Capabilities are
+queried through values and generics instead of provider-name conditionals:
+
+```{r capabilities}
+spark <- rho_openai_codex_spark()
+list(
+  text_input = rho_model_supports_input(spark, "text"),
+  image_input = rho_model_supports_input(spark, "image"),
+  thinking = rho_supported_thinking_levels(spark)
+)
+```
+
+Credentials are explicit `RhoCredential` values resolved by a
+`CredentialStore`. A request translator receives typed request auth; provider
+code does not discover secrets through environment variables.
+
+Continue with the [`rho.agent`](../rho.agent/README.md) loop, or see the
+[`rho.ai` reference](https://sounkou-bioinfo.github.io/Rho/rho.ai/).

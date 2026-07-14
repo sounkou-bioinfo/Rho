@@ -23,3 +23,12 @@ fixture or integration test moves a row to `verified`.
 
 Live wire adapters are tracked separately from surface parity. An API family is
 not called implemented merely because its identifier is accepted.
+
+## Live provider probes
+
+| Adapter | Contract | Status |
+|---|---|---|
+| OpenAI Codex | explicit OAuth credential import, auth resolution, Responses translation, decoding, and agent completion with `gpt-5.3-codex-spark` | verified 2026-07-14 by `scripts/smoke-openai-codex.R` |
+| OpenAI | Chat Completions request translation and normalized SSE decoding fixtures | implemented |
+| Anthropic | Messages request translation and normalized SSE decoding fixtures | implemented |
+| Ollama | chat request translation and normalized response decoding fixtures | implemented |

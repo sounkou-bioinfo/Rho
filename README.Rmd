@@ -3,7 +3,10 @@ output: github_document
 ---
 
 ```{r, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
 ```
 
 # Rho: async agents in modern R
@@ -12,87 +15,149 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 [![R-CMD-check](https://github.com/sounkou-bioinfo/Rho/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sounkou-bioinfo/Rho/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-Rho is an async-first agent runtime for R 4.4 and newer. It uses S7 classes,
-generics, methods, and contracts to make provider and agent behavior explicit.
-`nanonext` owns low-level asynchronous I/O. `mirai` owns worker evaluation.
-Blocking is visible at `rho_await()` and other declared boundary operations.
+**Rho is an asynchronous provider and agent runtime built from R's own
+abstractions: S7 dispatch for open protocols, nanonext for I/O, and mirai for
+worker evaluation.**
 
-The core project is not `rho-bio-agent`. Bioinformatics is a downstream
-application that must depend on a complete provider and agent substrate.
+An effectful operation returns a task or stream. Waiting is an explicit edge
+operation, so a CLI can block while a Shiny application, extension, or another
+agent keeps composing work.
 
-## Core contracts
+## An agent run (runs at render time)
 
-```text
-rho.async -> rho.http -> rho.ai -> rho.agent -> rho.ext -> rho.coding
-rho.async -> rho.compute -> rho.graphics
+The deterministic provider is the executable specification for the same event
+protocol used by live providers. `rho_prompt()` returns before the result is
+collected; `rho_await()` marks the blocking boundary.
+
+```{r agent}
+library(rho.async)
+library(rho.ai)
+library(rho.agent)
+
+agent <- rho_agent(
+  provider = rho_faux_provider(),
+  model = rho_model(provider = "faux", id = "faux")
+)
+
+run_task <- rho_prompt(agent, "hello from R")
+rho_is_task(run_task)
+
+run <- rho_await(run_task, timeout = 5000)
+c(
+  status = run@status,
+  answer = run@messages[[2L]]@content[[1L]]@text
+)
 ```
 
-- `rho.async` defines tasks, streams, cancellation, timeouts, and composition.
-- `rho.http` defines HTTP, SSE, and WebSocket transport contracts.
-- `rho.ai` defines models, messages, normalized provider events, tools, usage,
-  provider catalogs, and credentials.
-- `rho.agent` defines the multi-turn loop, tool execution, queues, cancellation,
-  and ordered lifecycle events.
-- `rho.ext` and `rho.coding` build on the agent without changing its core.
-- `rho.compute` adapts mirai workers without leaking mirai policy into the
-  agent. A tool declares whether calls may overlap and chooses its own backend.
-- `rho.coding` includes a cross-platform Bash resolver, an isolated mirai R
-  evaluator, and an explicitly stateful current-session R evaluator.
+The transcript contains typed messages and content; the lifecycle is an ordered
+sequence of typed events rather than callbacks hidden inside the provider.
 
-Built-in provider implementations live in `rho.ai`. The faux provider is the
-deterministic executable specification. Live adapters use `rho.http` and emit
-the same normalized stream protocol. External packages remain possible for
-adapters with a real dependency, licensing, or ABI boundary.
+```{r events}
+vapply(run@events, function(event) event@type, character(1))
+```
 
-Provider credentials are explicit values resolved through a credential store.
-Provider implementations never discover API keys from process-global environment
-variables; request translation receives a typed `RhoModelAuth` value.
+## OpenAI Codex with explicit credentials
 
-## Downstream packages
+Live authentication is a value passed to the provider catalog. Rho does not
+search environment variables or process-global credential state. The importer
+accepts a Pi or Codex auth file only when its path is supplied by the caller.
 
-`rho.bio`, `rho.duckdb`, and `rho.bio.agent` are kept downstream of the core.
-They may use R-native affordances such as DuckDB and lazy relational
-composition, but they do not define provider or agent semantics.
+```{r codex, eval = FALSE}
+credential <- rho_load_openai_codex_credential(
+  path = "/absolute/path/to/auth.json"
+) |>
+  rho_await(timeout = 5000)
 
-## Development
+codex <- rho_openai_codex_provider()
+models <- rho_models(
+  providers = list(codex),
+  credentials = rho_memory_credential_store(
+    list(`openai-codex` = credential)
+  )
+)
+
+agent <- rho_agent(
+  provider = models,
+  model = rho_openai_codex_spark(),
+  stream_options = list(reasoning_effort = "minimal")
+)
+run <- rho_prompt(agent, "Reply with exactly rho-live-ok and nothing else.") |>
+  rho_await(timeout = 120000)
+```
+
+Recorded on 2026-07-14 against the live Codex endpoint:
+
+```text
+model: gpt-5.3-codex-spark
+status: completed
+answer: rho-live-ok
+events: 14
+```
+
+The same probe is available as a script; it prints model, status, answer, and
+event count, never credential material:
 
 ```bash
+make smoke-codex CREDENTIAL=/absolute/path/to/auth.json
+```
+
+## The packages
+
+Rho keeps transport, provider semantics, agent policy, and applications in
+separate installable packages. Each package README below contains an example
+that is executed when the documentation is rendered.
+
+| package | role | documentation |
+|---|---|---|
+| **rho.async** | tasks, streams, cancellation, timeouts, and composition | [README](packages/rho.async/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.async/) |
+| **rho.http** | typed HTTP requests, nanonext transport, and SSE decoding | [README](packages/rho.http/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.http/) |
+| **rho.ai** | messages, models, capabilities, credentials, providers, and tools | [README](packages/rho.ai/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.ai/) |
+| **rho.agent** | multi-turn execution, tool scheduling, queues, cancellation, and events | [README](packages/rho.agent/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.agent/) |
+| **rho.ext** | asynchronous extension handlers and capability registration | [README](packages/rho.ext/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.ext/) |
+| **rho.compute** | typed mirai expression and function-call tasks | [README](packages/rho.compute/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.compute/) |
+| **rho.graphics** | declared graphics devices and hashed artifacts | [README](packages/rho.graphics/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.graphics/) |
+| **rho.coding** | Bash, file, isolated-worker R, and explicit current-session R tools | [README](packages/rho.coding/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.coding/) |
+| **rho.bio** | manifests, resolvers, receipts, and database-neutral SQL contracts | [README](packages/rho.bio/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.bio/) |
+| **rho.duckdb** | DuckDB implementation of the asynchronous SQL contracts | [README](packages/rho.duckdb/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/) |
+| **rho.bio.agent** | bioinformatics tools registered through the extension API | [README](packages/rho.bio.agent/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/) |
+| **rho.testkit** | bounded assertions for asynchronous tests | [README](packages/rho.testkit/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.testkit/) |
+
+Provider implementations with no independent dependency or ABI boundary live
+in `rho.ai`. OpenAI, OpenAI Codex, Anthropic, Ollama, and the deterministic faux
+provider therefore share one typed provider surface without a package per API.
+
+Bioinformatics remains downstream: `rho.bio`, `rho.duckdb`, and
+`rho.bio.agent` consume the provider and agent substrate but do not define it.
+
+## Install and develop
+
+Rho targets R 4.4 or newer. While the repository is private, install from a
+checkout:
+
+```bash
+git clone git@github.com:sounkou-bioinfo/Rho.git
+cd Rho
 make deps
 make install
-make format
-make check-format
-make rd
+```
+
+The authored API documentation is roxygen; the authored tests are R Markdown
+files under each package's `inst/tinytest/rmd/` directory. Generated manuals,
+namespaces, executable tests, and READMEs are reproducible from their sources.
+
+```bash
+make format       # Air
+make rd           # roxygen2
+make purl-tests   # Rmd tests -> executable tinytest files
+make rdm          # execute and render all package READMEs
 make test
-make check
-make rdm
+make check        # every package must report Status: OK
 ```
 
-R Markdown files under each package's `inst/tinytest/rmd/` are the authored
-tests. `make purl-tests` derives the executable test files. Roxygen blocks in
-`R/api.R` are the authored package API documentation; `make rd` regenerates
-`NAMESPACE` and `man/`. Air is the repository formatter. `make check-style`
-checks both the R style contract and Air formatting before package tests run.
-
-`make check` builds each source tarball and requires an exact `Status: OK` from
-every `R CMD check`; a NOTE or WARNING fails the monorepo gate.
-
-The current behavioral parity target is recorded in
-[`docs/pi-parity.md`](docs/pi-parity.md). A box is only marked complete after
-the corresponding fixture or integration test passes.
-
-The repository remains private until parity, checks, live provider smoke tests,
-documentation, and secret scanning are green. Public release is the point at
-which it will be added to
-`sounkou-bioinfo/sounkou-bioinfo.r-universe.dev`.
-
-## Repository layout
-
-```text
-packages/     installable R packages
-integration/ cross-package executable specifications
-scripts/      monorepo orchestration
-tools/        shared developer make rules
-```
+The [Pi parity ledger](docs/pi-parity.md) records behavioral contracts and the
+fixtures that verify them. Public release and addition to the
+[sounkou-bioinfo R-universe](https://sounkou-bioinfo.r-universe.dev) follow
+green package checks, live-provider probes, documentation, and secret scanning.
 
 ## License
 

@@ -1,0 +1,37 @@
+
+# rho.http
+
+[`rho.http`](https://sounkou-bioinfo.github.io/Rho/rho.http/) gives Rho
+one typed HTTP boundary. Provider implementations build `RhoHttpRequest`
+values and receive tasks or SSE streams; request encoding, TLS, and
+connection handling remain in this package.
+
+## TLS and SSE (runs at render time)
+
+``` r
+library(rho.http)
+
+client <- rho_http_client()
+inherits(client@tls, "tlsConfig")
+#> [1] TRUE
+
+events <- rho_sse_parse(paste0(
+  "event: delta\n",
+  "data: first\n\n",
+  "data: done\n\n"
+))
+vapply(events, function(event) event@event, character(1))
+#> [1] "delta"   "message"
+vapply(events, function(event) event@data, character(1))
+#> [1] "first" "done"
+```
+
+`rho_http_client()` uses nanonext’s in-memory mbedTLS configuration. A
+caller that requires peer authentication passes a configured `tlsConfig`
+value; the package never searches operating-system certificate paths.
+SSE values feed typed provider decoders in
+[`rho.ai`](../rho.ai/README.md).
+
+See the [`rho.http`
+reference](https://sounkou-bioinfo.github.io/Rho/rho.http/) and the
+underlying [`rho.async`](../rho.async/README.md) contract.

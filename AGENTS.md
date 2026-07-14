@@ -36,3 +36,4 @@ Rho architecture rules:
 32. R evaluation names its state semantics. Current-session evaluation receives an explicit environment and requires exclusive scheduling. Ordinary mirai evaluation is isolated and must not be described as a persistent REPL.
 33. Keep the GitHub repository private until the parity ledger, package checks, live provider smoke tests, documentation, and secret scan are green. Only then make it public and add it to `sounkou-bioinfo/sounkou-bioinfo.r-universe.dev`.
 34. Air is the repository formatter. Run `make format` after editing authored R code and require `make check-format` in CI. Generated tinytest files are excluded because their Rmd sources are authoritative.
+35. Every package that defines S7 methods calls `S7::methods_register()` from `.onLoad()`. This is required for methods on generics owned by another package and harmless for locally owned generics.

@@ -1,7 +1,7 @@
 PKGNAME := $(shell sed -n 's/Package: *\([^ ]*\)/\1/p' DESCRIPTION)
 PKGVERS := $(shell sed -n 's/Version: *\([^ ]*\)/\1/p' DESCRIPTION)
 
-.PHONY: all build check install test rd clean
+.PHONY: all build check install test rd rdm clean
 
 all: check
 
@@ -19,6 +19,10 @@ test: install
 
 rd:
 	Rscript -e 'roxygen2::roxygenise(".")'
+
+rdm: install
+	Rscript -e 'rmarkdown::render("README.Rmd", output_format = "github_document", quiet = TRUE)'
+	@rm -f README.html
 
 clean:
 	@rm -rf $(PKGNAME)_$(PKGVERS).tar.gz $(PKGNAME).Rcheck README.html docs

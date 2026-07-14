@@ -1,0 +1,58 @@
+
+# rho.graphics
+
+[`rho.graphics`](https://sounkou-bioinfo.github.io/Rho/rho.graphics/)
+makes R graphics first-class asynchronous artifacts. A render declares
+its device and returns dimensions, media type, digest, alternative text,
+and provenance; it does not depend on whichever interactive device
+happens to be active.
+
+## Render an artifact (runs at render time)
+
+``` r
+library(rho.async)
+library(rho.graphics)
+
+path <- tempfile(fileext = ".png")
+spec <- rho_base_graphic(
+  plot(points, type = "b", xlab = "sample", ylab = "value"),
+  data = list(points = c(2, 5, 3, 7))
+)
+artifact <- rho_render_graphic(
+  spec,
+  device = rho_png_device(width = 5, height = 3),
+  path = path,
+  alt = "Four connected sample values"
+) |>
+  rho_await(timeout = 10000)
+
+list(
+  format = artifact@format,
+  media_type = artifact@media_type,
+  alt = artifact@alt,
+  digest = substr(artifact@sha256, 1L, 12L),
+  bytes = unname(file.info(artifact@path)$size)
+)
+#> $forma
+#> [1] "png"
+#>
+#> $media_type
+#> [1] "image/png"
+#>
+#> $al
+#> [1] "Four connected sample values"
+#>
+#> $diges
+#> [1] "31a9496db858"
+#>
+#> $bytes
+#> [1] 19812
+unlink(artifact@path)
+```
+
+PNG, SVG, and PDF are durable outputs. A recorded plot may support an
+ephemeral preview, but it is not treated as archival provenance.
+
+See the [`rho.graphics`
+reference](https://sounkou-bioinfo.github.io/Rho/rho.graphics/) and its
+worker substrate, [`rho.compute`](../rho.compute/README.md).

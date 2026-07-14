@@ -7,7 +7,7 @@ Authors@R:
     person(given = "Sounkou Mahamane", family = "Toure",
            email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
 Description: Provides typed HTTP request and response values, nanonext-backed
-    asynchronous requests, and incremental Server-Sent Events parsing for the
+    asynchronous requests, and Server-Sent Events decoding for the
     Rho provider layer.
 License: MIT + file LICENSE
 Encoding: UTF-8
