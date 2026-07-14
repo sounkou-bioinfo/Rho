@@ -14,7 +14,7 @@ represents one eventual value; a `RhoStream` represents an asynchronous
 sequence. Both are open S7 protocols, so transports and worker systems can add
 methods without changing callers.
 
-## Tasks and streams (runs at render time)
+## Tasks and streams
 
 ```{r compose}
 library(rho.async)

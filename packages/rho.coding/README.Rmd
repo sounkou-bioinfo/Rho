@@ -13,7 +13,7 @@ coding tools with explicit execution semantics: file operations, Bash with a
 typed cross-platform resolution, isolated R evaluation in mirai, and opt-in
 evaluation in a caller-supplied current-session environment.
 
-## Isolated R evaluation (runs at render time)
+## Isolated R evaluation
 
 ```{r r-tool}
 library(rho.async)

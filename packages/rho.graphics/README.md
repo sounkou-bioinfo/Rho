@@ -7,7 +7,7 @@ its device and returns dimensions, media type, digest, alternative text,
 and provenance; it does not depend on whichever interactive device
 happens to be active.
 
-## Render an artifact (runs at render time)
+## Render an artifact
 
 ``` r
 library(rho.async)
@@ -33,16 +33,16 @@ list(
   digest = substr(artifact@sha256, 1L, 12L),
   bytes = unname(file.info(artifact@path)$size)
 )
-#> $forma
+#> $format
 #> [1] "png"
 #>
 #> $media_type
 #> [1] "image/png"
 #>
-#> $al
+#> $alt
 #> [1] "Four connected sample values"
 #>
-#> $diges
+#> $digest
 #> [1] "31a9496db858"
 #>
 #> $bytes

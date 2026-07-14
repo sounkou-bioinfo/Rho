@@ -23,8 +23,8 @@ environment variables. JSON parsing and serialization use `yyjsonr` throughout.
 Known boundaries that are deliberately explicit rather than faked:
 
 - `rho.ai::rho_faux_provider()` is the deterministic provider used by tests.
-- OpenAI Responses/Codex wire events have a typed decoder and a live Spark smoke
-  test has succeeded locally. Anthropic and Ollama request surfaces still need
+- OpenAI Responses/Codex wire events have a typed decoder and the root README
+  exercises an agent with Spark. Anthropic and Ollama request surfaces still need
   live streaming fixtures before their adapters can be called verified.
 - `rho.http::rho_sse_connect()` currently resolves an HTTP response body into an SSE event stream using nanonext `ncurl_aio`; it is correct for complete SSE bodies and test fixtures. A chunk-by-chunk client stream backend should be added when nanonext exposes or Rho implements that transport cleanly.
 - `rho.duckdb` has a conservative read-only SQL guard; production hardening should add a parser-backed guard before enabling untrusted SQL.
@@ -35,6 +35,6 @@ Known boundaries that are deliberately explicit rather than faked:
   not exposed as a REPL until routing and lifetime are represented explicitly.
 
 The repository stays private until the parity ledger, package checks, live
-provider smoke tests, generated documentation, and secret scan pass. Public
+live provider checks, generated documentation, and secret scan pass. Public
 release is followed by registration in
 `sounkou-bioinfo/sounkou-bioinfo.r-universe.dev`.

@@ -742,7 +742,7 @@ rho_openai_codex_input <- function(context, placement) {
 }
 
 rho_openai_codex_tools <- function(tools, defer_loading = FALSE) {
-  lapply(tools, function(tool) {
+  unname(lapply(tools, function(tool) {
     definition <- list(
       type = "function",
       name = tool@name,
@@ -753,7 +753,7 @@ rho_openai_codex_tools <- function(tools, defer_loading = FALSE) {
       definition$defer_loading <- TRUE
     }
     definition
-  })
+  }))
 }
 
 rho_openai_codex_request <- function(provider, model, context, options = list()) {

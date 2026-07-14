@@ -6,7 +6,7 @@ provider surface shared by the rest of [Rho](../../README.md): typed
 messages and content, model capabilities, tool contracts, credentials,
 provider operations, and normalized assistant event streams.
 
-## One stream protocol (runs at render time)
+## One stream protocol
 
 ``` r
 library(rho.async)
@@ -20,7 +20,7 @@ events <- rho_stream(provider, model, context) |>
   rho_stream_collect(timeout = 1000)
 vapply(events, rho_assistant_event_type, character(1))
 #> [1] "start"      "text_start" "text_delta" "text_end"   "done"
-events[[length(events)]]@message@content[[1L]]@tex
+events[[length(events)]]@message@content[[1L]]@text
 #> [1] "faux: hello"
 ```
 
@@ -36,10 +36,10 @@ list(
   image_input = rho_model_supports_input(spark, "image"),
   thinking = rho_supported_thinking_levels(spark)
 )
-#> $text_inpu
+#> $text_input
 #> [1] TRUE
 #>
-#> $image_inpu
+#> $image_input
 #> [1] FALSE
 #>
 #> $thinking

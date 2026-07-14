@@ -13,7 +13,7 @@ extension runtime for [Rho](../../README.md). Extensions register handlers,
 tools, commands, and providers through an explicit API object; they do not
 patch package globals.
 
-## An asynchronous handler chain (runs at render time)
+## An asynchronous handler chain
 
 ```{r extension}
 library(rho.async)

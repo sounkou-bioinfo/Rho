@@ -1,12 +1,12 @@
 
-# rho.testki
+# rho.testkit
 
 [`rho.testkit`](https://sounkou-bioinfo.github.io/Rho/rho.testkit/)
 supplies bounded tinytest assertions for Rho tasks and streams. Every
 assertion has an explicit timeout, so a broken asynchronous path fails
 instead of hanging the test process.
 
-## Bounded assertions (runs at render time)
+## Bounded assertions
 
 ``` r
 library(rho.async)

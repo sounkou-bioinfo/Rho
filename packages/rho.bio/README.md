@@ -7,7 +7,7 @@ resources. Manifests name resolvers and operations; resolution produces
 a receipt that keeps source observations and provenance separate from
 model-authored text.
 
-## Declare and resolve a resource (runs at render time)
+## Declare and resolve a resource
 
 ``` r
 library(rho.async)
@@ -64,7 +64,7 @@ list(
 #> $rows
 #> [1] 2
 #>
-#> $diges
+#> $digest
 #> [1] "sha256:4f53cda18c2b"
 ```
 

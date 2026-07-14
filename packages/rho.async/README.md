@@ -7,7 +7,7 @@ small asynchronous contract at the base of [Rho](../../README.md). A
 asynchronous sequence. Both are open S7 protocols, so transports and
 worker systems can add methods without changing callers.
 
-## Tasks and streams (runs at render time)
+## Tasks and streams
 
 ``` r
 library(rho.async)
@@ -37,7 +37,7 @@ rho_stream_collect(stream, timeout = 1000)
 
 Composition stays asynchronous. `rho_await()` is deliberately
 conspicuous and is reserved for boundaries such as a CLI, a test, or an
-interactive request for the finished value. Cancellation and timeou
+interactive request for the finished value. Cancellation and timeout
 operations use the same task contract; adapters own the mechanics of
 stopping their underlying handle.
 

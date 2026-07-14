@@ -79,6 +79,29 @@ expect_equal(request@headers$`OpenAI-Beta`, "responses=experimental")
 expect_equal(request@headers$Accept, "text/event-stream")
 expect_true(s7contract::implements(OpenAICodexOAuthAuth, OAuthAuth))
 expect_true(s7contract::implements(OpenAICodexApi, ProviderRequestTranslator))
+
+named_tool <- rho_tool_spec(
+  name = "r",
+  description = "Evaluate R code",
+  parameters = list(type = "object", properties = list()),
+  execute = function(...) NULL
+)
+tool_context <- rho_context(
+  messages = list(rho_user_message("calculate")),
+  tools = list(r = named_tool)
+)
+tool_request <- rho_openai_codex_request(
+  codex@implementation,
+  spark,
+  tool_context,
+  options = list(auth = resolved_auth)
+)
+expect_true(is.null(names(tool_request@body$tools)))
+encoded_tool_request <- yyjsonr::write_json_str(
+  tool_request@body,
+  auto_unbox = TRUE
+)
+expect_true(grepl('"tools":\\[', encoded_tool_request))
 ```
 
 ```{r explicit-auth-runtime}

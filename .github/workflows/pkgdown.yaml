@@ -36,7 +36,7 @@ jobs:
       - name: Build the landing page
         run: |
           pandoc README.md --standalone --from=gfm \
-            --metadata title="Rho: async agents in modern R" \
+            --metadata title="Rho" \
             --output=_site/index.html
 
       - name: Upload private site artifact

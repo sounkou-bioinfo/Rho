@@ -7,7 +7,7 @@ operations, Bash with a typed cross-platform resolution, isolated R
 evaluation in mirai, and opt-in evaluation in a caller-supplied
 current-session environment.
 
-## Isolated R evaluation (runs at render time)
+## Isolated R evaluation
 
 ``` r
 library(rho.async)
@@ -37,7 +37,7 @@ list(
 ```
 
 The ordinary R tool is isolated and may overlap with another call. A
-`RhoCurrentSessionREvaluator` instead receives an explicit environmen
+`RhoCurrentSessionREvaluator` instead receives an explicit environment
 and requires exclusive scheduling. Bash follows the same discipline: on
 Windows it resolves a real Bash implementation rather than translating
 model-generated Bash into another shell language.

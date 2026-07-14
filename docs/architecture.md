@@ -115,7 +115,7 @@ credential back to that store before another request resolves auth.
 
 Development remains private while provider and agent parity is incomplete. The
 repository becomes public only after the parity ledger is satisfied, every
-package installs and checks on supported platforms, live provider smoke tests
+package installs and checks on supported platforms, live provider checks
 pass without stored credentials, generated documentation is current, and a
 secret scan is clean. The public repository can then be added to
 `sounkou-bioinfo/sounkou-bioinfo.r-universe.dev`; r-universe inclusion is a

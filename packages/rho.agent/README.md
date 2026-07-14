@@ -1,5 +1,5 @@
 
-# rho.agen
+# rho.agent
 
 [`rho.agent`](https://sounkou-bioinfo.github.io/Rho/rho.agent/) is Rho’s
 provider-neutral, multi-turn agent loop. It turns provider streams into
@@ -7,7 +7,7 @@ an ordered lifecycle, schedules typed tools, drains steering and
 follow-up queues, and propagates cancellation without placing coding or
 bioinformatics policy in the core.
 
-## Run an agent (runs at render time)
+## Run an agent
 
 ``` r
 library(rho.async)

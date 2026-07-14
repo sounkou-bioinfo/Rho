@@ -6,7 +6,7 @@ one typed HTTP boundary. Provider implementations build `RhoHttpRequest`
 values and receive tasks or SSE streams; request encoding, TLS, and
 connection handling remain in this package.
 
-## TLS and SSE (runs at render time)
+## TLS and SSE
 
 ``` r
 library(rho.http)

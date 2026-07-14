@@ -1,7 +1,7 @@
 # Monorepo driver. Package installation and checks run in dependency order.
 # Each package also includes ../../tools/package.mk for focused work.
 
-.PHONY: all deps install purl-tests check-purled-tests format check-format check-style test check rd rdm smoke-codex site clean tarball
+.PHONY: all deps install purl-tests check-purled-tests format check-format check-style test check rd rdm rdm-codex site clean tarball
 
 all: test
 
@@ -39,8 +39,8 @@ rd: install
 rdm: install
 	Rscript scripts/render-readmes.R
 
-smoke-codex: install
-	Rscript scripts/smoke-openai-codex.R "$(CREDENTIAL)"
+rdm-codex: install
+	Rscript scripts/render-readmes.R "$(CREDENTIAL)"
 
 site: install
 	Rscript scripts/build-site.R

@@ -13,7 +13,7 @@ agent-independent substrate for declared bioinformatics resources. Manifests
 name resolvers and operations; resolution produces a receipt that keeps source
 observations and provenance separate from model-authored text.
 
-## Declare and resolve a resource (runs at render time)
+## Declare and resolve a resource
 
 ```{r resource}
 library(rho.async)

@@ -1,20 +1,23 @@
 
-# Rho: async agents in modern R
+# Rho
 
 <!-- badges: start -->
 
 [![R-CMD-check](https://github.com/sounkou-bioinfo/Rho/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sounkou-bioinfo/Rho/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-**Rho is an asynchronous provider and agent runtime built from R’s own
-abstractions: S7 dispatch for open protocols, nanonext for I/O, and
-mirai for worker evaluation.**
+**An asynchronous agent runtime for R, inspired by
+[Pi](https://github.com/badlogic/pi-mono).**
 
-An effectful operation returns a task or stream. Waiting is an explici
+Rho expresses Pi’s provider and agent architecture through S7 classes
+and open generics. nanonext provides asynchronous I/O, and mirai
+provides worker evaluation.
+
+An effectful operation returns a task or stream. Waiting is an explicit
 edge operation, so a CLI can block while a Shiny application, extension,
 or another agent keeps composing work.
 
-## An agent run (runs at render time)
+## An agent run
 
 The deterministic provider is the executable specification for the same
 event protocol used by live providers. `rho_prompt()` returns before the
@@ -37,7 +40,7 @@ rho_is_task(run_task)
 run <- rho_await(run_task, timeout = 5000)
 c(
   status = run@status,
-  answer = run@messages[[2L]]@content[[1L]]@tex
+  answer = run@messages[[2L]]@content[[1L]]@text
 )
 #>               status               answer
 #>          "completed" "faux: hello from R"
@@ -62,40 +65,81 @@ importer accepts a Pi or Codex auth file only when its path is supplied
 by the caller.
 
 ``` r
+library(rho.coding)
+
+credential_path <- getOption("rho.openai_codex_credential")
+if (is.null(credential_path)) {
+  stop("Set the rho.openai_codex_credential option to an auth-file path")
+}
+
 credential <- rho_load_openai_codex_credential(
-  path = "/absolute/path/to/auth.json"
+  path = credential_path
 ) |>
   rho_await(timeout = 5000)
+if (S7::S7_inherits(credential, AuthErrorValue)) {
+  stop(credential@message)
+}
 
-codex <- rho_openai_codex_provider()
+codex_provider <- rho_openai_codex_provider()
 models <- rho_models(
-  providers = list(codex),
+  providers = list(codex_provider),
   credentials = rho_memory_credential_store(
     list(`openai-codex` = credential)
   )
 )
 
-agent <- rho_agent(
+codex_model <- rho_openai_codex_spark()
+codex_agent <- rho_agent(
   provider = models,
-  model = rho_openai_codex_spark(),
+  model = codex_model,
+  tools = list(rho_tool_r()),
   stream_options = list(reasoning_effort = "minimal")
 )
-run <- rho_prompt(agent, "Reply with exactly rho-live-ok and nothing else.") |>
+
+codex_run <- rho_prompt(
+  codex_agent,
+  paste(
+    "Call the r tool exactly once with code sum((1:100)^2).",
+    "Then answer with only the integer result."
+  )
+) |>
   rho_await(timeout = 120000)
+
+if (!identical(codex_run@status, "completed")) {
+  stop("The Codex agent did not complete")
+}
+if (length(codex_run@tool_results) != 1L) {
+  stop("The Codex agent did not call exactly one tool")
+}
+
+tool_result <- codex_run@tool_results[[1L]]
+result <- tool_result@content[[1L]]@text
+if (!identical(tool_result@tool_name, "r") || !grepl("338350", result, fixed = TRUE)) {
+  stop("The R tool returned an unexpected result")
+}
+
+codex_example <- data.frame(
+  model = codex_model@id,
+  status = codex_run@status,
+  tool = tool_result@tool_name,
+  result = result
+)
+codex_example
+#>                 model    status tool     result
+#> 1 gpt-5.3-codex-spark completed    r [1] 338350
 ```
 
-The probe is also available as a script. It prints model, status,
-answer, and event count, never credential material:
+Rebuild this example by supplying the credential file explicitly:
 
 ``` bash
-make smoke-codex CREDENTIAL=/absolute/path/to/auth.json
+make rdm-codex CREDENTIAL=/absolute/path/to/auth.json
 ```
 
 ## The packages
 
 Rho keeps transport, provider semantics, agent policy, and applications
-in separate installable packages. Each package README below contains an
-example that is executed when the documentation is rendered.
+in separate installable packages. Each package has a focused README and
+reference site.
 
 | package           | role                                                                    | documentation                                                                                                  |
 |-------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
@@ -118,7 +162,7 @@ deterministic faux provider therefore share one typed provider surface
 without a package per API.
 
 Bioinformatics remains downstream: `rho.bio`, `rho.duckdb`, and
-`rho.bio.agent` consume the provider and agent substrate but do no
+`rho.bio.agent` consume the provider and agent substrate but do not
 define it.
 
 ## Install and develop
@@ -127,7 +171,7 @@ Rho targets R 4.4 or newer. While the repository is private, install
 from a checkout:
 
 ``` bash
-git clone git@github.com:sounkou-bioinfo/Rho.gi
+git clone git@github.com:sounkou-bioinfo/Rho.git
 cd Rho
 make deps
 make install
@@ -142,15 +186,15 @@ reproducible from their sources.
 make format       # Air
 make rd           # roxygen2
 make purl-tests   # Rmd tests -> executable tinytest files
-make rdm          # execute and render all package READMEs
-make tes
+make rdm          # rebuild package READMEs
+make test
 make check        # every package must report Status: OK
 ```
 
 The [Pi parity ledger](docs/pi-parity.md) records behavioral contracts
 and the fixtures that verify them. Public release and addition to the
 [sounkou-bioinfo R-universe](https://sounkou-bioinfo.r-universe.dev)
-follow green package checks, live-provider probes, documentation, and
+follow green package checks, live provider checks, documentation, and
 secret scanning.
 
 ## License

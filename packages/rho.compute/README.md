@@ -6,7 +6,7 @@ adapts mirai worker evaluation to [`rho.async`](../rho.async/README.md).
 Expressions and function calls are typed specifications; the agent sees
 only a `RhoTask` and does not acquire hidden worker policy.
 
-## Worker evaluation (runs at render time)
+## Worker evaluation
 
 ``` r
 library(rho.async)

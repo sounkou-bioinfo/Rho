@@ -14,7 +14,7 @@ ordered lifecycle, schedules typed tools, drains steering and follow-up queues,
 and propagates cancellation without placing coding or bioinformatics policy in
 the core.
 
-## Run an agent (runs at render time)
+## Run an agent
 
 ```{r agent}
 library(rho.async)

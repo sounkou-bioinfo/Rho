@@ -1,12 +1,12 @@
 
-# rho.ex
+# rho.ext
 
 [`rho.ext`](https://sounkou-bioinfo.github.io/Rho/rho.ext/) is the open
 extension runtime for [Rho](../../README.md). Extensions register
 handlers, tools, commands, and providers through an explicit API object;
 they do not patch package globals.
 
-## An asynchronous handler chain (runs at render time)
+## An asynchronous handler chain
 
 ``` r
 library(rho.async)
@@ -24,12 +24,12 @@ results <- rho_dispatch_event(
 ) |>
   rho_await(timeout = 1000)
 results[[1L]]
-#> $tex
+#> $text
 #> [1] "COMPOSE ME"
 ```
 
 Plain handler values and tasks are normalized at the dispatch boundary.
-This lets an extension perform I/O, ask for permission, or consul
+This lets an extension perform I/O, ask for permission, or consult
 policy without turning the agent loop into a synchronous callback
 system.
 

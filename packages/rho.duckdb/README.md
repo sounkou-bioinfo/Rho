@@ -6,7 +6,7 @@ implements the database-neutral [`rho.bio`](../rho.bio/README.md) SQL
 generics for DuckDB. Queries return tasks, and declared read-only paths
 are checked before execution.
 
-## An asynchronous query (runs at render time)
+## An asynchronous query
 
 ``` r
 library(rho.async)
