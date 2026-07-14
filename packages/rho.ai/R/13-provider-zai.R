@@ -298,27 +298,46 @@ S7::method(rho_auth_to_request, ZaiApiKeyAuth) <- function(auth, credential, ...
   ))
 }
 
-rho_zai_glm_5_2 <- function(
-  provider_id = "zai",
-  base_url = "https://api.z.ai/api/coding/paas/v4",
-  preserve_thinking = TRUE
-) {
-  catalog <- rho_default_model_catalog()
-  record <- rho_catalog_records_for(catalog, "zai", "glm-5.2")[[1L]]
+rho_zai_catalog_provider <- function(endpoint, catalog) {
+  direct <- rho_catalog_records_for(catalog, endpoint@provider_id)
+  if (length(direct)) endpoint@provider_id else "zai"
+}
+
+rho_zai_compile_model <- function(record, endpoint) {
   provider <- ZaiModelCatalogProvider(
-    id = provider_id,
-    name = record@provider@name,
-    base_url = base_url,
-    preserve_thinking = isTRUE(preserve_thinking)
+    id = endpoint@provider_id,
+    name = endpoint@name,
+    base_url = endpoint@base_url,
+    preserve_thinking = S7::S7_inherits(endpoint, ZaiCodingEndpoint)
   )
   rho_compile_catalog_model(rho_catalog_record_with_provider(record, provider))
 }
 
+rho_zai_model <- function(
+  id,
+  endpoint = rho_zai_coding_endpoint(),
+  catalog = rho_default_model_catalog()
+) {
+  source_provider <- rho_zai_catalog_provider(endpoint, catalog)
+  records <- rho_catalog_records_for(catalog, source_provider, id)
+  if (!length(records)) {
+    return(rho_catalog_model(catalog, source_provider, id))
+  }
+  rho_zai_compile_model(records[[1L]], endpoint)
+}
+
 rho_zai_provider <- function(
   endpoint = rho_zai_coding_endpoint(),
-  http = rho.http::rho_http_client(timeout_ms = 120000L)
+  http = rho.http::rho_http_client(timeout_ms = 120000L),
+  catalog = rho_default_model_catalog()
 ) {
   api <- ZaiApi(endpoint = endpoint, http = http)
+  source_provider <- rho_zai_catalog_provider(endpoint, catalog)
+  models <- lapply(
+    rho_catalog_records_for(catalog, source_provider),
+    rho_zai_compile_model,
+    endpoint = endpoint
+  )
   rho_provider(
     id = endpoint@provider_id,
     name = endpoint@name,
@@ -329,11 +348,7 @@ rho_zai_provider <- function(
         provider_id = endpoint@provider_id
       )
     ),
-    models = list(rho_zai_glm_5_2(
-      provider_id = endpoint@provider_id,
-      base_url = endpoint@base_url,
-      preserve_thinking = S7::S7_inherits(endpoint, ZaiCodingEndpoint)
-    ))
+    models = models
   )
 }
 

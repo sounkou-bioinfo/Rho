@@ -14,7 +14,7 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports:
-    S7, rho.async, nanonext, yyjsonr
+    S7, rho.async, nanonext (>= 1.10.1.9000), yyjsonr
 Suggests:
     tinytest, knitr
 URL: https://github.com/sounkou-bioinfo/Rho,

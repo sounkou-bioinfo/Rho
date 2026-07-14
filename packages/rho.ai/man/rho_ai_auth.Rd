@@ -57,7 +57,7 @@
 \alias{rho_openai_codex_credential}
 \alias{rho_load_openai_codex_credential}
 \alias{rho_openai_codex_provider}
-\alias{rho_openai_codex_spark}
+\alias{rho_openai_codex_model}
 \alias{rho_openai_codex_request}
 \alias{GitHubCopilotClientIdentity}
 \alias{GitHubCopilotEndpoints}
@@ -72,7 +72,7 @@
 \alias{rho_github_copilot_credential_from_github_token}
 \alias{rho_load_github_copilot_credential}
 \alias{rho_github_copilot_provider}
-\alias{rho_github_copilot_gpt_5_3_codex}
+\alias{rho_github_copilot_model}
 \alias{rho_github_copilot_request}
 \alias{rho_message_initiator}
 \alias{rho_has_image_input}

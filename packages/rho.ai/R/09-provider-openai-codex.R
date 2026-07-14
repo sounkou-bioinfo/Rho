@@ -598,7 +598,8 @@ rho_load_openai_codex_credential <- function(path) {
 rho_openai_codex_provider <- function(
   base_url = "https://chatgpt.com/backend-api",
   originator = "rho",
-  http = rho.http::rho_http_client(timeout_ms = 120000L)
+  http = rho.http::rho_http_client(timeout_ms = 120000L),
+  catalog = rho_default_model_catalog()
 ) {
   implementation <- OpenAICodexApi(
     base_url = base_url,
@@ -610,15 +611,19 @@ rho_openai_codex_provider <- function(
     name = "OpenAI Codex",
     implementation = implementation,
     auth = rho_provider_auth(oauth = rho_openai_codex_auth(http)),
-    models = list(rho_openai_codex_spark())
+    models = rho_catalog_models(
+      catalog,
+      provider = "openai-codex",
+      protocol = OpenAIResponsesProtocol()
+    )
   )
 }
 
-rho_openai_codex_spark <- function() {
+rho_openai_codex_model <- function(id, catalog = rho_default_model_catalog()) {
   rho_catalog_model(
-    rho_default_model_catalog(),
+    catalog,
     "openai-codex",
-    "gpt-5.3-codex-spark"
+    id
   )
 }
 

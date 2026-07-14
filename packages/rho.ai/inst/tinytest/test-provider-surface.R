@@ -56,7 +56,7 @@ credential <- rho_openai_codex_credential(
   expires = Inf
 )
 codex <- rho_openai_codex_provider()
-spark <- rho_openai_codex_spark()
+spark <- rho_openai_codex_model("gpt-5.3-codex-spark")
 resolved_auth <- rho_await(rho_auth_to_request(codex@auth@oauth, credential))
 request <- rho_openai_codex_request(
   codex@implementation,
@@ -214,7 +214,7 @@ expect_equal(
   c("search_tools", "lookup_weather")
 )
 
-tool_search_model <- rho_openai_codex_spark()
+tool_search_model <- rho_openai_codex_model("gpt-5.3-codex-spark")
 tool_search_model@compatibility <- rho_openai_responses_compatibility(
   supports_tool_search = TRUE
 )

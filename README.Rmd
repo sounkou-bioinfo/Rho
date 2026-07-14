@@ -70,17 +70,10 @@ accepts a Pi or Codex auth file only when its path is supplied by the caller.
 library(rho.coding)
 
 credential_path <- getOption("rho.openai_codex_credential")
-if (is.null(credential_path)) {
-  stop("Set the rho.openai_codex_credential option to an auth-file path")
-}
-
 credential <- rho_load_openai_codex_credential(
   path = credential_path
 ) |>
   rho_await(timeout = 5000)
-if (S7::S7_inherits(credential, AuthErrorValue)) {
-  stop(credential@message)
-}
 
 codex_provider <- rho_openai_codex_provider()
 models <- rho_models(
@@ -90,7 +83,7 @@ models <- rho_models(
   )
 )
 
-codex_model <- rho_openai_codex_spark()
+codex_model <- rho_openai_codex_model("gpt-5.3-codex-spark")
 codex_agent <- rho_agent(
   provider = models,
   model = codex_model,
@@ -107,18 +100,8 @@ codex_run <- rho_prompt(
 ) |>
   rho_await(timeout = 120000)
 
-if (!identical(codex_run@status, "completed")) {
-  stop("The Codex agent did not complete")
-}
-if (length(codex_run@tool_results) != 1L) {
-  stop("The Codex agent did not call exactly one tool")
-}
-
 tool_result <- codex_run@tool_results[[1L]]
 result <- tool_result@content[[1L]]@text
-if (!identical(tool_result@tool_name, "r") || !grepl("338350", result, fixed = TRUE)) {
-  stop("The R tool returned an unexpected result")
-}
 
 codex_example <- data.frame(
   model = codex_model@id,

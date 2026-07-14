@@ -5,11 +5,21 @@ repos <- c(
   configured_repos
 )
 repos <- repos[!duplicated(unname(repos))]
+
+nanonext_commit <- "82e199fb4a61619d9444c5e05fa30fb4990940a7"
+nanonext_source <- sprintf(
+  "https://github.com/sounkou-bioinfo/nanonext/archive/%s.tar.gz",
+  nanonext_commit
+)
+
+install.packages(nanonext_source, repos = NULL, type = "source")
+if (!"ncurl_stream_aio" %in% getNamespaceExports("nanonext")) {
+  stop("Pinned nanonext build does not export ncurl_stream_aio", call. = FALSE)
+}
 install.packages(
   c(
     "S7",
     "s7contract",
-    "nanonext",
     "mirai",
     "coro",
     "later",

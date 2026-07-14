@@ -30,11 +30,11 @@ Completions events to it. Capabilities are queried through values and
 generics instead of provider-name conditionals:
 
 ``` r
-spark <- rho_openai_codex_spark()
+model <- rho_openai_codex_model("gpt-5.3-codex-spark")
 list(
-  text_input = rho_model_supports_input(spark, "text"),
-  image_input = rho_model_supports_input(spark, "image"),
-  thinking = rho_supported_thinking_levels(spark)
+  text_input = rho_model_supports_input(model, "text"),
+  image_input = rho_model_supports_input(model, "image"),
+  thinking = rho_supported_thinking_levels(model)
 )
 #> $text_input
 #> [1] TRUE
@@ -61,7 +61,7 @@ usage <- rho_usage(
   cache_read = 200,
   reasoning = 40
 )
-priced <- rho_price_usage(spark, usage)
+priced <- rho_price_usage(model, usage)
 
 c(
   tokens = priced@total,

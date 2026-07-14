@@ -5,7 +5,7 @@ library(rho.async)
 library(rho.ai)
 
 provider <- rho_zai_provider()
-model <- provider@models[[1L]]
+model <- rho_zai_model("glm-5.2")
 credential <- rho_api_key_credential("zai", "zai-test-key", source = "fixture")
 auth <- rho_auth_to_request(provider@auth@api_key, credential) |> rho_await()
 tool <- rho_tool_spec(
@@ -54,7 +54,7 @@ expect_equal(disabled@body$thinking$type, "disabled")
 expect_true(is.null(disabled@body$reasoning_effort))
 
 general <- rho_zai_provider(rho_zai_general_endpoint())
-general_model <- general@models[[1L]]
+general_model <- rho_zai_model("glm-5.2", rho_zai_general_endpoint())
 general_auth <- rho_auth_to_request(
   general@auth@api_key,
   rho_api_key_credential("zai-api", "general-test-key")
@@ -199,7 +199,7 @@ models <- rho_models(
 )
 events <- rho_stream(
   models,
-  provider@models[[1L]],
+  rho_zai_model("glm-5.2", endpoint),
   context
 ) |> rho_stream_collect(timeout = 2000L)
 types <- vapply(events, rho_assistant_event_type, character(1))

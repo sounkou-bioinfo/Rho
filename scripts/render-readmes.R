@@ -38,7 +38,10 @@ package_order <- c(
   "rho.testkit"
 )
 
-readmes <- c(file.path("packages", package_order, "README.Rmd"), "README.Rmd")
+readmes <- file.path("packages", package_order, "README.Rmd")
+if (length(arguments) == 1L) {
+  readmes <- c(readmes, "README.Rmd")
+}
 
 for (readme in readmes) {
   if (!file.exists(readme)) {

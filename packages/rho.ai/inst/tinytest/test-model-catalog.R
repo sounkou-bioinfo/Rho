@@ -103,14 +103,17 @@ expect_equal(codex@capabilities@transports, c(
 ))
 
 expect_equal(
-  rho_openai_codex_spark()@limits@context_window,
+  rho_openai_codex_model("gpt-5.3-codex-spark")@limits@context_window,
   codex@limits@context_window
 )
 expect_equal(
-  rho_github_copilot_gpt_5_3_codex()@limits@context_window,
+  rho_github_copilot_model("gpt-5.3-codex")@limits@context_window,
   model@limits@context_window
 )
-expect_true(S7::S7_inherits(rho_zai_glm_5_2(), ZaiChatCompletionsModel))
+expect_true(S7::S7_inherits(
+  rho_zai_model("glm-5.2"),
+  ZaiChatCompletionsModel
+))
 
 missing <- rho_catalog_model(catalog, "openai", "not-a-model")
 

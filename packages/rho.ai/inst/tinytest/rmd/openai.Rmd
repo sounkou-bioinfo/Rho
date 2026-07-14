@@ -19,9 +19,12 @@ expect_true(S7::S7_inherits(provider@auth@api_key, OpenAIApiKeyAuth))
 expect_true(S7::S7_inherits(model, OpenAIResponsesModel))
 expect_equal(model@api, "openai-responses")
 expect_true(length(provider@models) > 1L)
-expect_true(S7::S7_inherits(rho_openai_codex_spark(), OpenAICodexResponsesModel))
 expect_true(S7::S7_inherits(
-  rho_github_copilot_gpt_5_3_codex(),
+  rho_openai_codex_model("gpt-5.3-codex-spark"),
+  OpenAICodexResponsesModel
+))
+expect_true(S7::S7_inherits(
+  rho_github_copilot_model("gpt-5.3-codex"),
   GitHubCopilotResponsesModel
 ))
 ```

@@ -560,18 +560,19 @@ S7::method(
   utils::modifyList(headers, options$headers %||% list())
 }
 
-rho_github_copilot_gpt_5_3_codex <- function() {
+rho_github_copilot_model <- function(id, catalog = rho_default_model_catalog()) {
   rho_catalog_model(
-    rho_default_model_catalog(),
+    catalog,
     "github-copilot",
-    "gpt-5.3-codex"
+    id
   )
 }
 
 rho_github_copilot_provider <- function(
   github_domain = "github.com",
   identity = rho_github_copilot_client_identity(),
-  http = rho.http::rho_http_client(timeout_ms = 120000L)
+  http = rho.http::rho_http_client(timeout_ms = 120000L),
+  catalog = rho_default_model_catalog()
 ) {
   api <- GitHubCopilotApi(identity = identity, http = http)
   rho_provider(
@@ -585,7 +586,10 @@ rho_github_copilot_provider <- function(
         http = http
       )
     ),
-    models = list(rho_github_copilot_gpt_5_3_codex())
+    models = Filter(
+      function(model) S7::S7_inherits(model, GitHubCopilotResponsesModel),
+      rho_catalog_models(catalog, provider = "github-copilot")
+    )
   )
 }
 

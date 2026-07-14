@@ -16,7 +16,7 @@
 \alias{rho_zai_coding_endpoint}
 \alias{rho_zai_china_coding_endpoint}
 \alias{rho_zai_general_endpoint}
-\alias{rho_zai_glm_5_2}
+\alias{rho_zai_model}
 \alias{rho_zai_provider}
 \alias{rho_zai_request}
 \alias{rho_apply_thinking_control}

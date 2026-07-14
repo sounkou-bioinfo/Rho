@@ -129,7 +129,7 @@ NULL
 #' @aliases ZaiChatCompletionsModel ZaiEndpoint ZaiCodingEndpoint
 #' @aliases ZaiGeneralEndpoint ZaiApi ZaiApiKeyAuth
 #' @aliases rho_zai_coding_endpoint rho_zai_china_coding_endpoint
-#' @aliases rho_zai_general_endpoint rho_zai_glm_5_2 rho_zai_provider
+#' @aliases rho_zai_general_endpoint rho_zai_model rho_zai_provider
 #' @aliases rho_zai_request rho_apply_thinking_control
 #' @aliases rho_apply_tool_call_streaming
 #' @export ThinkingControl
@@ -146,7 +146,7 @@ NULL
 #' @export rho_zai_coding_endpoint
 #' @export rho_zai_china_coding_endpoint
 #' @export rho_zai_general_endpoint
-#' @export rho_zai_glm_5_2
+#' @export rho_zai_model
 #' @export rho_zai_provider
 #' @export rho_zai_request
 #' @export rho_apply_thinking_control
@@ -397,7 +397,7 @@ NULL
 #' @aliases rho_auth_error OpenAICodexApi OpenAICodexOAuthAuth
 #' @aliases rho_openai_codex_auth rho_openai_codex_credential
 #' @aliases rho_load_openai_codex_credential rho_openai_codex_provider
-#' @aliases rho_openai_codex_spark rho_openai_codex_request
+#' @aliases rho_openai_codex_model rho_openai_codex_request
 #' @aliases GitHubCopilotClientIdentity GitHubCopilotEndpoints
 #' @aliases GitHubCopilotDeviceAuthorization
 #' @aliases GitHubCopilotCredential GitHubCopilotModelAuth
@@ -405,7 +405,7 @@ NULL
 #' @aliases rho_github_copilot_client_identity rho_github_copilot_auth
 #' @aliases rho_github_copilot_credential rho_github_copilot_credential_from_github_token
 #' @aliases rho_load_github_copilot_credential rho_github_copilot_provider
-#' @aliases rho_github_copilot_gpt_5_3_codex rho_github_copilot_request
+#' @aliases rho_github_copilot_model rho_github_copilot_request
 #' @aliases rho_message_initiator rho_has_image_input
 #' @export CredentialStore
 #' @export OAuthAuth
@@ -462,7 +462,7 @@ NULL
 #' @export rho_openai_codex_credential
 #' @export rho_load_openai_codex_credential
 #' @export rho_openai_codex_provider
-#' @export rho_openai_codex_spark
+#' @export rho_openai_codex_model
 #' @export rho_openai_codex_request
 #' @export GitHubCopilotClientIdentity
 #' @export GitHubCopilotEndpoints
@@ -477,7 +477,7 @@ NULL
 #' @export rho_github_copilot_credential_from_github_token
 #' @export rho_load_github_copilot_credential
 #' @export rho_github_copilot_provider
-#' @export rho_github_copilot_gpt_5_3_codex
+#' @export rho_github_copilot_model
 #' @export rho_github_copilot_request
 #' @export rho_message_initiator
 #' @export rho_has_image_input

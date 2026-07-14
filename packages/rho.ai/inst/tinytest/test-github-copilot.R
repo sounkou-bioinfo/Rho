@@ -5,7 +5,7 @@ library(rho.async)
 library(rho.ai)
 
 provider <- rho_github_copilot_provider()
-model <- rho_github_copilot_gpt_5_3_codex()
+model <- rho_github_copilot_model("gpt-5.3-codex")
 credential <- rho_github_copilot_credential(
   session_token = paste0(
     "tid=test;exp=9999999999;",
@@ -252,7 +252,7 @@ models <- rho_models(
 )
 events <- rho_stream(
   models,
-  provider@models[[1L]],
+  rho_github_copilot_model("gpt-5.3-codex"),
   rho_context(messages = list(rho_user_message("hello")))
 ) |> rho_stream_collect(timeout = 2000L)
 
