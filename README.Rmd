@@ -157,8 +157,13 @@ site.
 | **rho.testkit** | bounded assertions for asynchronous tests | [README](packages/rho.testkit/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.testkit/) |
 
 Provider implementations with no independent dependency or ABI boundary live
-in `rho.ai`. OpenAI, OpenAI Codex, Anthropic, Ollama, and the deterministic faux
-provider therefore share one typed provider surface without a package per API.
+in `rho.ai`. OpenAI Codex, GitHub Copilot, Z.ai, OpenAI, Anthropic, Ollama, and
+the deterministic faux provider therefore share one typed provider surface
+without a package per API. The [Pi parity ledger](docs/pi-parity.md) distinguishes
+complete wire adapters from request translators whose normalized stream is not
+yet complete. OpenAI, OpenAI Codex, GitHub Copilot, and Z.ai have executable
+normalized-stream fixtures; the ledger records which external account runs are
+still required before publication.
 
 Bioinformatics remains downstream: `rho.bio`, `rho.duckdb`, and
 `rho.bio.agent` consume the provider and agent substrate but do not define it.

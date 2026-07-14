@@ -69,6 +69,17 @@ are S7 generics with broad, explicit default methods. Provider/API classes add
 narrower methods only for verified behavior, and extension packages may add still
 narrower methods without editing the agent loop.
 
+Provider token reports become `Usage` values before entering the agent. Input,
+cache-read, cache-write, and output counts are disjoint; reasoning and one-hour
+cache writes are typed subsets of their parent counts. `rho_price_usage()` applies
+the model catalog's component rates and long-context tiers through S7 dispatch.
+
+OpenAI Responses request bodies are composed from `OpenAIRequestSection` values.
+The standard OpenAI, Codex, and Copilot model subclasses select their sections
+through `rho_openai_request_sections()`. Wire names are emitted only by
+`rho_openai_request_fields()` methods, so extensions can replace one policy or
+append a section without copying the complete request builder.
+
 For dynamic tools, `ToolResultMessage@added_tool_names` is the portable transcript
 fact. `rho_plan_tools()` returns one of these successful plans:
 
@@ -110,6 +121,18 @@ that is passed to request translation in `options$auth`. A provider implementati
 contains transport configuration, never ambient process credentials. Concurrent
 refresh is serialized by the credential-store gate and publishes the refreshed
 credential back to that store before another request resolves auth.
+
+## Interactive safe points and presentation
+
+The optional `rho.async` task-callback bridge drains already-ready
+`later`/promise notifications after top-level R expressions. It never waits and
+is not registered during package loading. Native graphics windows, terminal
+renderers, and desktop toolkits own their presentation lifecycle without taking
+over provider or agent scheduling.
+
+Candidate R-native presentation and secure-storage components, together with
+their package-boundary decisions, are recorded in
+[R-native interaction and secure storage](r-native-runtime.md).
 
 ## Publication gate
 

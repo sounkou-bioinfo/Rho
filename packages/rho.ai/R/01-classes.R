@@ -31,14 +31,67 @@ ToolCall <- S7::new_class(
   )
 )
 
+rho_nonnegative_double <- S7::new_property(
+  S7::class_double,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value) || value < 0) "must be one non-negative number"
+  }
+)
+
+rho_optional_nonnegative_double <- S7::new_property(
+  S7::class_any,
+  default = NULL,
+  validator = function(value) {
+    if (
+      !is.null(value) &&
+        (!is.double(value) || length(value) != 1L || is.na(value) || value < 0)
+    ) {
+      "must be NULL or one non-negative double"
+    }
+  }
+)
+
+UsageCost <- S7::new_class(
+  "UsageCost",
+  properties = list(
+    input = rho_nonnegative_double,
+    output = rho_nonnegative_double,
+    cache_read = rho_nonnegative_double,
+    cache_write = rho_nonnegative_double,
+    total = rho_nonnegative_double
+  ),
+  validator = function(self) {
+    components <- self@input + self@output + self@cache_read + self@cache_write
+    if (!isTRUE(all.equal(self@total, components))) {
+      "@total must equal the sum of the component costs"
+    }
+  }
+)
+
 Usage <- S7::new_class(
   "Usage",
   properties = list(
-    input = S7::class_double,
-    output = S7::class_double,
-    total = S7::class_double,
-    cost = S7::class_double
-  )
+    input = rho_nonnegative_double,
+    output = rho_nonnegative_double,
+    cache_read = rho_nonnegative_double,
+    cache_write = rho_nonnegative_double,
+    cache_write_1h = rho_optional_nonnegative_double,
+    reasoning = rho_optional_nonnegative_double,
+    total = rho_nonnegative_double,
+    cost = UsageCost
+  ),
+  validator = function(self) {
+    components <- self@input + self@output + self@cache_read + self@cache_write
+    if (!isTRUE(all.equal(self@total, components))) {
+      return("@total must equal input + output + cache_read + cache_write")
+    }
+    if (!is.null(self@reasoning) && self@reasoning > self@output) {
+      return("@reasoning is a subset of @output and must not exceed it")
+    }
+    if (!is.null(self@cache_write_1h) && self@cache_write_1h > self@cache_write) {
+      "@cache_write_1h is a subset of @cache_write and must not exceed it"
+    }
+  }
 )
 
 UserMessage <- S7::new_class(
@@ -52,7 +105,7 @@ AssistantMessage <- S7::new_class(
     provider = S7::class_character,
     model = S7::class_character,
     stop_reason = S7::class_character,
-    usage = S7::class_any,
+    usage = Usage,
     response_id = S7::new_property(S7::class_character, default = ""),
     timestamp = S7::class_double
   )
@@ -82,13 +135,6 @@ rho_positive_integer <- S7::new_property(
   S7::class_integer,
   validator = function(value) {
     if (length(value) != 1L || is.na(value) || value <= 0L) "must be one positive integer"
-  }
-)
-
-rho_nonnegative_double <- S7::new_property(
-  S7::class_double,
-  validator = function(value) {
-    if (length(value) != 1L || is.na(value) || value < 0) "must be one non-negative number"
   }
 )
 
@@ -172,6 +218,14 @@ ModelPricingTier <- S7::new_class(
   )
 )
 
+rho_model_pricing_tiers <- S7::new_property(
+  S7::class_list,
+  validator = function(value) {
+    invalid <- Filter(function(tier) !S7::S7_inherits(tier, ModelPricingTier), value)
+    if (length(invalid)) "must contain only ModelPricingTier values"
+  }
+)
+
 ModelPricing <- S7::new_class(
   "ModelPricing",
   properties = list(
@@ -179,7 +233,7 @@ ModelPricing <- S7::new_class(
     output = rho_nonnegative_double,
     cache_read = rho_nonnegative_double,
     cache_write = rho_nonnegative_double,
-    tiers = S7::class_list
+    tiers = rho_model_pricing_tiers
   )
 )
 
@@ -198,6 +252,18 @@ Model <- S7::new_class(
     compatibility = S7::class_any
   )
 )
+
+OpenAIResponsesModel <- S7::new_class("OpenAIResponsesModel", parent = Model)
+OpenAICodexResponsesModel <- S7::new_class(
+  "OpenAICodexResponsesModel",
+  parent = OpenAIResponsesModel
+)
+GitHubCopilotResponsesModel <- S7::new_class(
+  "GitHubCopilotResponsesModel",
+  parent = OpenAIResponsesModel
+)
+OpenAIChatCompletionsModel <- S7::new_class("OpenAIChatCompletionsModel", parent = Model)
+AnthropicMessagesModel <- S7::new_class("AnthropicMessagesModel", parent = Model)
 
 Context <- S7::new_class(
   "Context",

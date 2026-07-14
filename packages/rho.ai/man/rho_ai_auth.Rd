@@ -59,6 +59,23 @@
 \alias{rho_openai_codex_provider}
 \alias{rho_openai_codex_spark}
 \alias{rho_openai_codex_request}
+\alias{GitHubCopilotClientIdentity}
+\alias{GitHubCopilotEndpoints}
+\alias{GitHubCopilotDeviceAuthorization}
+\alias{GitHubCopilotCredential}
+\alias{GitHubCopilotModelAuth}
+\alias{GitHubCopilotOAuthAuth}
+\alias{GitHubCopilotApi}
+\alias{rho_github_copilot_client_identity}
+\alias{rho_github_copilot_auth}
+\alias{rho_github_copilot_credential}
+\alias{rho_github_copilot_credential_from_github_token}
+\alias{rho_load_github_copilot_credential}
+\alias{rho_github_copilot_provider}
+\alias{rho_github_copilot_gpt_5_3_codex}
+\alias{rho_github_copilot_request}
+\alias{rho_message_initiator}
+\alias{rho_has_image_input}
 \title{Explicit credentials, login effects, and provider catalog state}
 \description{
 Credentials are owned by a \code{CredentialStore}; login interaction is owned by

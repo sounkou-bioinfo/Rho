@@ -41,6 +41,24 @@ interactive request for the finished value. Cancellation and timeout
 operations use the same task contract; adapters own the mechanics of
 stopping their underlying handle.
 
+## Interactive R
+
+An interactive session may opt into a top-level task callback that
+drains work already ready in the `later` loop after each completed R
+expression.
+
+``` r
+bridge <- rho_task_callback_bridge()
+bridge <- rho_await(rho_register_task_callback(bridge))
+
+# Remove it explicitly when the session no longer needs the bridge.
+bridge <- rho_await(rho_remove_task_callback(bridge))
+```
+
+The callback never waits for work and is not a scheduler. nanonext
+remains the I/O substrate; the bridge only improves progress at
+interactive R safe points.
+
 Continue with [`rho.http`](../rho.http/README.md), or see the
 [`rho.async`
 reference](https://sounkou-bioinfo.github.io/Rho/rho.async/).

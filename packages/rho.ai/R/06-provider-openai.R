@@ -1,81 +1,196 @@
-OpenAIProvider <- S7::new_class(
-  "OpenAIProvider",
+OpenAIApi <- S7::new_class(
+  "OpenAIApi",
   properties = list(
-    base_url = S7::class_character,
+    base_url = rho_non_empty_string,
     http = rho.http::RhoHttpClient
   )
 )
 
-rho_openai_provider <- function(
-  base_url = "https://api.openai.com/v1",
-  http = rho.http::rho_http_client()
-) {
-  OpenAIProvider(base_url = base_url, http = http)
+OpenAIApiKeyAuth <- S7::new_class(
+  "OpenAIApiKeyAuth",
+  properties = list(
+    name = rho_non_empty_string,
+    provider_id = rho_non_empty_string
+  )
+)
+
+rho_openai_model <- function(id, catalog = rho_default_model_catalog()) {
+  rho_catalog_model(catalog, "openai", id)
 }
 
-rho_openai_chat_request <- function(provider, model, context, options = list()) {
+rho_openai_provider <- function(
+  base_url = "https://api.openai.com/v1",
+  http = rho.http::rho_http_client(timeout_ms = 120000L),
+  catalog = rho_default_model_catalog()
+) {
+  api <- OpenAIApi(base_url = base_url, http = http)
+  rho_provider(
+    id = "openai",
+    name = "OpenAI",
+    implementation = api,
+    auth = rho_provider_auth(
+      api_key = OpenAIApiKeyAuth(
+        name = "OpenAI",
+        provider_id = "openai"
+      )
+    ),
+    models = rho_catalog_models(
+      catalog,
+      provider = "openai",
+      protocol = OpenAIResponsesProtocol()
+    )
+  )
+}
+
+S7::method(rho_auth_login, OpenAIApiKeyAuth) <- function(auth, provider_id, io, ...) {
+  rho.async::rho_then(
+    rho_auth_prompt(
+      io,
+      RhoSecretAuthPrompt(
+        message = sprintf("Enter the API key for %s:", auth@name),
+        placeholder = ""
+      )
+    ),
+    function(key) {
+      if (!is.character(key) || length(key) != 1L || !nzchar(key)) {
+        return(rho_auth_error("OpenAI API key was not supplied", code = "missing"))
+      }
+      rho_api_key_credential(auth@provider_id, key, source = "login")
+    }
+  )
+}
+
+S7::method(rho_auth_to_request, OpenAIApiKeyAuth) <- function(auth, credential, ...) {
+  valid <- S7::S7_inherits(credential, RhoApiKeyCredential) &&
+    identical(credential@provider, auth@provider_id) &&
+    nzchar(credential@state$key)
+  if (!valid) {
+    return(rho.async::rho_task(rho_auth_error(
+      "OpenAI request auth requires a matching API-key credential",
+      code = "credential_type"
+    )))
+  }
+  rho.async::rho_task(rho_model_auth(
+    api_key = credential@state$key,
+    metadata = list(provider = credential@provider, source = credential@source)
+  ))
+}
+
+S7::method(
+  rho_provider_headers,
+  list(OpenAIApi, OpenAIResponsesModel, Context)
+) <- function(provider, model, context, options = list(), ...) {
+  utils::modifyList(model@headers, options$headers %||% list())
+}
+
+S7::method(
+  rho_provider_support,
+  list(OpenAIApi, OpenAIResponsesModel, RhoToolSearchOperation)
+) <- function(provider, model, operation, ...) {
+  compatibility <- model@compatibility
+  supported <- S7::S7_inherits(compatibility, OpenAIResponsesCompatibility) &&
+    compatibility@supports_tool_search
+  rho_provider_support_value(
+    supported,
+    source = "openai-responses-compatibility",
+    details = list(model = model@id)
+  )
+}
+
+S7::method(
+  rho_provider_support,
+  list(OpenAIApi, OpenAIResponsesModel, RhoNativeCompactionOperation)
+) <- function(provider, model, operation, ...) {
+  compatibility <- model@compatibility
+  supported <- S7::S7_inherits(compatibility, OpenAIResponsesCompatibility) &&
+    compatibility@supports_native_compaction
+  rho_provider_support_value(
+    supported,
+    source = "openai-responses-compatibility",
+    details = list(model = model@id)
+  )
+}
+
+S7::method(
+  rho_plan_tools,
+  list(OpenAIApi, OpenAIResponsesModel, Context)
+) <- function(provider, model, context, ...) {
+  support <- rho_provider_support(provider, model, RhoToolSearchOperation())
+  if (!support@supported) {
+    return(rho_full_tool_placement(
+      context@tools,
+      reason = sprintf(
+        "OpenAI tool search is not verified for %s; all active definitions are advertised at the request boundary",
+        model@id
+      ),
+      cache_expectation = if (length(rho_deferred_tool_names(context))) {
+        "replace-prefix"
+      } else {
+        "unchanged"
+      }
+    ))
+  }
+  placement <- rho_split_deferred_tools(context)
+  rho_openai_tool_search_placement(placement$immediate, placement$deferred)
+}
+
+rho_openai_responses_url <- function(base_url) {
+  normalized <- sub("/+$", "", base_url)
+  if (endsWith(normalized, "/responses")) normalized else paste0(normalized, "/responses")
+}
+
+rho_openai_request <- function(provider, model, context, options = list()) {
   rho_build_provider_request(provider, model, context, options = options)
 }
 
 S7::method(
   rho_build_provider_request,
-  list(OpenAIProvider, Model, Context)
+  list(OpenAIApi, OpenAIResponsesModel, Context)
 ) <- function(provider, model, context, options = list(), ...) {
   auth <- options$auth
   if (!S7::S7_inherits(auth, RhoModelAuth) || !nzchar(auth@api_key)) {
     rho_abort("OpenAI requests require explicit resolved auth in `options$auth`")
   }
-  messages <- lapply(context@messages, function(message) {
-    if (S7::S7_inherits(message, UserMessage)) {
-      list(role = "user", content = as.character(message@content))
-    } else if (S7::S7_inherits(message, AssistantMessage)) {
-      list(
-        role = "assistant",
-        content = paste(
-          vapply(
-            message@content,
-            function(content) {
-              if (S7::S7_inherits(content, TextContent)) content@text else ""
-            },
-            character(1)
-          ),
-          collapse = ""
-        )
-      )
-    } else {
-      NULL
-    }
-  })
-  messages <- Filter(Negate(is.null), messages)
-  if (nzchar(context@system_prompt)) {
-    messages <- c(list(list(role = "system", content = context@system_prompt)), messages)
+  placement <- options$tool_placement %||% rho_plan_tools(provider, model, context)
+  if (!S7::S7_inherits(placement, RhoToolPlacement)) {
+    rho_abort("`options$tool_placement` must inherit from RhoToolPlacement")
   }
-  request_body <- list(
-    model = model@id,
-    messages = messages,
-    stream = isTRUE(options$stream %||% TRUE)
-  )
+  base_url <- if (nzchar(auth@base_url)) auth@base_url else provider@base_url
   headers <- utils::modifyList(
     list(
       Authorization = paste("Bearer", auth@api_key),
+      Accept = "text/event-stream",
       `Content-Type` = "application/json"
     ),
-    auth@headers
+    rho_provider_headers(provider, model, context, options = options)
   )
-  base_url <- if (nzchar(auth@base_url)) auth@base_url else provider@base_url
+  headers <- utils::modifyList(headers, auth@headers)
+  if (!is.null(options$session_id)) {
+    headers$`x-client-request-id` <- options$session_id
+  }
   rho.http::rho_http_request(
-    "POST",
-    paste0(sub("/+$", "", base_url), "/chat/completions"),
+    method = "POST",
+    url = rho_openai_responses_url(base_url),
     headers = headers,
-    body = request_body,
+    body = rho_openai_responses_body(model, context, placement, options),
     timeout_ms = as.integer(options$timeout_ms %||% 120000L),
-    response_headers = "content-type",
+    response_headers = c("content-type", "retry-after", "retry-after-ms"),
     convert = TRUE
   )
 }
 
-rho_openai_sse_task <- function(provider, model, context, options = list()) {
-  options$stream <- TRUE
-  request <- rho_openai_chat_request(provider, model, context, options)
-  rho.http::rho_sse_connect(provider@http, request)
+S7::method(rho_stream, list(OpenAIApi, OpenAIResponsesModel, Context)) <- function(
+  provider,
+  model,
+  context,
+  options = list(),
+  ...
+) {
+  request <- rho_openai_request(provider, model, context, options)
+  stream <- rho.http::rho_sse_connect(provider@http, request)
+  decoder <- rho_openai_responses_decoder(model)
+  rho.async::rho_stream_flat_map(
+    stream,
+    function(event) rho_decode_provider_event(decoder, event)
+  )
 }

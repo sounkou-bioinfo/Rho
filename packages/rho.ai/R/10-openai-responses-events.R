@@ -331,14 +331,14 @@ rho_openai_decode_wire_event <- function(event) {
   )
   if (inherits(payload, "error")) {
     return(rho_openai_response_protocol_error(
-      sprintf("Invalid OpenAI Codex SSE JSON: %s", conditionMessage(payload)),
+      sprintf("Invalid OpenAI Responses SSE JSON: %s", conditionMessage(payload)),
       details = list(data = event@data)
     ))
   }
   rho_openai_response_wire_event(payload)
 }
 
-rho_openai_codex_decoder <- function(model) {
+rho_openai_responses_decoder <- function(model) {
   state <- new.env(parent = emptyenv())
   state$started <- FALSE
   state$content <- list()
@@ -347,10 +347,10 @@ rho_openai_codex_decoder <- function(model) {
   OpenAIResponseDecoder(model = model, state = state)
 }
 
-rho_openai_codex_partial_message <- function(decoder, stop_reason = "stop", usage = NULL) {
+rho_openai_responses_partial_message <- function(decoder, stop_reason = "stop", usage = NULL) {
   rho_assistant_message(
     content = decoder@state$content,
-    provider = "openai-codex",
+    provider = decoder@model@provider,
     model = decoder@model@id,
     stop_reason = stop_reason,
     usage = usage,
@@ -363,7 +363,7 @@ rho_openai_begin_events <- function(decoder) {
     return(list())
   }
   decoder@state$started <- TRUE
-  list(rho_assistant_start_event(rho_openai_codex_partial_message(decoder)))
+  list(rho_assistant_start_event(rho_openai_responses_partial_message(decoder)))
 }
 
 rho_openai_response_slot_key <- function(output_index) as.character(output_index)
@@ -436,9 +436,47 @@ rho_openai_ensure_response_slot <- function(item, decoder, output_index) {
   list(events = events, slot = slot)
 }
 
-S7::method(rho_decode_provider_event, OpenAIResponseDecoder) <- function(decoder, event, ...) {
+S7::method(
+  rho_decode_provider_event,
+  list(OpenAIResponseDecoder, RhoSseEvent)
+) <- function(decoder, event, ...) {
   wire_event <- rho_openai_decode_wire_event(event)
   c(rho_openai_begin_events(decoder), rho_reduce_provider_event(wire_event, decoder))
+}
+
+rho_openai_error_events <- function(decoder, error) {
+  c(
+    rho_openai_begin_events(decoder),
+    list(rho_assistant_error_event(
+      error,
+      rho_openai_responses_partial_message(decoder, stop_reason = "error")
+    ))
+  )
+}
+
+S7::method(
+  rho_decode_provider_event,
+  list(OpenAIResponseDecoder, RhoHttpError)
+) <- function(decoder, event, ...) {
+  rho_openai_error_events(decoder, rho_provider_http_error(event))
+}
+
+S7::method(
+  rho_decode_provider_event,
+  list(OpenAIResponseDecoder, S7::class_any)
+) <- function(decoder, event, ...) {
+  rho_openai_error_events(
+    decoder,
+    rho_provider_error(
+      message = sprintf(
+        "OpenAI response decoder cannot consume an event of class %s",
+        rho_class_label(event)
+      ),
+      kind = "protocol",
+      code = "unsupported_event",
+      details = list(event_class = rho_class_label(event))
+    )
+  )
 }
 
 S7::method(rho_reduce_provider_event, OpenAIResponseIgnored) <- function(event, decoder, ...) list()
@@ -472,7 +510,7 @@ S7::method(rho_reduce_provider_event, OpenAIResponseThinkingDelta) <- function(
   content@text <- paste0(content@text, event@delta)
   rho_openai_store_response_content(decoder, slot, content)
   list(rho_assistant_thinking_delta_event(
-    rho_openai_codex_partial_message(decoder),
+    rho_openai_responses_partial_message(decoder),
     slot@content_index,
     event@delta
   ))
@@ -501,7 +539,7 @@ S7::method(rho_reduce_provider_event, OpenAIResponseTextDelta) <- function(event
   content@text <- paste0(content@text, event@delta)
   rho_openai_store_response_content(decoder, slot, content)
   list(rho_assistant_text_delta_event(
-    rho_openai_codex_partial_message(decoder),
+    rho_openai_responses_partial_message(decoder),
     slot@content_index,
     event@delta
   ))
@@ -525,7 +563,7 @@ S7::method(rho_reduce_provider_event, OpenAIResponseToolArgumentsDelta) <- funct
   rho_openai_store_response_slot(decoder, slot)
   rho_openai_store_response_content(decoder, slot, content)
   list(rho_assistant_tool_call_delta_event(
-    rho_openai_codex_partial_message(decoder),
+    rho_openai_responses_partial_message(decoder),
     slot@content_index,
     event@delta
   ))
@@ -557,7 +595,7 @@ S7::method(rho_reduce_provider_event, OpenAIResponseToolArgumentsDone) <- functi
     return(list())
   }
   list(rho_assistant_tool_call_delta_event(
-    rho_openai_codex_partial_message(decoder),
+    rho_openai_responses_partial_message(decoder),
     slot@content_index,
     delta
   ))
@@ -577,19 +615,20 @@ rho_openai_terminal_events <- function(decoder, response, incomplete = FALSE) {
   }
   usage_data <- response$usage %||% list()
   input_details <- usage_data$input_tokens_details %||% list()
+  output_details <- usage_data$output_tokens_details %||% list()
   input_tokens <- as.double(usage_data$input_tokens %||% 0)
   output_tokens <- as.double(usage_data$output_tokens %||% 0)
   cached_tokens <- as.double(input_details$cached_tokens %||% 0)
-  cost <- max(0, input_tokens - cached_tokens) *
-    1.75e-6 +
-    cached_tokens * 0.175e-6 +
-    output_tokens * 14e-6
-  usage <- Usage(
-    input = input_tokens,
+  cache_write_tokens <- as.double(input_details$cache_write_tokens %||% 0)
+  reasoning_tokens <- output_details$reasoning_tokens
+  usage <- rho_usage(
+    input = max(0, input_tokens - cached_tokens - cache_write_tokens),
     output = output_tokens,
-    total = as.double(usage_data$total_tokens %||% input_tokens + output_tokens),
-    cost = cost
+    cache_read = cached_tokens,
+    cache_write = cache_write_tokens,
+    reasoning = if (is.null(reasoning_tokens)) NULL else as.double(reasoning_tokens)
   )
+  usage <- rho_price_usage(decoder@model, usage)
   status <- as.character(response$status %||% if (incomplete) "incomplete" else "completed")
   stop_reasons <- c(
     completed = "stop",
@@ -608,7 +647,7 @@ rho_openai_terminal_events <- function(decoder, response, incomplete = FALSE) {
   if (has_tool_call && identical(stop_reason, "stop")) {
     stop_reason <- "toolUse"
   }
-  message <- rho_openai_codex_partial_message(decoder, stop_reason, usage)
+  message <- rho_openai_responses_partial_message(decoder, stop_reason, usage)
   list(rho_assistant_done_event(message, stop_reason))
 }
 
@@ -623,7 +662,7 @@ S7::method(rho_reduce_provider_event, OpenAIResponseIncomplete) <- function(even
 S7::method(rho_reduce_provider_event, OpenAIResponseError) <- function(event, decoder, ...) {
   list(rho_assistant_error_event(
     event@error,
-    rho_openai_codex_partial_message(decoder, stop_reason = "error")
+    rho_openai_responses_partial_message(decoder, stop_reason = "error")
   ))
 }
 
@@ -635,7 +674,7 @@ S7::method(rho_start_response_item, OpenAIReasoningItem) <- function(
 ) {
   slot <- rho_openai_start_response_slot(decoder, output_index, rho_thinking(""))
   list(rho_assistant_thinking_start_event(
-    rho_openai_codex_partial_message(decoder),
+    rho_openai_responses_partial_message(decoder),
     slot@content_index
   ))
 }
@@ -648,7 +687,7 @@ S7::method(rho_start_response_item, OpenAIMessageItem) <- function(
 ) {
   slot <- rho_openai_start_response_slot(decoder, output_index, rho_text(""))
   list(rho_assistant_text_start_event(
-    rho_openai_codex_partial_message(decoder),
+    rho_openai_responses_partial_message(decoder),
     slot@content_index
   ))
 }
@@ -667,7 +706,7 @@ S7::method(rho_start_response_item, OpenAIFunctionCallItem) <- function(
     )
     return(list(rho_assistant_error_event(
       error,
-      rho_openai_codex_partial_message(decoder, stop_reason = "error")
+      rho_openai_responses_partial_message(decoder, stop_reason = "error")
     )))
   }
   content <- ToolCall(
@@ -677,7 +716,7 @@ S7::method(rho_start_response_item, OpenAIFunctionCallItem) <- function(
   )
   slot <- rho_openai_start_response_slot(decoder, output_index, content, item@arguments)
   list(rho_assistant_tool_call_start_event(
-    rho_openai_codex_partial_message(decoder),
+    rho_openai_responses_partial_message(decoder),
     slot@content_index,
     item@call_id,
     item@name
@@ -723,7 +762,7 @@ S7::method(rho_finish_response_item, OpenAIReasoningItem) <- function(
   c(
     resolved$events,
     list(rho_assistant_thinking_end_event(
-      rho_openai_codex_partial_message(decoder),
+      rho_openai_responses_partial_message(decoder),
       slot@content_index,
       content
     ))
@@ -751,7 +790,7 @@ S7::method(rho_finish_response_item, OpenAIMessageItem) <- function(
   c(
     resolved$events,
     list(rho_assistant_text_end_event(
-      rho_openai_codex_partial_message(decoder),
+      rho_openai_responses_partial_message(decoder),
       slot@content_index,
       content
     ))
@@ -777,7 +816,7 @@ S7::method(rho_finish_response_item, OpenAIFunctionCallItem) <- function(
   c(
     resolved$events,
     list(rho_assistant_tool_call_end_event(
-      rho_openai_codex_partial_message(decoder),
+      rho_openai_responses_partial_message(decoder),
       slot@content_index,
       content
     ))

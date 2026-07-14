@@ -1,5 +1,15 @@
-rho_http_client <- function(headers = list(), timeout_ms = 30000L, tls = nanonext::tls_config()) {
-  RhoHttpClient(headers = headers, timeout_ms = as.integer(timeout_ms), tls = tls)
+rho_http_client <- function(
+  headers = list(),
+  timeout_ms = 30000L,
+  tls = nanonext::tls_config(),
+  stream_buffer_size = 65536L
+) {
+  RhoHttpClient(
+    headers = headers,
+    timeout_ms = as.integer(timeout_ms),
+    tls = tls,
+    stream_buffer_size = as.integer(stream_buffer_size)
+  )
 }
 
 rho_http_request <- function(
@@ -56,6 +66,57 @@ S7::method(rho_http_send, list(RhoHttpClient, RhoHttpRequest)) <- function(clien
       headers = res$headers %||% list(),
       data = res$data,
       url = request@url
+    )
+  })
+}
+
+rho_http_open_stream <- S7::new_generic(
+  "rho_http_open_stream",
+  c("client", "request"),
+  function(client, request, ...) S7::S7_dispatch()
+)
+
+S7::method(rho_http_open_stream, list(RhoHttpClient, RhoHttpRequest)) <- function(
+  client,
+  request,
+  ...
+) {
+  headers <- c(
+    rho_normalize_http_headers(client@headers),
+    rho_normalize_http_headers(request@headers)
+  )
+  encoded <- rho_encode_http_body(request@body, headers)
+  timeout_ms <- request@timeout_ms %||% client@timeout_ms
+  aio <- nanonext::ncurl_stream_aio(
+    url = request@url,
+    method = request@method,
+    headers = encoded$headers,
+    data = encoded$data,
+    timeout = timeout_ms,
+    tls = client@tls,
+    buffer = client@stream_buffer_size
+  )
+  opening <- rho.async::rho_wrap_aio(aio)
+  stream <- rho.async::rho_then(opening, function(result) {
+    head <- RhoHttpResponseHead(
+      status = as.integer(result$status),
+      headers = result$headers %||% list(),
+      url = request@url
+    )
+    state <- new.env(parent = emptyenv())
+    state$connection <- result$stream
+    state$head <- head
+    state$timeout_ms <- timeout_ms
+    state$complete <- FALSE
+    state$closed <- FALSE
+    state$created_at <- Sys.time()
+    RhoHttpBodyStream(state = state)
+  })
+  rho.async::rho_catch(stream, function(error) {
+    RhoHttpTransportError(
+      message = sprintf("HTTP stream could not be opened: %s", conditionMessage(error)),
+      url = request@url,
+      parent = error
     )
   })
 }

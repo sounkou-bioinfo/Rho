@@ -67,6 +67,28 @@ rho_anthropic_tool_reference_placement <- function(immediate, deferred) {
   )
 }
 
+S7::method(rho_provider_http_error, RhoHttpTransportError) <- function(error, ...) {
+  rho_provider_error(
+    message = error@message,
+    kind = "transport",
+    code = "http_transport",
+    retryable = TRUE,
+    details = list(url = error@url, parent = error@parent)
+  )
+}
+
+S7::method(rho_provider_http_error, RhoHttpStatusError) <- function(error, ...) {
+  status <- error@status
+  retryable <- status %in% c(408L, 409L, 425L, 429L) || status >= 500L
+  rho_provider_error(
+    message = error@message,
+    kind = "http_status",
+    code = as.character(status),
+    retryable = retryable,
+    details = list(url = error@url, status = status, headers = error@headers)
+  )
+}
+
 S7::method(
   rho_provider_support,
   list(S7::class_any, Model, RhoProviderOperation)
@@ -102,6 +124,13 @@ S7::method(
 }
 
 S7::method(
+  rho_provider_headers,
+  list(S7::class_any, Model, Context)
+) <- function(provider, model, context, options = list(), ...) {
+  model@headers
+}
+
+S7::method(
   rho_compact_provider_input,
   list(S7::class_any, Model, Context)
 ) <- function(provider, model, context, options = list(), ...) {
@@ -133,6 +162,13 @@ S7::method(
   list(RhoProvider, Model, Context)
 ) <- function(provider, model, context, options = list(), ...) {
   rho_build_provider_request(provider@implementation, model, context, options = options, ...)
+}
+
+S7::method(
+  rho_provider_headers,
+  list(RhoProvider, Model, Context)
+) <- function(provider, model, context, options = list(), ...) {
+  rho_provider_headers(provider@implementation, model, context, options = options, ...)
 }
 
 S7::method(

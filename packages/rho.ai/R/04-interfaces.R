@@ -29,7 +29,12 @@ Tool <- s7contract::new_interface(
 )
 ProviderEventDecoder <- s7contract::new_interface(
   "ProviderEventDecoder",
-  generics = list(rho_decode_provider_event = rho_decode_provider_event)
+  generics = list(
+    rho_decode_provider_event = s7contract::interface_requirement(
+      rho_decode_provider_event,
+      args = list(event = S7::class_any)
+    )
+  )
 )
 ProviderWireEvent <- s7contract::new_interface(
   "ProviderWireEvent",
@@ -40,6 +45,15 @@ ResponseItemProtocol <- s7contract::new_interface(
   generics = list(
     rho_start_response_item = rho_start_response_item,
     rho_finish_response_item = rho_finish_response_item
+  )
+)
+OpenAIRequestSectionProtocol <- s7contract::new_interface(
+  "OpenAIRequestSectionProtocol",
+  generics = list(
+    rho_openai_request_fields = s7contract::interface_requirement(
+      rho_openai_request_fields,
+      returns = S7::class_list
+    )
   )
 )
 CredentialStore <- s7contract::new_interface(
@@ -86,6 +100,11 @@ ProviderRequestTranslator <- s7contract::new_interface(
     rho_build_provider_request = s7contract::interface_requirement(
       rho_build_provider_request,
       args = list(model = Model, context = Context)
+    ),
+    rho_provider_headers = s7contract::interface_requirement(
+      rho_provider_headers,
+      args = list(model = Model, context = Context),
+      returns = S7::class_list
     )
   )
 )

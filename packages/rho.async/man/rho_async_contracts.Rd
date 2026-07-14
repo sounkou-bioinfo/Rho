@@ -55,6 +55,23 @@
 \alias{rho_is_task}
 \alias{rho_is_stream}
 \alias{rho_new_state}
+\alias{RhoEventPump}
+\alias{RhoLaterEventPump}
+\alias{RhoEventPumpResult}
+\alias{RhoEventPumpIdle}
+\alias{RhoEventPumpProgress}
+\alias{RhoEventPumpError}
+\alias{RhoEventPumpUnsupported}
+\alias{RhoTaskCallbackBridge}
+\alias{RhoTaskCallbackError}
+\alias{RhoTaskCallbackNameInUse}
+\alias{RhoTaskCallbackRegistrationError}
+\alias{RhoTaskCallbackRemovalError}
+\alias{rho_pump_events}
+\alias{rho_later_event_pump}
+\alias{rho_task_callback_bridge}
+\alias{rho_register_task_callback}
+\alias{rho_remove_task_callback}
 \title{Asynchronous task and stream contracts}
 \description{
 Rho tasks represent one eventual value, while Rho streams represent an

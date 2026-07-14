@@ -615,28 +615,10 @@ rho_openai_codex_provider <- function(
 }
 
 rho_openai_codex_spark <- function() {
-  rho_model(
-    provider = "openai-codex",
-    id = "gpt-5.3-codex-spark",
-    name = "GPT-5.3 Codex Spark",
-    api = "openai-codex-responses",
-    base_url = "https://chatgpt.com/backend-api",
-    context_window = 128000L,
-    max_tokens = 128000L,
-    input = "text",
-    reasoning = TRUE,
-    thinking_level_map = list(xhigh = "xhigh", minimal = "low"),
-    transports = c("sse", "websocket", "websocket-cached", "auto"),
-    pricing = rho_model_pricing(
-      input = 1.75,
-      output = 14,
-      cache_read = 0.175,
-      cache_write = 0
-    ),
-    compatibility = rho_openai_responses_compatibility(
-      supports_tool_search = FALSE,
-      supports_native_compaction = FALSE
-    )
+  rho_catalog_model(
+    rho_default_model_catalog(),
+    "openai-codex",
+    "gpt-5.3-codex-spark"
   )
 }
 
@@ -651,7 +633,7 @@ rho_openai_codex_url <- function(base_url) {
   paste0(normalized, "/codex/responses")
 }
 
-rho_openai_codex_content_text <- function(content) {
+rho_openai_content_text <- function(content) {
   if (is.character(content)) {
     return(paste(content, collapse = ""))
   }
@@ -670,7 +652,7 @@ rho_openai_codex_content_text <- function(content) {
   )
 }
 
-rho_openai_codex_input <- function(context, placement) {
+rho_openai_responses_input <- function(context, placement) {
   input <- list()
   deferred <- placement@deferred
   deferred_names <- if (length(deferred)) {
@@ -686,11 +668,11 @@ rho_openai_codex_input <- function(context, placement) {
         role = "user",
         content = list(list(
           type = "input_text",
-          text = rho_openai_codex_content_text(message@content)
+          text = rho_openai_content_text(message@content)
         ))
       )
     } else if (S7::S7_inherits(message, AssistantMessage)) {
-      text <- rho_openai_codex_content_text(message@content)
+      text <- rho_openai_content_text(message@content)
       if (nzchar(text)) {
         input[[length(input) + 1L]] <- list(
           role = "assistant",
@@ -711,7 +693,7 @@ rho_openai_codex_input <- function(context, placement) {
       input[[length(input) + 1L]] <- list(
         type = "function_call_output",
         call_id = message@tool_call_id,
-        output = rho_openai_codex_content_text(message@content)
+        output = rho_openai_content_text(message@content)
       )
       names_to_load <- intersect(message@added_tool_names, setdiff(deferred_names, loaded_names))
       if (length(names_to_load)) {
@@ -733,7 +715,7 @@ rho_openai_codex_input <- function(context, placement) {
           call_id = search_call_id,
           execution = "client",
           status = "completed",
-          tools = rho_openai_codex_tools(loaded_tools, defer_loading = TRUE)
+          tools = rho_openai_responses_tools(loaded_tools, defer_loading = TRUE)
         )
       }
     }
@@ -741,7 +723,7 @@ rho_openai_codex_input <- function(context, placement) {
   input
 }
 
-rho_openai_codex_tools <- function(tools, defer_loading = FALSE) {
+rho_openai_responses_tools <- function(tools, defer_loading = FALSE) {
   unname(lapply(tools, function(tool) {
     definition <- list(
       type = "function",
@@ -762,7 +744,7 @@ rho_openai_codex_request <- function(provider, model, context, options = list())
 
 S7::method(
   rho_provider_support,
-  list(OpenAICodexApi, Model, RhoToolSearchOperation)
+  list(OpenAICodexApi, OpenAICodexResponsesModel, RhoToolSearchOperation)
 ) <- function(provider, model, operation, ...) {
   compatibility <- model@compatibility
   supported <- S7::S7_inherits(compatibility, OpenAIResponsesCompatibility) &&
@@ -776,7 +758,7 @@ S7::method(
 
 S7::method(
   rho_provider_support,
-  list(OpenAICodexApi, Model, RhoNativeCompactionOperation)
+  list(OpenAICodexApi, OpenAICodexResponsesModel, RhoNativeCompactionOperation)
 ) <- function(provider, model, operation, ...) {
   compatibility <- model@compatibility
   supported <- S7::S7_inherits(compatibility, OpenAIResponsesCompatibility) &&
@@ -790,7 +772,7 @@ S7::method(
 
 S7::method(
   rho_plan_tools,
-  list(OpenAICodexApi, Model, Context)
+  list(OpenAICodexApi, OpenAICodexResponsesModel, Context)
 ) <- function(provider, model, context, ...) {
   support <- rho_provider_support(provider, model, RhoToolSearchOperation())
   if (!support@supported) {
@@ -813,7 +795,7 @@ S7::method(
 
 S7::method(
   rho_build_provider_request,
-  list(OpenAICodexApi, Model, Context)
+  list(OpenAICodexApi, OpenAICodexResponsesModel, Context)
 ) <- function(provider, model, context, options = list(), ...) {
   auth <- options$auth
   if (!S7::S7_inherits(auth, RhoModelAuth) || !nzchar(auth@api_key)) {
@@ -825,34 +807,7 @@ S7::method(
     rho_abort("`options$tool_placement` must inherit from RhoToolPlacement")
   }
 
-  request_body <- list(
-    model = model@id,
-    store = FALSE,
-    stream = TRUE,
-    instructions = if (nzchar(context@system_prompt)) {
-      context@system_prompt
-    } else {
-      "You are a helpful assistant."
-    },
-    input = rho_openai_codex_input(context, placement),
-    text = list(verbosity = options$text_verbosity %||% "low"),
-    include = list("reasoning.encrypted_content"),
-    tool_choice = options$tool_choice %||% "auto",
-    parallel_tool_calls = model@capabilities@parallel_tool_calls
-  )
-  if (model@capabilities@tools && length(placement@immediate)) {
-    request_body$tools <- rho_openai_codex_tools(placement@immediate)
-  }
-  reasoning_effort <- options$reasoning_effort %||% "low"
-  if (!identical(reasoning_effort, "off")) {
-    request_body$reasoning <- list(
-      effort = rho_map_thinking_level(model, reasoning_effort),
-      summary = options$reasoning_summary %||% "auto"
-    )
-  }
-  if (!is.null(options$session_id)) {
-    request_body$prompt_cache_key <- options$session_id
-  }
+  request_body <- rho_openai_responses_body(model, context, placement, options)
 
   headers <- utils::modifyList(
     list(
@@ -886,19 +841,19 @@ S7::method(
   )
 }
 
-S7::method(rho_stream, list(OpenAICodexApi, Model, Context)) <- function(
+S7::method(
+  rho_stream,
+  list(OpenAICodexApi, OpenAICodexResponsesModel, Context)
+) <- function(
   provider,
   model,
   context,
   options = list(),
   ...
 ) {
-  if (!identical(model@api, "openai-codex-responses")) {
-    rho_abort("OpenAI Codex provider requires an openai-codex-responses model")
-  }
   request <- rho_openai_codex_request(provider, model, context, options)
   raw_stream <- rho.http::rho_sse_connect(provider@http, request)
-  decoder <- rho_openai_codex_decoder(model)
+  decoder <- rho_openai_responses_decoder(model)
   rho.async::rho_stream_flat_map(
     raw_stream,
     function(event) rho_decode_provider_event(decoder, event)

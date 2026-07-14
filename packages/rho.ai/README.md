@@ -24,10 +24,10 @@ events[[length(events)]]@message@content[[1L]]@text
 #> [1] "faux: hello"
 ```
 
-The faux provider is deterministic, but it emits the same typed events
-as the OpenAI, OpenAI Codex, Anthropic, and Ollama implementations.
-Capabilities are queried through values and generics instead of
-provider-name conditionals:
+The faux provider is deterministic. OpenAI, OpenAI Codex, and GitHub
+Copilot reduce Responses events to the same protocol; Z.ai reduces Chat
+Completions events to it. Capabilities are queried through values and
+generics instead of provider-name conditionals:
 
 ``` r
 spark <- rho_openai_codex_spark()
@@ -46,9 +46,47 @@ list(
 #> [1] "off"     "minimal" "low"     "medium"  "high"    "xhigh"
 ```
 
+## Usage and cost
+
+Token accounting is normalized before it reaches the agent. Ordinary
+input, cache reads, and cache writes are disjoint; reasoning is an
+optional subset of output. Pricing is an S7 generic, so the catalog
+supplies the common method and specialized models can define different
+rules.
+
+``` r
+usage <- rho_usage(
+  input = 800,
+  output = 120,
+  cache_read = 200,
+  reasoning = 40
+)
+priced <- rho_price_usage(spark, usage)
+
+c(
+  tokens = priced@total,
+  reasoning = priced@reasoning,
+  input_cost = priced@cost@input,
+  cache_read_cost = priced@cost@cache_read,
+  total_cost = priced@cost@total
+)
+#>          tokens       reasoning      input_cost cache_read_cost      total_cost
+#>       1.120e+03       4.000e+01       1.400e-03       3.500e-05       3.115e-03
+```
+
 Credentials are explicit `RhoCredential` values resolved by a
 `CredentialStore`. A request translator receives typed request auth;
 provider code does not discover secrets through environment variables.
+
+GitHub Copilot uses device authorization and a short-lived session
+credential. Z.ai keeps its Coding Plan endpoint, preserved-thinking
+policy, and streamed tool-call policy in typed values. Both remain
+ordinary providers to the agent loop.
+
+OpenAI request configuration is also typed. A request body is reduced
+from S7 sections for tools, generation controls, cache affinity, and
+reasoning. Codex defaults are methods on `OpenAICodexResponsesModel`,
+not conditionals in the standard OpenAI builder.
 
 Continue with the [`rho.agent`](../rho.agent/README.md) loop, or see the
 [`rho.ai` reference](https://sounkou-bioinfo.github.io/Rho/rho.ai/).

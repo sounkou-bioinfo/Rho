@@ -4,6 +4,51 @@ rho_text <- function(text, signature = "") {
 rho_thinking <- function(text, signature = "", redacted = FALSE) {
   ThinkingContent(text = as.character(text), signature = signature, redacted = isTRUE(redacted))
 }
+
+rho_usage_cost <- function(
+  input = 0,
+  output = 0,
+  cache_read = 0,
+  cache_write = 0
+) {
+  input <- as.double(input)
+  output <- as.double(output)
+  cache_read <- as.double(cache_read)
+  cache_write <- as.double(cache_write)
+  UsageCost(
+    input = input,
+    output = output,
+    cache_read = cache_read,
+    cache_write = cache_write,
+    total = input + output + cache_read + cache_write
+  )
+}
+
+rho_usage <- function(
+  input = 0,
+  output = 0,
+  cache_read = 0,
+  cache_write = 0,
+  cache_write_1h = NULL,
+  reasoning = NULL,
+  cost = rho_usage_cost()
+) {
+  input <- as.double(input)
+  output <- as.double(output)
+  cache_read <- as.double(cache_read)
+  cache_write <- as.double(cache_write)
+  Usage(
+    input = input,
+    output = output,
+    cache_read = cache_read,
+    cache_write = cache_write,
+    cache_write_1h = if (is.null(cache_write_1h)) NULL else as.double(cache_write_1h),
+    reasoning = if (is.null(reasoning)) NULL else as.double(reasoning),
+    total = input + output + cache_read + cache_write,
+    cost = cost
+  )
+}
+
 rho_user_message <- function(content, timestamp = as.numeric(Sys.time())) {
   UserMessage(content = content, timestamp = timestamp)
 }
@@ -42,7 +87,7 @@ rho_assistant_message <- function(
     provider = provider,
     model = model,
     stop_reason = stop_reason,
-    usage = usage %||% Usage(input = 0, output = 0, total = 0, cost = 0),
+    usage = usage %||% rho_usage(),
     response_id = response_id,
     timestamp = timestamp
   )
@@ -252,10 +297,6 @@ rho_model_pricing <- function(
   cache_write = 0,
   tiers = list()
 ) {
-  invalid <- Filter(function(tier) !S7::S7_inherits(tier, ModelPricingTier), tiers)
-  if (length(invalid)) {
-    rho_abort("`tiers` must contain ModelPricingTier values")
-  }
   ModelPricing(
     input = as.double(input),
     output = as.double(output),
@@ -263,6 +304,55 @@ rho_model_pricing <- function(
     cache_write = as.double(cache_write),
     tiers = tiers
   )
+}
+
+rho_new_model <- function(
+  class,
+  provider,
+  id,
+  name = id,
+  api = "custom",
+  base_url = "",
+  context_window = 128000L,
+  max_tokens = 4096L,
+  input = "text",
+  reasoning = FALSE,
+  thinking_level_map = list(),
+  tools = TRUE,
+  parallel_tool_calls = TRUE,
+  transports = "sse",
+  pricing = rho_model_pricing(),
+  headers = list(),
+  compatibility = list(),
+  extra = list()
+) {
+  fields <- list(
+    provider = provider,
+    id = id,
+    name = name,
+    api = api,
+    base_url = base_url,
+    capabilities = rho_model_capabilities(
+      input = input,
+      reasoning = reasoning,
+      thinking_level_map = thinking_level_map,
+      tools = tools,
+      parallel_tool_calls = parallel_tool_calls,
+      transports = transports
+    ),
+    limits = rho_model_limits(context_window, max_tokens),
+    pricing = pricing,
+    headers = headers,
+    compatibility = compatibility
+  )
+  if (length(extra) && (is.null(names(extra)) || any(!nzchar(names(extra))))) {
+    rho_abort("`extra` must be a named list")
+  }
+  duplicated <- intersect(names(fields), names(extra))
+  if (length(duplicated)) {
+    rho_abort("`extra` duplicates model field(s): %s", paste(duplicated, collapse = ", "))
+  }
+  do.call(class, c(fields, extra))
 }
 
 rho_model <- function(
@@ -283,21 +373,21 @@ rho_model <- function(
   headers = list(),
   compatibility = list()
 ) {
-  Model(
+  rho_new_model(
+    Model,
     provider = provider,
     id = id,
     name = name,
     api = api,
     base_url = base_url,
-    capabilities = rho_model_capabilities(
-      input = input,
-      reasoning = reasoning,
-      thinking_level_map = thinking_level_map,
-      tools = tools,
-      parallel_tool_calls = parallel_tool_calls,
-      transports = transports
-    ),
-    limits = rho_model_limits(context_window, max_tokens),
+    context_window = context_window,
+    max_tokens = max_tokens,
+    input = input,
+    reasoning = reasoning,
+    thinking_level_map = thinking_level_map,
+    tools = tools,
+    parallel_tool_calls = parallel_tool_calls,
+    transports = transports,
     pricing = pricing,
     headers = headers,
     compatibility = compatibility

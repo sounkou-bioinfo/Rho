@@ -1,0 +1,107 @@
+#!/usr/bin/env Rscript
+
+rho_script_file <- function() {
+  argument <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  if (!length(argument)) {
+    stop("Cannot determine the update script location", call. = FALSE)
+  }
+  normalizePath(sub("^--file=", "", argument[[1L]]), mustWork = TRUE)
+}
+
+rho_output_argument <- function(default) {
+  argument <- grep("^--output=", commandArgs(trailingOnly = TRUE), value = TRUE)
+  if (!length(argument)) default else sub("^--output=", "", argument[[1L]])
+}
+
+rho_model_effort_levels <- function(model) {
+  options <- model$reasoning_options %||% list()
+  effort <- Filter(function(option) identical(option$type, "effort"), options)
+  if (!length(effort)) character() else effort[[1L]]$values %||% character()
+}
+
+rho_models_dev_record <- function(id, model) {
+  list(
+    id = id,
+    name = model$name %||% id,
+    status = model$status %||% "active",
+    tool_call = isTRUE(model$tool_call),
+    reasoning = isTRUE(model$reasoning),
+    reasoning_levels = as.list(rho_model_effort_levels(model)),
+    input = as.list(model$modalities$input %||% "text"),
+    context_window = model$limit$context,
+    max_tokens = model$limit$output,
+    pricing = list(
+      input = model$cost$input,
+      output = model$cost$output,
+      cache_read = model$cost$cache_read %||% 0,
+      cache_write = model$cost$cache_write %||% 0
+    )
+  )
+}
+
+rho_models_dev_provider <- function(provider) {
+  model_ids <- sort(names(provider$models))
+  models <- lapply(model_ids, function(id) {
+    rho_models_dev_record(id, provider$models[[id]])
+  })
+  names(models) <- model_ids
+  list(
+    id = provider$id,
+    name = provider$name,
+    models = models
+  )
+}
+
+rho_fetch_models_dev <- function(url) {
+  response <- nanonext::ncurl(
+    url,
+    convert = FALSE,
+    follow = TRUE,
+    timeout = 30000L
+  )
+  if (inherits(response, "errorValue")) {
+    stop(sprintf("models.dev request failed: %s", conditionMessage(response)), call. = FALSE)
+  }
+  if (!identical(response$status, 200L)) {
+    stop(sprintf("models.dev returned HTTP status %s", response$status), call. = FALSE)
+  }
+  response$data
+}
+
+script <- rho_script_file()
+package <- dirname(dirname(script))
+output <- rho_output_argument(file.path(dirname(script), "models-dev-selected.json"))
+source_url <- "https://models.dev/api.json"
+source_raw <- rho_fetch_models_dev(source_url)
+source <- yyjsonr::read_json_raw(
+  source_raw,
+  arr_of_objs_to_df = FALSE,
+  obj_of_arrs_to_df = FALSE
+)
+provider_ids <- c("anthropic", "github-copilot", "openai", "zai-coding-plan")
+missing <- setdiff(provider_ids, names(source))
+if (length(missing)) {
+  stop(
+    sprintf("models.dev is missing required provider(s): %s", paste(missing, collapse = ", ")),
+    call. = FALSE
+  )
+}
+providers <- lapply(provider_ids, function(id) rho_models_dev_provider(source[[id]]))
+names(providers) <- provider_ids
+snapshot <- list(
+  schema_version = 1L,
+  source = list(
+    url = source_url,
+    sha256 = digest::digest(source_raw, algo = "sha256", serialize = FALSE)
+  ),
+  providers = providers
+)
+json <- yyjsonr::write_json_str(
+  snapshot,
+  pretty = TRUE,
+  auto_unbox = TRUE,
+  null = "null"
+)
+dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)
+writeLines(json, output, useBytes = TRUE)
+message(sprintf("Updated %s", normalizePath(output, mustWork = TRUE)))

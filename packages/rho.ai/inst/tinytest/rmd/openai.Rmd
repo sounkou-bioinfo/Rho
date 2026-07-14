@@ -1,0 +1,208 @@
+---
+title: "OpenAI Responses provider"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tinytest)
+library(rho.async)
+library(rho.ai)
+```
+
+```{r provider-catalog}
+provider <- rho_openai_provider()
+model <- rho_openai_model("gpt-5.4")
+
+expect_true(S7::S7_inherits(provider, RhoProvider))
+expect_true(S7::S7_inherits(provider@implementation, OpenAIApi))
+expect_true(S7::S7_inherits(provider@auth@api_key, OpenAIApiKeyAuth))
+expect_true(S7::S7_inherits(model, OpenAIResponsesModel))
+expect_equal(model@api, "openai-responses")
+expect_true(length(provider@models) > 1L)
+expect_true(S7::S7_inherits(rho_openai_codex_spark(), OpenAICodexResponsesModel))
+expect_true(S7::S7_inherits(
+  rho_github_copilot_gpt_5_3_codex(),
+  GitHubCopilotResponsesModel
+))
+```
+
+```{r request-sections}
+tool <- rho_tool_spec(
+  name = "lookup",
+  description = "Look up a value",
+  parameters = list(type = "object", properties = list()),
+  execute = function(...) NULL
+)
+context <- rho_context(
+  system_prompt = "Use the tool when needed.",
+  messages = list(rho_user_message("hello")),
+  tools = list(tool)
+)
+placement <- rho_plan_tools(provider, model, context)
+sections <- rho_openai_request_sections(
+  model,
+  context,
+  placement,
+  options = list(
+    max_tokens = 256L,
+    temperature = 0.5,
+    service_tier = "flex",
+    text_verbosity = "medium",
+    session_id = "session-1",
+    reasoning_effort = rho_thinking_level("high")
+  )
+)
+body <- rho_openai_responses_body(
+  model,
+  context,
+  placement,
+  options = list(
+    max_tokens = 256L,
+    temperature = 0.5,
+    service_tier = "flex",
+    text_verbosity = "medium",
+    session_id = "session-1",
+    reasoning_effort = rho_thinking_level("high")
+  )
+)
+
+expect_true(all(vapply(
+  sections,
+  function(section) S7::S7_inherits(section, OpenAIRequestSection),
+  logical(1)
+)))
+expect_true(s7contract::implements(
+  S7::S7_class(sections[[1L]]),
+  OpenAIRequestSectionProtocol
+))
+expect_equal(body$instructions, "Use the tool when needed.")
+expect_equal(body$tools[[1L]]$name, "lookup")
+expect_equal(body$tool_choice, "auto")
+expect_equal(body$max_output_tokens, 256L)
+expect_equal(body$temperature, 0.5)
+expect_equal(body$service_tier, "flex")
+expect_equal(body$text$verbosity, "medium")
+expect_equal(body$prompt_cache_key, "session-1")
+expect_equal(body$reasoning$effort, "high")
+expect_equal(body$include[[1L]], "reasoning.encrypted_content")
+
+disabled <- rho_openai_responses_body(
+  model,
+  context,
+  placement,
+  options = list(reasoning_effort = rho_thinking_level("off"))
+)
+expect_equal(disabled$reasoning$effort, "none")
+expect_true(is.null(disabled$include))
+```
+
+```{r explicit-login}
+prompts <- list()
+io <- rho_login_io(prompt = function(prompt) {
+  prompts[[length(prompts) + 1L]] <<- prompt
+  "entered-openai-key"
+})
+credential <- rho_auth_login(provider@auth@api_key, "openai", io) |>
+  rho_await(timeout = 1000L)
+
+expect_true(S7::S7_inherits(credential, RhoApiKeyCredential))
+expect_true(S7::S7_inherits(prompts[[1L]], RhoSecretAuthPrompt))
+expect_equal(credential@provider, "openai")
+```
+
+```{r normalized-response-stream}
+received_headers <- NULL
+received_body <- NULL
+server <- nanonext::http_server(
+  "http://127.0.0.1:0",
+  handlers = list(nanonext::handler_stream(
+    "/responses",
+    function(connection, request) {
+      received_headers <<- request$headers
+      received_body <<- yyjsonr::read_json_str(
+        rawToChar(request$body),
+        arr_of_objs_to_df = FALSE,
+        obj_of_arrs_to_df = FALSE
+      )
+      values <- list(
+        list(
+          type = "response.output_item.added",
+          output_index = 0L,
+          item = list(type = "message", id = "msg_1", content = list())
+        ),
+        list(
+          type = "response.output_text.delta",
+          output_index = 0L,
+          delta = "hello from openai"
+        ),
+        list(
+          type = "response.output_item.done",
+          output_index = 0L,
+          item = list(
+            type = "message",
+            id = "msg_1",
+            content = list(list(type = "output_text", text = "hello from openai"))
+          )
+        ),
+        list(
+          type = "response.completed",
+          response = list(
+            id = "resp_1",
+            status = "completed",
+            usage = list(
+              input_tokens = 12,
+              output_tokens = 3,
+              total_tokens = 15,
+              input_tokens_details = list(cached_tokens = 2),
+              output_tokens_details = list(reasoning_tokens = 1)
+            )
+          )
+        )
+      )
+      connection$set_status(200L)
+      connection$set_header("Content-Type", "text/event-stream")
+      for (value in values) {
+        connection$send(nanonext::format_sse(
+          data = yyjsonr::write_json_str(value, auto_unbox = TRUE)
+        ))
+      }
+      connection$close()
+    }
+  ))
+)
+expect_equal(server$start(), 0L)
+
+live_provider <- rho_openai_provider(
+  base_url = server$url,
+  http = rho.http::rho_http_client(timeout_ms = 2000L)
+)
+live_models <- rho_models(
+  list(live_provider),
+  rho_memory_credential_store(list(
+    openai = rho_api_key_credential("openai", "openai-test-key")
+  ))
+)
+events <- rho_stream(
+  live_models,
+  model,
+  rho_context("Answer directly.", list(rho_user_message("hello"))),
+  options = list(reasoning_effort = rho_thinking_level("high"))
+) |>
+  rho_stream_collect(timeout = 2000L)
+
+expect_equal(
+  vapply(events, rho_assistant_event_type, character(1)),
+  c("start", "text_start", "text_delta", "text_end", "done")
+)
+terminal <- events[[length(events)]]
+expect_equal(terminal@message@content[[1L]]@text, "hello from openai")
+expect_equal(terminal@message@response_id, "resp_1")
+expect_equal(terminal@message@usage@input, 10)
+expect_equal(terminal@message@usage@cache_read, 2)
+expect_equal(terminal@message@usage@reasoning, 1)
+expect_equal(received_headers[["Authorization"]], "Bearer openai-test-key")
+expect_equal(received_body$model, "gpt-5.4")
+expect_equal(received_body$reasoning$effort, "high")
+expect_identical(received_body$store, FALSE)
+expect_equal(server$close(), 0L)
+```

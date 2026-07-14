@@ -23,6 +23,13 @@
 #' @aliases rho_stream_flat_map rho_stream_value rho_stream_end
 #' @aliases rho_poll rho_poll_pending rho_poll_complete rho_poll_failed
 #' @aliases rho_is_task rho_is_stream rho_new_state
+#' @aliases RhoEventPump RhoLaterEventPump RhoEventPumpResult RhoEventPumpIdle
+#' @aliases RhoEventPumpProgress RhoEventPumpError RhoEventPumpUnsupported
+#' @aliases RhoTaskCallbackBridge RhoTaskCallbackError
+#' @aliases RhoTaskCallbackNameInUse RhoTaskCallbackRegistrationError
+#' @aliases RhoTaskCallbackRemovalError rho_pump_events rho_later_event_pump
+#' @aliases rho_task_callback_bridge rho_register_task_callback
+#' @aliases rho_remove_task_callback
 #' @export RhoTask
 #' @export RhoImmediateTask
 #' @export RhoRejectedTask
@@ -76,5 +83,22 @@
 #' @export rho_is_task
 #' @export rho_is_stream
 #' @export rho_new_state
+#' @export RhoEventPump
+#' @export RhoLaterEventPump
+#' @export RhoEventPumpResult
+#' @export RhoEventPumpIdle
+#' @export RhoEventPumpProgress
+#' @export RhoEventPumpError
+#' @export RhoEventPumpUnsupported
+#' @export RhoTaskCallbackBridge
+#' @export RhoTaskCallbackError
+#' @export RhoTaskCallbackNameInUse
+#' @export RhoTaskCallbackRegistrationError
+#' @export RhoTaskCallbackRemovalError
+#' @export rho_pump_events
+#' @export rho_later_event_pump
+#' @export rho_task_callback_bridge
+#' @export rho_register_task_callback
+#' @export rho_remove_task_callback
 #' @importFrom s7contract new_interface
 NULL

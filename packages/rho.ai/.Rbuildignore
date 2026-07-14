@@ -2,6 +2,7 @@
 ^_pkgdown\\.yml$
 ^README\\.Rmd$
 ^README\\.html$
+^data-raw$
 ^docs$
 ^.*\\.Rcheck$
 ^.*\\.tar\\.gz$

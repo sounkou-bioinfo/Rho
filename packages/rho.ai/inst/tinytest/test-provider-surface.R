@@ -17,15 +17,20 @@ expect_equal(events[[5]]@message@content[[1]]@text, "faux: hi")
 context <- rho_context("system", list(rho_user_message("hello")))
 test_auth <- rho_model_auth(api_key = "test")
 
-openai <- rho_openai_chat_request(
-  rho_openai_provider(),
-  rho_model("openai", "gpt-test"),
+openai_provider <- rho_openai_provider()
+openai_model <- rho_openai_model("gpt-5.4")
+openai <- rho_openai_request(
+  openai_provider,
+  openai_model,
   context,
   options = list(auth = test_auth)
 )
 expect_equal(openai@method, "POST")
-expect_true(grepl("/chat/completions$", openai@url))
+expect_true(grepl("/responses$", openai@url))
 expect_equal(openai@headers$Authorization, "Bearer test")
+expect_identical(openai@body$store, FALSE)
+expect_identical(openai@body$stream, TRUE)
+expect_true(S7::S7_inherits(openai_model, OpenAIResponsesModel))
 
 anthropic <- rho_anthropic_messages_request(
   rho_anthropic_provider(),
@@ -209,11 +214,9 @@ expect_equal(
   c("search_tools", "lookup_weather")
 )
 
-tool_search_model <- rho_model(
-  provider = "openai-codex",
-  id = "verified-tool-search-model",
-  api = "openai-codex-responses",
-  compatibility = rho_openai_responses_compatibility(supports_tool_search = TRUE)
+tool_search_model <- rho_openai_codex_spark()
+tool_search_model@compatibility <- rho_openai_responses_compatibility(
+  supports_tool_search = TRUE
 )
 native_placement <- rho_plan_tools(codex@implementation, tool_search_model, dynamic_context)
 expect_true(S7::S7_inherits(native_placement, RhoOpenAIToolSearchPlacement))
@@ -235,7 +238,7 @@ expect_equal(
 )
 expect_true(native_request@body$input[[4]]$tools[[1]]$defer_loading)
 
-decoder <- rho_openai_codex_decoder(spark)
+decoder <- rho_openai_responses_decoder(spark)
 sse <- function(value) {
   rho.http::RhoSseEvent(
     event = "message",
@@ -269,7 +272,13 @@ done <- rho_decode_provider_event(decoder, sse(list(
   response = list(
     id = "resp_1",
     status = "completed",
-    usage = list(input_tokens = 10, output_tokens = 2, total_tokens = 12)
+    usage = list(
+      input_tokens = 10,
+      output_tokens = 4,
+      total_tokens = 14,
+      input_tokens_details = list(cached_tokens = 3, cache_write_tokens = 2),
+      output_tokens_details = list(reasoning_tokens = 1)
+    )
   )
 )))
 events <- c(started, delta, finished, done)
@@ -281,7 +290,46 @@ expect_equal(
 expect_equal(events[[5]]@message@content[[1]]@text, "hello")
 expect_equal(events[[5]]@message@model, "gpt-5.3-codex-spark")
 expect_equal(events[[5]]@message@response_id, "resp_1")
+expect_equal(events[[5]]@message@usage@input, 5)
+expect_equal(events[[5]]@message@usage@cache_read, 3)
+expect_equal(events[[5]]@message@usage@cache_write, 2)
+expect_equal(events[[5]]@message@usage@reasoning, 1)
+expect_equal(events[[5]]@message@usage@total, 14)
+expect_equal(
+  events[[5]]@message@usage@cost@total,
+  5 * 1.75e-6 + 3 * 0.175e-6 + 4 * 14e-6
+)
 expect_true(S7::S7_inherits(events[[3]], AssistantTextDeltaEvent))
+
+transport_events <- rho_decode_provider_event(
+  rho_openai_responses_decoder(spark),
+  rho.http::RhoHttpTransportError(
+    message = "connection closed",
+    url = "https://example.test/responses",
+    parent = simpleError("connection closed")
+  )
+)
+expect_equal(
+  vapply(transport_events, rho_assistant_event_type, character(1)),
+  c("start", "error")
+)
+expect_equal(transport_events[[2]]@error@kind, "transport")
+expect_true(transport_events[[2]]@error@retryable)
+
+status_events <- rho_decode_provider_event(
+  rho_openai_responses_decoder(spark),
+  rho.http::RhoHttpStatusError(
+    message = "HTTP stream returned status 429",
+    url = "https://example.test/responses",
+    status = 429L,
+    headers = list(`retry-after` = "1")
+  )
+)
+expect_equal(status_events[[2]]@error@code, "429")
+expect_true(status_events[[2]]@error@retryable)
+
+unsupported_events <- rho_decode_provider_event(rho_openai_responses_decoder(spark), list())
+expect_equal(unsupported_events[[2]]@error@code, "unsupported_event")
 expect_true(s7contract::implements(OpenAIResponseDecoder, ProviderEventDecoder))
 expect_true(s7contract::implements(OpenAIResponseTextDelta, ProviderWireEvent))
 expect_true(s7contract::implements(OpenAIMessageItem, ResponseItemProtocol))

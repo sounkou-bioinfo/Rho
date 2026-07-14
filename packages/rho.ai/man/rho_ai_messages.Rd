@@ -7,7 +7,6 @@
 \alias{ImageContent}
 \alias{ArtifactRefContent}
 \alias{ToolCall}
-\alias{Usage}
 \alias{UserMessage}
 \alias{AssistantMessage}
 \alias{ToolResultMessage}

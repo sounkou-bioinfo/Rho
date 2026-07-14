@@ -22,7 +22,7 @@
 \alias{OpenAIResponseCompleted}
 \alias{OpenAIResponseIncomplete}
 \alias{OpenAIResponseError}
-\alias{rho_openai_codex_decoder}
+\alias{rho_openai_responses_decoder}
 \title{Typed OpenAI Responses wire protocol}
 \description{
 The OpenAI Responses decoder maps JSON/SSE payloads to typed wire event and

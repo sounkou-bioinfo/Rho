@@ -5,17 +5,29 @@
 \alias{RhoHttpClient}
 \alias{RhoHttpRequest}
 \alias{RhoHttpResponse}
+\alias{RhoHttpResponseHead}
+\alias{RhoHttpBodyStream}
 \alias{RhoSseEvent}
+\alias{RhoSseDecoder}
+\alias{RhoSseStream}
+\alias{RhoHttpError}
+\alias{RhoHttpTransportError}
+\alias{RhoHttpStatusError}
 \alias{rho_http_client}
 \alias{rho_http_request}
 \alias{rho_http_send}
+\alias{rho_http_open_stream}
 \alias{rho_sse_connect}
+\alias{rho_sse_decoder}
+\alias{rho_sse_decode}
 \alias{rho_sse_parse}
 \title{Asynchronous HTTP and server-sent event contracts}
 \description{
 \code{RhoHttpRequest} is a typed request value. \code{\link[=rho_http_send]{rho_http_send()}} returns a task
-resolving to \code{RhoHttpResponse}. \code{\link[=rho_sse_connect]{rho_sse_connect()}} exposes decoded
-\code{RhoSseEvent} values through the common Rho stream protocol.
+resolving to \code{RhoHttpResponse}; \code{\link[=rho_http_open_stream]{rho_http_open_stream()}} resolves to a
+\code{RhoHttpBodyStream} after the response head arrives. \code{RhoSseDecoder}
+preserves protocol state across arbitrary byte chunks. \code{\link[=rho_sse_connect]{rho_sse_connect()}}
+exposes decoded \code{RhoSseEvent} values through the common Rho stream protocol.
 }
 \details{
 TLS configuration is an explicit property of \code{RhoHttpClient} and is created

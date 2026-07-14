@@ -25,8 +25,13 @@ rho_tool_overlap <- S7::new_generic(
 )
 rho_decode_provider_event <- S7::new_generic(
   "rho_decode_provider_event",
-  "decoder",
+  c("decoder", "event"),
   function(decoder, event, ...) S7::S7_dispatch()
+)
+rho_provider_http_error <- S7::new_generic(
+  "rho_provider_http_error",
+  "error",
+  function(error, ...) S7::S7_dispatch()
 )
 rho_reduce_provider_event <- S7::new_generic(
   "rho_reduce_provider_event",
@@ -67,6 +72,11 @@ rho_model_supports_transport <- S7::new_generic(
   "rho_model_supports_transport",
   "model",
   function(model, transport, ...) S7::S7_dispatch()
+)
+rho_price_usage <- S7::new_generic(
+  "rho_price_usage",
+  c("model", "usage"),
+  function(model, usage, ...) S7::S7_dispatch()
 )
 rho_credential_read <- S7::new_generic(
   "rho_credential_read",
@@ -120,6 +130,31 @@ rho_build_provider_request <- S7::new_generic(
   c("provider", "model", "context"),
   function(provider, model, context, options = list(), ...) S7::S7_dispatch()
 )
+rho_openai_responses_body <- S7::new_generic(
+  "rho_openai_responses_body",
+  c("model", "context", "placement"),
+  function(model, context, placement, options = list(), ...) S7::S7_dispatch()
+)
+rho_openai_request_sections <- S7::new_generic(
+  "rho_openai_request_sections",
+  c("model", "context", "placement"),
+  function(model, context, placement, options = list(), ...) S7::S7_dispatch()
+)
+rho_openai_request_fields <- S7::new_generic(
+  "rho_openai_request_fields",
+  "section",
+  function(section, ...) S7::S7_dispatch()
+)
+rho_openai_reasoning_section <- S7::new_generic(
+  "rho_openai_reasoning_section",
+  c("model", "level"),
+  function(model, level, summary = "auto", ...) S7::S7_dispatch()
+)
+rho_provider_headers <- S7::new_generic(
+  "rho_provider_headers",
+  c("provider", "model", "context"),
+  function(provider, model, context, options = list(), ...) S7::S7_dispatch()
+)
 rho_compact_provider_input <- S7::new_generic(
   "rho_compact_provider_input",
   c("provider", "model", "context"),
@@ -130,6 +165,37 @@ rho_assistant_event_type <- S7::new_generic(
   "event",
   function(event, ...) S7::S7_dispatch()
 )
+
+S7::method(rho_price_usage, list(Model, Usage)) <- function(model, usage, ...) {
+  input_tokens <- usage@input + usage@cache_read + usage@cache_write
+  rates <- model@pricing
+  tiers <- Filter(
+    function(tier) input_tokens > tier@input_tokens_above,
+    model@pricing@tiers
+  )
+  if (length(tiers)) {
+    thresholds <- vapply(tiers, function(tier) tier@input_tokens_above, double(1))
+    rates <- tiers[[which.max(thresholds)]]
+  }
+
+  long_write <- usage@cache_write_1h %||% 0
+  short_write <- usage@cache_write - long_write
+  cost <- rho_usage_cost(
+    input = rates@input * usage@input / 1e6,
+    output = rates@output * usage@output / 1e6,
+    cache_read = rates@cache_read * usage@cache_read / 1e6,
+    cache_write = (rates@cache_write * short_write + rates@input * 2 * long_write) / 1e6
+  )
+  rho_usage(
+    input = usage@input,
+    output = usage@output,
+    cache_read = usage@cache_read,
+    cache_write = usage@cache_write,
+    cache_write_1h = usage@cache_write_1h,
+    reasoning = usage@reasoning,
+    cost = cost
+  )
+}
 
 S7::method(rho_assistant_event_type, AssistantStartEvent) <- function(event, ...) "start"
 S7::method(rho_assistant_event_type, AssistantTextStartEvent) <- function(event, ...) "text_start"
