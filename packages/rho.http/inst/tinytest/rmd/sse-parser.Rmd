@@ -28,7 +28,7 @@ expect_equal(events[[2]]@event, "message")
 expect_equal(events[[2]]@data, "done")
 ```
 
-```{r arbitrary-byte-boundaries}
+```{r arbitrary-byte-splits}
 payload <- c(
   as.raw(c(0xef, 0xbb, 0xbf)),
   charToRaw(enc2utf8(paste0(

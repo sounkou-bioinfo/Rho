@@ -534,6 +534,28 @@ expect_equal(received_body$thinking$type, "adaptive")
 expect_equal(server$close(), 0L)
 server_connection <- NULL
 
+request_size_events <- rho_decode_provider_event(
+  rho_anthropic_messages_decoder(fable),
+  rho.http::RhoHttpStatusError(
+    message = "HTTP stream returned status 413",
+    url = "https://example.test/v1/messages",
+    status = 413L,
+    headers = list(`content-type` = "application/json"),
+    body = charToRaw(yyjsonr::write_json_str(list(
+      type = "error",
+      error = list(
+        type = "request_too_large",
+        message = "Request exceeds maximum size"
+      )
+    ), auto_unbox = TRUE))
+  )
+)
+request_size <- request_size_events[[length(request_size_events)]]@error
+
+expect_true(S7::S7_inherits(request_size, ProviderRequestTooLargeError))
+expect_true(S7::S7_inherits(request_size, ProviderInputLimitError))
+expect_equal(request_size@code, "request_too_large")
+
 copilot <- rho_github_copilot_provider()
 copilot_model <- rho_github_copilot_model("claude-opus-4.7")
 copilot_fine_grained <- rho_github_copilot_model("claude-sonnet-4.5")

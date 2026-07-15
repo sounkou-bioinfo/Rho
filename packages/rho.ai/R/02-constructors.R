@@ -111,6 +111,32 @@ rho_provider_error <- function(
     details = details
   )
 }
+rho_provider_context_overflow <- function(
+  message,
+  code = "context_overflow",
+  details = list()
+) {
+  ProviderContextOverflowError(
+    kind = "context_overflow",
+    message = message,
+    code = code,
+    retryable = FALSE,
+    details = details
+  )
+}
+rho_provider_request_too_large <- function(
+  message,
+  code = "request_too_large",
+  details = list()
+) {
+  ProviderRequestTooLargeError(
+    kind = "request_too_large",
+    message = message,
+    code = code,
+    retryable = FALSE,
+    details = details
+  )
+}
 rho_provider_error_stream <- function(model, error) {
   partial <- rho_assistant_message(
     provider = model@provider,

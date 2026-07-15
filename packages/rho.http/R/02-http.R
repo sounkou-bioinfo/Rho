@@ -2,13 +2,15 @@ rho_http_client <- function(
   headers = list(),
   timeout_ms = 30000L,
   tls = nanonext::tls_config(),
-  stream_buffer_size = 65536L
+  stream_buffer_size = 65536L,
+  max_error_body_bytes = 1048576L
 ) {
   RhoHttpClient(
     headers = headers,
     timeout_ms = as.integer(timeout_ms),
     tls = tls,
-    stream_buffer_size = as.integer(stream_buffer_size)
+    stream_buffer_size = as.integer(stream_buffer_size),
+    max_error_body_bytes = as.integer(max_error_body_bytes)
   )
 }
 

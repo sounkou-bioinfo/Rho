@@ -8,7 +8,9 @@
 #' @aliases Content TextContent ThinkingContent ImageContent ArtifactRefContent ToolCall
 #' @aliases UserMessage AssistantMessage ToolResultMessage ToolOverlap
 #' @aliases ToolMayOverlap ToolRequiresExclusiveExecution ToolSpec ToolResult
-#' @aliases ToolErrorResult Tool rho_text rho_thinking rho_user_message
+#' @aliases ToolErrorResult Tool ProviderInputLimitError
+#' @aliases ProviderContextOverflowError ProviderRequestTooLargeError
+#' @aliases rho_text rho_thinking rho_user_message
 #' @aliases rho_assistant_message rho_tool_result_message rho_tool_spec
 #' @aliases rho_tool_result rho_tool_error_result rho_validate_tool_args
 #' @aliases rho_execute_tool rho_tool_overlap
@@ -27,6 +29,9 @@
 #' @export ToolSpec
 #' @export ToolResult
 #' @export ToolErrorResult
+#' @export ProviderInputLimitError
+#' @export ProviderContextOverflowError
+#' @export ProviderRequestTooLargeError
 #' @export Tool
 #' @export rho_text
 #' @export rho_thinking
@@ -46,7 +51,7 @@ NULL
 #' A `RhoOperation` states what a conversation may do. A handler binds that
 #' semantic request to a concrete implementation for the selected model.
 #' Bindings record both the handler and the reason it was selected; request
-#' translators turn bindings into provider wire values only at their boundary.
+#' translators turn bindings into provider wire values while encoding a request.
 #'
 #' Provider-hosted activity is normalized as `Content`, never as a local
 #' `ToolCall`. The agent can therefore retain and report a web search without
@@ -508,6 +513,7 @@ NULL
 #' @aliases rho_clamp_thinking_level rho_map_thinking_level
 #' @aliases rho_model_supports_input rho_model_supports_transport
 #' @aliases rho_stream rho_complete rho_provider_error rho_provider_http_error
+#' @aliases rho_provider_context_overflow rho_provider_request_too_large
 #' @aliases rho_unsupported_provider_operation rho_provider_support_value
 #' @aliases rho_provider_support rho_provider_dialect rho_plan_tools
 #' @aliases rho_build_provider_request rho_openai_chat_request_body
@@ -566,6 +572,8 @@ NULL
 #' @export rho_stream
 #' @export rho_complete
 #' @export rho_provider_error
+#' @export rho_provider_context_overflow
+#' @export rho_provider_request_too_large
 #' @export rho_provider_http_error
 #' @export rho_unsupported_provider_operation
 #' @export rho_provider_support_value

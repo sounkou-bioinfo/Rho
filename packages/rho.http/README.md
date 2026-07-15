@@ -8,7 +8,7 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 <!-- badges: end -->
 
 [`rho.http`](https://sounkou-bioinfo.github.io/Rho/rho.http/) gives Rho
-one typed HTTP boundary. Provider implementations build `RhoHttpRequest`
+one typed HTTP contract. Provider implementations build `RhoHttpRequest`
 values and receive tasks or SSE streams; request encoding, TLS, and
 connection handling remain in this package.
 

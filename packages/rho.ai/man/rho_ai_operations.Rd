@@ -54,7 +54,7 @@
 A \code{RhoOperation} states what a conversation may do. A handler binds that
 semantic request to a concrete implementation for the selected model.
 Bindings record both the handler and the reason it was selected; request
-translators turn bindings into provider wire values only at their boundary.
+translators turn bindings into provider wire values while encoding a request.
 }
 \details{
 Provider-hosted activity is normalized as \code{Content}, never as a local

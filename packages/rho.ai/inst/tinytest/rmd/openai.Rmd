@@ -364,3 +364,34 @@ expect_equal(received_body$reasoning$effort, "high")
 expect_identical(received_body$store, FALSE)
 expect_equal(server$close(), 0L)
 ```
+
+```{r structured-input-limit-error}
+input_limit_events <- rho_decode_provider_event(
+  rho_openai_responses_decoder(model),
+  rho.http::RhoHttpStatusError(
+    message = "HTTP stream returned status 400",
+    url = "https://example.test/responses",
+    status = 400L,
+    headers = list(`content-type` = "application/json"),
+    body = charToRaw(yyjsonr::write_json_str(list(error = list(
+      message = "Maximum context length exceeded",
+      type = "invalid_request_error",
+      param = "input",
+      code = "context_length_exceeded"
+    )), auto_unbox = TRUE))
+  )
+)
+input_limit <- input_limit_events[[length(input_limit_events)]]@error
+
+expect_true(S7::S7_inherits(input_limit, ProviderContextOverflowError))
+expect_true(S7::S7_inherits(input_limit, ProviderInputLimitError))
+expect_equal(input_limit@code, "context_length_exceeded")
+expect_equal(rawToChar(input_limit@details$body), rawToChar(charToRaw(
+  yyjsonr::write_json_str(list(error = list(
+    message = "Maximum context length exceeded",
+    type = "invalid_request_error",
+    param = "input",
+    code = "context_length_exceeded"
+  )), auto_unbox = TRUE)
+)))
+```

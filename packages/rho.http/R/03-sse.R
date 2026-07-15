@@ -214,6 +214,50 @@ rho_sse_connect <- S7::new_generic(
   function(client, request, ...) S7::S7_dispatch()
 )
 
+rho_http_collect_error_body <- function(stream, limit, bytes = raw()) {
+  rho.async::rho_then(
+    rho.async::rho_stream_next(stream),
+    function(item) {
+      if (S7::S7_inherits(item, rho.async::RhoStreamEnd)) {
+        return(RhoHttpErrorBody(bytes = bytes, truncated = FALSE))
+      }
+      if (S7::S7_inherits(item@value, RhoHttpError)) {
+        return(item@value)
+      }
+
+      chunk <- item@value
+      remaining <- limit - length(bytes)
+      if (length(chunk) > remaining) {
+        if (remaining > 0L) {
+          bytes <- c(bytes, chunk[seq_len(remaining)])
+        }
+        rho.async::rho_stream_close(stream)
+        return(RhoHttpErrorBody(bytes = bytes, truncated = TRUE))
+      }
+      rho_http_collect_error_body(stream, limit, c(bytes, chunk))
+    }
+  )
+}
+
+rho_http_status_error_stream <- function(stream, head, limit) {
+  rho.async::rho_then(
+    rho_http_collect_error_body(stream, limit),
+    function(body) {
+      if (S7::S7_inherits(body, RhoHttpError)) {
+        return(rho.async::rho_list_stream(list(body)))
+      }
+      rho.async::rho_list_stream(list(RhoHttpStatusError(
+        message = sprintf("HTTP stream returned status %s", head@status),
+        url = head@url,
+        status = head@status,
+        headers = head@headers,
+        body = body@bytes,
+        body_truncated = body@truncated
+      )))
+    }
+  )
+}
+
 S7::method(rho_sse_connect, list(RhoHttpClient, RhoHttpRequest)) <- function(
   client,
   request,
@@ -226,15 +270,11 @@ S7::method(rho_sse_connect, list(RhoHttpClient, RhoHttpRequest)) <- function(
     }
     head <- body@state$head
     if (is.na(head@status) || head@status < 200L || head@status >= 300L) {
-      rho.async::rho_stream_close(body)
-      return(rho.async::rho_list_stream(list(
-        RhoHttpStatusError(
-          message = sprintf("HTTP stream returned status %s", head@status),
-          url = head@url,
-          status = head@status,
-          headers = head@headers
-        )
-      )))
+      return(rho_http_status_error_stream(
+        body,
+        head,
+        client@max_error_body_bytes
+      ))
     }
 
     state <- new.env(parent = emptyenv())

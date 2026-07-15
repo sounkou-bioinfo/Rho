@@ -121,11 +121,16 @@ rho_openai_chat_store_tool_slot <- function(decoder, index, slot) {
   invisible(slot)
 }
 
-rho_openai_chat_wire_error <- function(message, code = "protocol", details = list()) {
+rho_openai_chat_wire_error <- function(
+  message,
+  code = "protocol",
+  details = list(),
+  kind = "protocol"
+) {
   OpenAIChatError(
-    error = rho_provider_error(
+    error = rho_openai_api_error_value(
       message = message,
-      kind = "protocol",
+      kind = kind,
       code = code,
       retryable = FALSE,
       details = details
@@ -173,7 +178,8 @@ rho_openai_chat_wire_events <- function(payload) {
     return(list(rho_openai_chat_wire_error(
       as.character(error$message %||% "OpenAI-compatible provider returned an error"),
       code = as.character(error$code %||% "provider"),
-      details = error
+      details = error,
+      kind = "api"
     )))
   }
   events <- unlist(
@@ -184,6 +190,22 @@ rho_openai_chat_wire_events <- function(payload) {
     events[[length(events) + 1L]] <- OpenAIChatUsageUpdate(usage = payload$usage)
   }
   if (!length(events)) list(OpenAIChatIgnored()) else events
+}
+
+S7::method(
+  rho_provider_http_error,
+  list(OpenAIChatCompletionsModel, RhoHttpStatusError)
+) <- function(model, error, ...) {
+  document <- rho_http_error_document(error)
+  nested <- if (is.list(document$error)) document$error else NULL
+  if (is.null(nested)) {
+    return(rho_http_status_provider_error(error))
+  }
+  rho_openai_api_error_value(
+    message = as.character(nested$message %||% error@message),
+    code = as.character(nested$code %||% error@status),
+    details = rho_http_error_details(error)
+  )
 }
 
 rho_openai_chat_decode_sse <- function(event) {
@@ -234,7 +256,10 @@ S7::method(
   rho_decode_provider_event,
   list(OpenAIChatCompletionsDecoder, RhoHttpError)
 ) <- function(decoder, event, ...) {
-  rho_openai_chat_error_events(decoder, rho_provider_http_error(event))
+  rho_openai_chat_error_events(
+    decoder,
+    rho_provider_http_error(decoder@model, event)
+  )
 }
 
 S7::method(

@@ -454,16 +454,50 @@ rho_anthropic_message_changed_event <- function(payload) {
   )
 }
 
+rho_anthropic_error_factories <- list(
+  request_too_large = function(message, code, details) {
+    rho_provider_request_too_large(message, code, details)
+  }
+)
+
+rho_anthropic_api_error_value <- function(message, code, details) {
+  factory <- rho_anthropic_error_factories[[code]]
+  if (!is.null(factory)) {
+    return(factory(message, code, details))
+  }
+  rho_provider_error(
+    message,
+    kind = "api",
+    code = code,
+    retryable = identical(code, "overloaded_error"),
+    details = details
+  )
+}
+
 rho_anthropic_api_error_event <- function(payload) {
   error <- payload$error %||% list()
   AnthropicWireError(
-    error = rho_provider_error(
+    error = rho_anthropic_api_error_value(
       as.character(error$message %||% "Anthropic request failed"),
-      kind = "api",
       code = as.character(error$type %||% ""),
-      retryable = identical(error$type, "overloaded_error"),
       details = payload
     )
+  )
+}
+
+S7::method(
+  rho_provider_http_error,
+  list(AnthropicMessagesModel, RhoHttpStatusError)
+) <- function(model, error, ...) {
+  document <- rho_http_error_document(error)
+  nested <- if (is.list(document$error)) document$error else NULL
+  if (is.null(nested)) {
+    return(rho_http_status_provider_error(error))
+  }
+  rho_anthropic_api_error_value(
+    message = as.character(nested$message %||% error@message),
+    code = as.character(nested$type %||% error@status),
+    details = rho_http_error_details(error)
   )
 }
 
@@ -643,7 +677,10 @@ S7::method(
   rho_decode_provider_event,
   list(AnthropicMessagesDecoder, RhoHttpError)
 ) <- function(decoder, event, ...) {
-  rho_anthropic_error_events(decoder, rho_provider_http_error(event))
+  rho_anthropic_error_events(
+    decoder,
+    rho_provider_http_error(decoder@model, event)
+  )
 }
 
 S7::method(

@@ -32,8 +32,8 @@ rho_decode_provider_event <- S7::new_generic(
 )
 rho_provider_http_error <- S7::new_generic(
   "rho_provider_http_error",
-  "error",
-  function(error, ...) S7::S7_dispatch()
+  c("model", "error"),
+  function(model, error, ...) S7::S7_dispatch()
 )
 rho_reduce_provider_event <- S7::new_generic(
   "rho_reduce_provider_event",
