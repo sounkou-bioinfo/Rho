@@ -7,10 +7,19 @@ name: pkgdown.yaml
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   pkgdown:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -39,8 +48,11 @@ jobs:
             --metadata title="Rho" \
             --output=_site/index.html
 
-      - name: Upload private site artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: pkgdown-site
           path: _site
+
+      - name: Deploy site
+        id: deployment
+        uses: actions/deploy-pages@v4
