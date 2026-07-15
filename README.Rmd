@@ -133,6 +133,7 @@ Rho keeps transport, provider semantics, agent policy, and applications in
 separate installable packages. Each package has a focused README and reference
 site.
 
+```{=markdown}
 | package | role | documentation |
 |---|---|---|
 | **rho.async** | tasks, streams, cancellation, timeouts, and composition | [README](packages/rho.async/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.async/) |
@@ -147,6 +148,7 @@ site.
 | **rho.duckdb** | DuckDB implementation of the asynchronous SQL contracts | [README](packages/rho.duckdb/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/) |
 | **rho.bio.agent** | bioinformatics tools registered through the extension API | [README](packages/rho.bio.agent/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/) |
 | **rho.testkit** | bounded assertions for asynchronous tests | [README](packages/rho.testkit/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.testkit/) |
+```
 
 Provider implementations with no independent dependency or ABI constraint live
 in `rho.ai`. OpenAI Codex, GitHub Copilot, Z.ai, OpenAI, Anthropic, Ollama, and
