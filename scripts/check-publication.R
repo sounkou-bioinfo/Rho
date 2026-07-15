@@ -49,6 +49,19 @@ check_news("NEWS.md", sprintf("# Rho %s", version))
 check_readme("README.Rmd")
 check_readme("README.md")
 
+tracked_readme_cache <- system2(
+  "git",
+  c("ls-files", "--", "README_cache"),
+  stdout = TRUE,
+  stderr = FALSE
+)
+if (length(tracked_readme_cache)) {
+  record_error(sprintf(
+    "README cache files must not be tracked: %s",
+    paste(tracked_readme_cache, collapse = ", ")
+  ))
+}
+
 for (package_dir in package_dirs) {
   package <- read.dcf(
     file.path(package_dir, "DESCRIPTION"),

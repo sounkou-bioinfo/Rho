@@ -109,15 +109,10 @@ codex_example <- data.frame(
   tool = tool_result@tool_name,
   result = result
 )
-saveRDS(
-  codex_example,
-  file = "README_cache/codex-example.rds",
-  version = 3
-)
+codex_example
+#>                 model    status tool     result
+#> 1 gpt-5.3-codex-spark completed    r [1] 338350
 ```
-
-    #>                 model    status tool     result
-    #> 1 gpt-5.3-codex-spark completed    r [1] 338350
 
 Rebuild this example by supplying the credential file explicitly:
 
@@ -133,18 +128,18 @@ reference site.
 
 | package | role | documentation |
 |---|---|---|
-| **rho.async** | tasks, streams, cancellation, timeouts, and composition | [README](packages/rho.async/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.async/) |
-| **rho.http** | typed HTTP requests, nanonext transport, and SSE decoding | [README](packages/rho.http/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.http/) |
-| **rho.ai** | messages, models, capabilities, credentials, providers, and tools | [README](packages/rho.ai/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.ai/) |
-| **rho.agent** | multi-turn execution, session compaction, tool scheduling, queues, cancellation, and events | [README](packages/rho.agent/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.agent/) |
-| **rho.ext** | asynchronous extension handlers and capability registration | [README](packages/rho.ext/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.ext/) |
-| **rho.compute** | typed mirai expression and function-call tasks | [README](packages/rho.compute/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.compute/) |
-| **rho.graphics** | declared graphics devices and hashed artifacts | [README](packages/rho.graphics/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.graphics/) |
-| **rho.coding** | Bash, file, isolated-worker R, and explicit current-session R tools | [README](packages/rho.coding/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.coding/) |
-| **rho.bio** | manifests, resolvers, receipts, and database-neutral SQL contracts | [README](packages/rho.bio/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.bio/) |
-| **rho.duckdb** | DuckDB implementation of the asynchronous SQL contracts | [README](packages/rho.duckdb/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/) |
-| **rho.bio.agent** | bioinformatics tools registered through the extension API | [README](packages/rho.bio.agent/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/) |
-| **rho.testkit** | bounded assertions for asynchronous tests | [README](packages/rho.testkit/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.testkit/) |
+| **rho.async** | tasks, streams, cancellation, timeouts, and composition | [guide](https://sounkou-bioinfo.github.io/Rho/rho.async/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.async/reference/) |
+| **rho.http** | typed HTTP requests, nanonext transport, and SSE decoding | [guide](https://sounkou-bioinfo.github.io/Rho/rho.http/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.http/reference/) |
+| **rho.ai** | messages, models, capabilities, credentials, providers, and tools | [guide](https://sounkou-bioinfo.github.io/Rho/rho.ai/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.ai/reference/) |
+| **rho.agent** | multi-turn execution, session compaction, tool scheduling, queues, cancellation, and events | [guide](https://sounkou-bioinfo.github.io/Rho/rho.agent/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.agent/reference/) |
+| **rho.ext** | asynchronous extension handlers and capability registration | [guide](https://sounkou-bioinfo.github.io/Rho/rho.ext/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.ext/reference/) |
+| **rho.compute** | typed mirai expression and function-call tasks | [guide](https://sounkou-bioinfo.github.io/Rho/rho.compute/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.compute/reference/) |
+| **rho.graphics** | declared graphics devices and hashed artifacts | [guide](https://sounkou-bioinfo.github.io/Rho/rho.graphics/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.graphics/reference/) |
+| **rho.coding** | Bash, file, isolated-worker R, and explicit current-session R tools | [guide](https://sounkou-bioinfo.github.io/Rho/rho.coding/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.coding/reference/) |
+| **rho.bio** | manifests, resolvers, receipts, and database-neutral SQL contracts | [guide](https://sounkou-bioinfo.github.io/Rho/rho.bio/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.bio/reference/) |
+| **rho.duckdb** | DuckDB implementation of the asynchronous SQL contracts | [guide](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/reference/) |
+| **rho.bio.agent** | bioinformatics tools registered through the extension API | [guide](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/reference/) |
+| **rho.testkit** | bounded assertions for asynchronous tests | [guide](https://sounkou-bioinfo.github.io/Rho/rho.testkit/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.testkit/reference/) |
 
 Provider implementations with no independent dependency or ABI
 constraint live in `rho.ai`. OpenAI Codex, GitHub Copilot, Z.ai, OpenAI,

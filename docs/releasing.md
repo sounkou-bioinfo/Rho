@@ -20,10 +20,13 @@ Before changing repository visibility:
 
 1. Run `make rd` and `make rdm`, then commit the generated namespaces,
    manuals, tests, model catalog, and package READMEs.
-2. Complete every fixture and external-account row in the Pi parity ledger.
-3. Run `make public-ready` from the commit that will become public.
-4. Require green R 4.4 and R-release checks for that commit.
-5. Confirm that the pinned nanonext streaming commit is public and available
+2. Run `make rdm-codex CREDENTIAL=/absolute/path/to/auth.json`. This executes
+   the root README's Codex agent example and updates `README.md`; knitr caches
+   remain ignored.
+3. Complete every fixture and external-account row in the Pi parity ledger.
+4. Run `make public-ready` from the commit that will become public.
+5. Require green R 4.4 and R-release checks for that commit.
+6. Confirm that the pinned nanonext streaming commit is public and available
    to the R-universe build graph.
 
 After those conditions hold, change `sounkou-bioinfo/Rho` to public, enable the

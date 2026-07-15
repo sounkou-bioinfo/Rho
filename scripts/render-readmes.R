@@ -38,10 +38,12 @@ package_order <- c(
   "rho.testkit"
 )
 
-readmes <- c(
-  "README.Rmd",
-  file.path("packages", package_order, "README.Rmd")
-)
+readmes <- file.path("packages", package_order, "README.Rmd")
+if (length(arguments) == 1L) {
+  readmes <- c("README.Rmd", readmes)
+} else {
+  message("== root README requires make rdm-codex CREDENTIAL=/path/to/auth.json ==")
+}
 
 for (readme in readmes) {
   if (!file.exists(readme)) {
