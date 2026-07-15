@@ -16,6 +16,9 @@ Imports:
     S7, rho.async (>= 0.0.1.9000), rho.ai (>= 0.0.1.9000)
 Suggests:
     tinytest, knitr
+Remotes:
+    sounkou-bioinfo/Rho/packages/rho.async,
+    sounkou-bioinfo/Rho/packages/rho.ai
 URL: https://github.com/sounkou-bioinfo/Rho,
     https://sounkou-bioinfo.github.io/Rho/rho.ext/
 BugReports: https://github.com/sounkou-bioinfo/Rho/issues

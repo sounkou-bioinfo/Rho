@@ -54,5 +54,6 @@ than translating model-generated Bash into another shell language, and
 on Unix it reports a typed unavailable value when Bash is absent.
 
 See the [`rho.coding`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.coding/) and its
-worker substrate, [`rho.compute`](../rho.compute/README.md).
+reference](https://sounkou-bioinfo.github.io/Rho/rho.coding/reference/)
+and its worker substrate,
+[`rho.compute`](https://sounkou-bioinfo.github.io/Rho/rho.compute/).

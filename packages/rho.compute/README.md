@@ -8,7 +8,8 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 <!-- badges: end -->
 
 [`rho.compute`](https://sounkou-bioinfo.github.io/Rho/rho.compute/)
-adapts mirai worker evaluation to [`rho.async`](../rho.async/README.md).
+adapts mirai worker evaluation to
+[`rho.async`](https://sounkou-bioinfo.github.io/Rho/rho.async/).
 Expressions and function calls are typed specifications; the agent sees
 only a `RhoTask` and does not acquire hidden worker policy.
 
@@ -41,6 +42,7 @@ Worker failures resolve as typed values, so callers can dispatch on
 their semantics. A tool chooses whether it uses this backend and
 separately declares whether multiple calls may overlap.
 
-[`rho.graphics`](../rho.graphics/README.md) uses the same backend to
-render away from the interactive device. See the [`rho.compute`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.compute/).
+[`rho.graphics`](https://sounkou-bioinfo.github.io/Rho/rho.graphics/)
+uses the same backend to render away from the interactive device. See
+the [`rho.compute`
+reference](https://sounkou-bioinfo.github.io/Rho/rho.compute/reference/).

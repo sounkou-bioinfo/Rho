@@ -31,6 +31,18 @@ check_readme <- function(path) {
   if (!any(grepl(lifecycle_badge, lines, fixed = TRUE))) {
     record_error(sprintf("%s has no experimental lifecycle badge", path))
   }
+  relative_readme_links <- grep(
+    "\\]\\(\\.\\./(?:\\.\\./)?[^)]*README[.]md\\)",
+    lines,
+    perl = TRUE,
+    value = TRUE
+  )
+  if (length(relative_readme_links)) {
+    record_error(sprintf(
+      "%s contains a relative README link that pkgdown rewrites incorrectly",
+      path
+    ))
+  }
   invisible(NULL)
 }
 

@@ -16,6 +16,8 @@ Imports:
     S7, rho.async (>= 0.0.1.9000), mirai, promises
 Suggests:
     tinytest, knitr
+Remotes:
+    sounkou-bioinfo/Rho/packages/rho.async
 URL: https://github.com/sounkou-bioinfo/Rho,
     https://sounkou-bioinfo.github.io/Rho/rho.compute/
 BugReports: https://github.com/sounkou-bioinfo/Rho/issues

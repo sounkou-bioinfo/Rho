@@ -36,8 +36,10 @@ vapply(events, function(event) event@data, character(1))
 caller that requires peer authentication passes a configured `tlsConfig`
 value; the package never searches operating-system certificate paths.
 SSE values feed typed provider decoders in
-[`rho.ai`](../rho.ai/README.md).
+[`rho.ai`](https://sounkou-bioinfo.github.io/Rho/rho.ai/).
 
 See the [`rho.http`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.http/) and the
-underlying [`rho.async`](../rho.async/README.md) contract.
+reference](https://sounkou-bioinfo.github.io/Rho/rho.http/reference/)
+and the underlying
+[`rho.async`](https://sounkou-bioinfo.github.io/Rho/rho.async/)
+contract.

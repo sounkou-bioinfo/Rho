@@ -8,9 +8,9 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 <!-- badges: end -->
 
 [`rho.ext`](https://sounkou-bioinfo.github.io/Rho/rho.ext/) is the open
-extension runtime for [Rho](../../README.md). Extensions register
-handlers, tools, commands, and providers through an explicit API object;
-they do not patch package globals.
+extension runtime for [Rho](https://sounkou-bioinfo.github.io/Rho/).
+Extensions register handlers, tools, commands, and providers through an
+explicit API object; they do not patch package globals.
 
 ## An asynchronous handler chain
 
@@ -39,6 +39,9 @@ extension perform I/O, ask for permission, or consult policy without
 turning the agent loop into a synchronous callback system.
 
 See the [`rho.ext`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.ext/), the upstream
-[`rho.agent`](../rho.agent/README.md) lifecycle, and the downstream
-[`rho.bio.agent`](../rho.bio.agent/README.md) application.
+reference](https://sounkou-bioinfo.github.io/Rho/rho.ext/reference/),
+the upstream
+[`rho.agent`](https://sounkou-bioinfo.github.io/Rho/rho.agent/)
+lifecycle, and the downstream
+[`rho.bio.agent`](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/)
+application.

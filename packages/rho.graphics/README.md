@@ -60,5 +60,6 @@ PNG, SVG, and PDF are durable outputs. A recorded plot may support an
 ephemeral preview, but it is not treated as archival provenance.
 
 See the [`rho.graphics`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.graphics/) and its
-worker substrate, [`rho.compute`](../rho.compute/README.md).
+reference](https://sounkou-bioinfo.github.io/Rho/rho.graphics/reference/)
+and its worker substrate,
+[`rho.compute`](https://sounkou-bioinfo.github.io/Rho/rho.compute/).

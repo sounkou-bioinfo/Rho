@@ -8,10 +8,11 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 <!-- badges: end -->
 
 [`rho.async`](https://sounkou-bioinfo.github.io/Rho/rho.async/) is the
-small asynchronous contract at the base of [Rho](../../README.md). A
-`RhoTask` represents one eventual value; a `RhoStream` represents an
-asynchronous sequence. Both are open S7 protocols, so transports and
-worker systems can add methods without changing callers.
+small asynchronous contract at the base of
+[Rho](https://sounkou-bioinfo.github.io/Rho/). A `RhoTask` represents
+one eventual value; a `RhoStream` represents an asynchronous sequence.
+Both are open S7 protocols, so transports and worker systems can add
+methods without changing callers.
 
 ## Tasks and streams
 
@@ -65,6 +66,7 @@ The callback never waits for work and is not a scheduler. nanonext
 remains the I/O substrate; the bridge only improves progress at
 interactive R safe points.
 
-Continue with [`rho.http`](../rho.http/README.md), or see the
-[`rho.async`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.async/).
+Continue with
+[`rho.http`](https://sounkou-bioinfo.github.io/Rho/rho.http/), or see
+the [`rho.async`
+reference](https://sounkou-bioinfo.github.io/Rho/rho.async/reference/).

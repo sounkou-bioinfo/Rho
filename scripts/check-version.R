@@ -62,8 +62,9 @@ for (index in seq_along(package_dirs)) {
   dependency_specs <- trimws(strsplit(dependency_text, ",", fixed = TRUE)[[1L]])
   dependency_specs <- dependency_specs[nzchar(dependency_specs)]
   dependency_names <- sub("[[:space:]]*\\(.*$", "", dependency_specs)
+  internal_dependencies <- intersect(package_names, dependency_names)
 
-  for (dependency in intersect(package_names, dependency_names)) {
+  for (dependency in internal_dependencies) {
     specification <- dependency_specs[dependency_names == dependency]
     required <- sprintf("%s (>= %s)", dependency, release_version)
     if (length(specification) != 1L || !identical(specification, required)) {
@@ -74,6 +75,23 @@ for (index in seq_along(package_dirs)) {
         required
       ))
     }
+  }
+
+  remotes <- if ("Remotes" %in% colnames(description)) {
+    trimws(strsplit(description[[1L, "Remotes"]], ",", fixed = TRUE)[[1L]])
+  } else {
+    character()
+  }
+  expected_remotes <- sprintf(
+    "sounkou-bioinfo/Rho/packages/%s",
+    internal_dependencies
+  )
+  for (remote in setdiff(expected_remotes, remotes)) {
+    record_error(sprintf(
+      "%s must declare monorepo remote `%s`",
+      package,
+      remote
+    ))
   }
 }
 

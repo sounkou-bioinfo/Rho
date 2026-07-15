@@ -9,9 +9,9 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 
 [`rho.bio.agent`](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/)
 exposes declared bioinformatics resources to an agent through the
-ordinary [`rho.ext`](../rho.ext/README.md) and
-[`rho.ai`](../rho.ai/README.md) tool contracts. It is downstream of the
-provider and agent core.
+ordinary [`rho.ext`](https://sounkou-bioinfo.github.io/Rho/rho.ext/) and
+[`rho.ai`](https://sounkou-bioinfo.github.io/Rho/rho.ai/) tool
+contracts. It is downstream of the provider and agent core.
 
 ## Register and call a bio tool
 
@@ -56,5 +56,6 @@ make the model the authority for those facts. Additional bio workflows
 can register tools without changing `rho.agent`.
 
 See the [`rho.bio.agent`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/) and the
-underlying [`rho.bio`](../rho.bio/README.md) substrate.
+reference](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/reference/)
+and the underlying
+[`rho.bio`](https://sounkou-bioinfo.github.io/Rho/rho.bio/) substrate.

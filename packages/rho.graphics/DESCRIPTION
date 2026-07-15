@@ -17,6 +17,9 @@ Imports:
     grDevices
 Suggests:
     tinytest, knitr, ggplot2, svglite, ragg
+Remotes:
+    sounkou-bioinfo/Rho/packages/rho.async,
+    sounkou-bioinfo/Rho/packages/rho.compute
 URL: https://github.com/sounkou-bioinfo/Rho,
     https://sounkou-bioinfo.github.io/Rho/rho.graphics/
 BugReports: https://github.com/sounkou-bioinfo/Rho/issues

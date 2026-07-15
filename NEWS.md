@@ -10,3 +10,6 @@
   and repository-history checks for the initial development release.
 - Builds the repository landing page with litedown using a responsive article
   layout and direct links to the source repository and package documentation.
+- Declares internal package remotes so concurrent R-universe builds can install
+  Rho dependencies from their monorepo directories.
+- Uses deployed package URLs for cross-package README links.

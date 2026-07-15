@@ -8,9 +8,10 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 <!-- badges: end -->
 
 [`rho.ai`](https://sounkou-bioinfo.github.io/Rho/rho.ai/) defines the
-provider surface shared by the rest of [Rho](../../README.md): typed
-messages and content, model capabilities, tool contracts, credentials,
-provider operations, and normalized assistant event streams.
+provider surface shared by the rest of
+[Rho](https://sounkou-bioinfo.github.io/Rho/): typed messages and
+content, model capabilities, tool contracts, credentials, provider
+operations, and normalized assistant event streams.
 
 ## One stream protocol
 
@@ -136,5 +137,7 @@ caching, and reasoning. Codex defaults are methods on
 `OpenAICodexResponsesModel`; Anthropic thinking, temperature, cache, and
 tool-input behavior comes from a typed model capability profile.
 
-Continue with the [`rho.agent`](../rho.agent/README.md) loop, or see the
-[`rho.ai` reference](https://sounkou-bioinfo.github.io/Rho/rho.ai/).
+Continue with the
+[`rho.agent`](https://sounkou-bioinfo.github.io/Rho/rho.agent/) loop, or
+see the [`rho.ai`
+reference](https://sounkou-bioinfo.github.io/Rho/rho.ai/reference/).

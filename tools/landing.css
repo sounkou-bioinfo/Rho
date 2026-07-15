@@ -33,10 +33,6 @@ nav .project-home {
   padding: clamp(1rem, 3vw, 2.5rem);
 }
 
-.body > p {
-  max-width: 82ch;
-}
-
 a,
 a:visited {
   color: var(--rho-blue);

@@ -16,6 +16,10 @@ Imports:
     rho.agent (>= 0.0.1.9000), tinytest
 Suggests:
     knitr
+Remotes:
+    sounkou-bioinfo/Rho/packages/rho.async,
+    sounkou-bioinfo/Rho/packages/rho.ai,
+    sounkou-bioinfo/Rho/packages/rho.agent
 URL: https://github.com/sounkou-bioinfo/Rho,
     https://sounkou-bioinfo.github.io/Rho/rho.testkit/
 BugReports: https://github.com/sounkou-bioinfo/Rho/issues

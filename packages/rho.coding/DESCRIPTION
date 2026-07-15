@@ -17,6 +17,10 @@ Imports:
     rho.compute (>= 0.0.1.9000), processx
 Suggests:
     tinytest, knitr
+Remotes:
+    sounkou-bioinfo/Rho/packages/rho.async,
+    sounkou-bioinfo/Rho/packages/rho.ai,
+    sounkou-bioinfo/Rho/packages/rho.compute
 URL: https://github.com/sounkou-bioinfo/Rho,
     https://sounkou-bioinfo.github.io/Rho/rho.coding/
 BugReports: https://github.com/sounkou-bioinfo/Rho/issues

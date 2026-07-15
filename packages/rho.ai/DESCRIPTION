@@ -18,6 +18,9 @@ Imports:
     rho.http (>= 0.0.1.9000), yyjsonr, nanonext, digest, base64enc
 Suggests:
     tinytest, knitr
+Remotes:
+    sounkou-bioinfo/Rho/packages/rho.async,
+    sounkou-bioinfo/Rho/packages/rho.http
 URL: https://github.com/sounkou-bioinfo/Rho,
     https://sounkou-bioinfo.github.io/Rho/rho.ai/
 BugReports: https://github.com/sounkou-bioinfo/Rho/issues

@@ -70,6 +70,6 @@ list(
 The registry fails closed when a resource, resolver declaration, or resolver
 implementation is absent. Database implementations are separate; the generic
 SQL contract is implemented for DuckDB by
-[`rho.duckdb`](../rho.duckdb/README.md).
+[`rho.duckdb`](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/).
 
-See the [`rho.bio` reference](https://sounkou-bioinfo.github.io/Rho/rho.bio/).
+See the [`rho.bio` reference](https://sounkou-bioinfo.github.io/Rho/rho.bio/reference/).

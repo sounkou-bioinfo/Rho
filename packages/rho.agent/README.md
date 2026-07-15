@@ -57,6 +57,7 @@ checkpoint while retaining the complete transcript, and
 Threshold compaction and one retry for a typed provider input-limit
 value use the same compactor and policy generics.
 
-Extensions build on this lifecycle in [`rho.ext`](../rho.ext/README.md).
-See the [`rho.agent`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.agent/).
+Extensions build on this lifecycle in
+[`rho.ext`](https://sounkou-bioinfo.github.io/Rho/rho.ext/). See the
+[`rho.agent`
+reference](https://sounkou-bioinfo.github.io/Rho/rho.agent/reference/).

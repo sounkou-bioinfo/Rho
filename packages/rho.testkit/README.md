@@ -48,5 +48,7 @@ Authored tests remain R Markdown documents; the monorepo derives
 executable tinytest files and checks that generated files are current.
 
 See the [`rho.testkit`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.testkit/) and the
-base [`rho.async`](../rho.async/README.md) contracts.
+reference](https://sounkou-bioinfo.github.io/Rho/rho.testkit/reference/)
+and the base
+[`rho.async`](https://sounkou-bioinfo.github.io/Rho/rho.async/)
+contracts.

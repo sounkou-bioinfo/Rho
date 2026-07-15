@@ -13,7 +13,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 <!-- badges: end -->
 
 [`rho.async`](https://sounkou-bioinfo.github.io/Rho/rho.async/) is the small
-asynchronous contract at the base of [Rho](../../README.md). A `RhoTask`
+asynchronous contract at the base of [Rho](https://sounkou-bioinfo.github.io/Rho/). A `RhoTask`
 represents one eventual value; a `RhoStream` represents an asynchronous
 sequence. Both are open S7 protocols, so transports and worker systems can add
 methods without changing callers.
@@ -54,5 +54,5 @@ bridge <- rho_await(rho_remove_task_callback(bridge))
 The callback never waits for work and is not a scheduler. nanonext remains the
 I/O substrate; the bridge only improves progress at interactive R safe points.
 
-Continue with [`rho.http`](../rho.http/README.md), or see the
-[`rho.async` reference](https://sounkou-bioinfo.github.io/Rho/rho.async/).
+Continue with [`rho.http`](https://sounkou-bioinfo.github.io/Rho/rho.http/), or see the
+[`rho.async` reference](https://sounkou-bioinfo.github.io/Rho/rho.async/reference/).

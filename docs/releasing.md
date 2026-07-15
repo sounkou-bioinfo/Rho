@@ -2,7 +2,10 @@
 
 The monorepo has one development version. `VERSION` is authoritative, every
 package `DESCRIPTION` must match it, and every dependency on another Rho
-package must require at least that version.
+package must require at least that version. R-universe builds package
+subdirectories concurrently, so each internal dependency also has a matching
+`Remotes` entry for its package directory. `make check-version` enforces both
+declarations.
 
 `make public-ready` is the publication gate. It verifies version coherence,
 package and monorepo news, lifecycle badges, generated tests and READMEs, the

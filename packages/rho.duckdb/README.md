@@ -8,9 +8,10 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 <!-- badges: end -->
 
 [`rho.duckdb`](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/)
-implements the database-neutral [`rho.bio`](../rho.bio/README.md) SQL
-generics for DuckDB. Queries return tasks, and declared read-only paths
-are checked before execution.
+implements the database-neutral
+[`rho.bio`](https://sounkou-bioinfo.github.io/Rho/rho.bio/) SQL generics
+for DuckDB. Queries return tasks, and declared read-only paths are
+checked before execution.
 
 ## An asynchronous query
 
@@ -38,5 +39,6 @@ point, leaving room for other SQL backends without changing manifests or
 agent tools.
 
 See the [`rho.duckdb`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/) and the
-upstream [`rho.bio`](../rho.bio/README.md) contracts.
+reference](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/reference/)
+and the upstream
+[`rho.bio`](https://sounkou-bioinfo.github.io/Rho/rho.bio/) contracts.
