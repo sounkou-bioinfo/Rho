@@ -18,6 +18,9 @@
 \alias{RhoAllQueue}
 \alias{RhoBeforeToolCallDecision}
 \alias{RhoAfterToolCallDecision}
+\alias{RhoRunContext}
+\alias{RhoToolContext}
+\alias{RhoCompletedToolContext}
 \alias{RhoNextTurnDecision}
 \alias{RhoAssistantTurn}
 \alias{RhoAssistantResponse}
@@ -56,6 +59,9 @@
 \alias{rho_execute_tool_batch}
 \alias{rho_resolve_tool_execution}
 \alias{rho_take_agent_queue}
+\alias{rho_run_context}
+\alias{rho_tool_context}
+\alias{rho_completed_tool_context}
 \alias{rho_agent_error}
 \alias{rho_before_tool_call_decision}
 \alias{rho_after_tool_call_decision}

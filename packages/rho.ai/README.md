@@ -24,10 +24,12 @@ events[[length(events)]]@message@content[[1L]]@text
 #> [1] "faux: hello"
 ```
 
-The faux provider is deterministic. OpenAI, OpenAI Codex, and GitHub
-Copilot reduce Responses events to the same protocol; Z.ai reduces Chat
-Completions events to it. Capabilities are queried through values and
-generics instead of provider-name conditionals:
+The faux provider is deterministic. OpenAI and OpenAI Codex reduce
+Responses events to the same protocol; Z.ai reduces Chat Completions
+events; Anthropic reduces Messages events. GitHub Copilot selects either
+the Responses or Messages dialect from the model while retaining its own
+credentials and endpoint headers. Capabilities are queried through
+values and generics instead of provider-name conditionals:
 
 ``` r
 model <- rho_openai_codex_model("gpt-5.3-codex-spark")
@@ -45,6 +47,45 @@ list(
 #> $thinking
 #> [1] "off"     "minimal" "low"     "medium"  "high"    "xhigh"
 ```
+
+## Hosted operations
+
+Provider-hosted search is a semantic operation, not a local function
+tool. The selected provider and model bind the operation before request
+translation:
+
+``` r
+search_provider <- rho_openai_provider()
+search_model <- rho_openai_model("gpt-5.4")
+search_context <- rho_context(
+  messages = list(rho_user_message("Find the current R release.")),
+  operations = list(rho_web_search(
+    domains = rho_web_search_allowed_domains("r-project.org")
+  ))
+)
+search_plan <- rho_plan_operations(
+  search_provider,
+  search_model,
+  search_context
+)
+binding <- search_plan@bindings[[1L]]
+
+list(
+  binding = S7::S7_class(binding)@name,
+  reason = binding@reason
+)
+#> $binding
+#> [1] "OpenAIWebSearchBinding"
+#>
+#> $reason
+#> [1] "The selected OpenAI Responses endpoint implements this search as a provider-hosted web_search tool"
+```
+
+OpenAI and Anthropic bindings emit their own wire declarations and
+normalize search calls, results, and citations as content. The agent
+executes only `ToolCall` content from its local `ToolSpec` registry. An
+extension can provide a narrower binding without changing either
+provider translator or the loop.
 
 ## Usage and cost
 
@@ -83,10 +124,11 @@ credential. Z.ai keeps its Coding Plan endpoint, preserved-thinking
 policy, and streamed tool-call policy in typed values. Both remain
 ordinary providers to the agent loop.
 
-OpenAI request configuration is also typed. A request body is reduced
-from S7 sections for tools, generation controls, cache affinity, and
-reasoning. Codex defaults are methods on `OpenAICodexResponsesModel`,
-not conditionals in the standard OpenAI builder.
+Provider request configuration is typed. OpenAI and Anthropic request
+bodies are reduced from S7 sections for tools, generation controls,
+caching, and reasoning. Codex defaults are methods on
+`OpenAICodexResponsesModel`; Anthropic thinking, temperature, cache, and
+tool-input behavior comes from a typed model capability profile.
 
 Continue with the [`rho.agent`](../rho.agent/README.md) loop, or see the
 [`rho.ai` reference](https://sounkou-bioinfo.github.io/Rho/rho.ai/).

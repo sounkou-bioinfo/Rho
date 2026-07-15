@@ -13,7 +13,8 @@ GitHubCopilotEndpoints <- S7::new_class(
   properties = list(
     device_code = rho_non_empty_string,
     access_token = rho_non_empty_string,
-    copilot_token = rho_non_empty_string
+    copilot_token = rho_non_empty_string,
+    models = rho_optional_string
   )
 )
 
@@ -36,11 +37,34 @@ GitHubCopilotCredential <- S7::new_class(
   parent = RhoOAuthCredential,
   properties = list(
     github_domain = rho_non_empty_string,
-    session_base_url = rho_non_empty_string
+    session_base_url = rho_non_empty_string,
+    available_model_ids = rho_unique_non_empty_strings,
+    model_catalog_complete = rho_scalar_logical
   )
 )
 
 GitHubCopilotModelAuth <- S7::new_class("GitHubCopilotModelAuth", parent = RhoModelAuth)
+
+GitHubCopilotLoginModelPolicy <- S7::new_class(
+  "GitHubCopilotLoginModelPolicy",
+  abstract = TRUE
+)
+GitHubCopilotDiscoverModels <- S7::new_class(
+  "GitHubCopilotDiscoverModels",
+  parent = GitHubCopilotLoginModelPolicy
+)
+GitHubCopilotEnableKnownModels <- S7::new_class(
+  "GitHubCopilotEnableKnownModels",
+  parent = GitHubCopilotLoginModelPolicy,
+  properties = list(model_ids = rho_unique_non_empty_strings)
+)
+GitHubCopilotModelPolicyResult <- S7::new_class(
+  "GitHubCopilotModelPolicyResult",
+  properties = list(
+    model_id = rho_non_empty_string,
+    enabled = rho_scalar_logical
+  )
+)
 
 GitHubCopilotOAuthAuth <- S7::new_class(
   "GitHubCopilotOAuthAuth",
@@ -50,6 +74,7 @@ GitHubCopilotOAuthAuth <- S7::new_class(
     client_id = rho_non_empty_string,
     identity = GitHubCopilotClientIdentity,
     endpoints = GitHubCopilotEndpoints,
+    model_policy = GitHubCopilotLoginModelPolicy,
     http = rho.http::RhoHttpClient
   )
 )
@@ -59,6 +84,14 @@ GitHubCopilotApi <- S7::new_class(
   properties = list(
     identity = GitHubCopilotClientIdentity,
     http = rho.http::RhoHttpClient
+  )
+)
+
+GitHubCopilotAnthropicApi <- S7::new_class(
+  "GitHubCopilotAnthropicApi",
+  properties = list(
+    provider = GitHubCopilotApi,
+    version = rho_non_empty_string
   )
 )
 
@@ -76,6 +109,27 @@ rho_github_copilot_client_identity <- function(
   )
 }
 
+rho_github_copilot_known_model_ids <- function(catalog = rho_default_model_catalog()) {
+  models <- rho_catalog_models(catalog, provider = "github-copilot")
+  unique(vapply(models, function(model) model@id, character(1)))
+}
+
+rho_github_copilot_discover_models_policy <- function() {
+  GitHubCopilotDiscoverModels()
+}
+
+rho_github_copilot_enable_known_models_policy <- function(
+  model_ids = rho_github_copilot_known_model_ids()
+) {
+  GitHubCopilotEnableKnownModels(model_ids = model_ids)
+}
+
+rho_prepare_github_copilot_models <- S7::new_generic(
+  "rho_prepare_github_copilot_models",
+  "policy",
+  function(policy, auth, credential, io, ...) S7::S7_dispatch()
+)
+
 rho_github_copilot_domain <- function(value) {
   domain <- trimws(value)
   domain <- sub("^https?://", "", domain, ignore.case = TRUE)
@@ -84,7 +138,9 @@ rho_github_copilot_domain <- function(value) {
     grepl("^[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$", domain, perl = TRUE) &&
     !grepl("..", domain, fixed = TRUE)
   if (!valid) {
-    rho_abort("`github_domain` must be a valid hostname")
+    rho.async::rho_signal_contract_violation(
+      "`github_domain` must be a valid hostname"
+    )
   }
   tolower(domain)
 }
@@ -102,7 +158,8 @@ rho_github_copilot_urls <- function(domain) {
   GitHubCopilotEndpoints(
     device_code = sprintf("https://%s/login/device/code", domain),
     access_token = sprintf("https://%s/login/oauth/access_token", domain),
-    copilot_token = sprintf("https://api.%s/copilot_internal/v2/token", domain)
+    copilot_token = sprintf("https://api.%s/copilot_internal/v2/token", domain),
+    models = ""
   )
 }
 
@@ -289,13 +346,19 @@ rho_github_copilot_credential <- function(
   expires,
   github_domain = "github.com",
   session_base_url = NULL,
+  available_model_ids = character(),
+  model_catalog_complete = FALSE,
   source = ""
 ) {
   if (!is.character(session_token) || length(session_token) != 1L || !nzchar(session_token)) {
-    rho_abort("`session_token` must be one non-empty string")
+    rho.async::rho_signal_contract_violation(
+      "`session_token` must be one non-empty string"
+    )
   }
   if (!is.character(github_token) || length(github_token) != 1L || !nzchar(github_token)) {
-    rho_abort("`github_token` must be one non-empty string")
+    rho.async::rho_signal_contract_violation(
+      "`github_token` must be one non-empty string"
+    )
   }
   github_domain <- rho_github_copilot_domain(github_domain)
   session_base_url <- session_base_url %||%
@@ -314,11 +377,157 @@ rho_github_copilot_credential <- function(
     metadata = list(),
     state = state,
     github_domain = github_domain,
-    session_base_url = session_base_url
+    session_base_url = session_base_url,
+    available_model_ids = available_model_ids,
+    model_catalog_complete = model_catalog_complete
   )
 }
 
-rho_github_copilot_refresh <- function(auth, github_token, source = "") {
+rho_github_copilot_model_selectable <- function(value) {
+  if (
+    !is.list(value) ||
+      !is.character(value$id) ||
+      length(value$id) != 1L ||
+      is.na(value$id) ||
+      !nzchar(value$id)
+  ) {
+    return(FALSE)
+  }
+  picker_enabled <- identical(value$model_picker_enabled, TRUE)
+  policy_enabled <- !identical(value$policy$state, "disabled")
+  tool_calls <- !identical(value$capabilities$supports$tool_calls, FALSE)
+  picker_enabled && policy_enabled && tool_calls
+}
+
+rho_github_copilot_model_ids <- function(document) {
+  if (!is.list(document$data)) {
+    return(rho_auth_error(
+      "GitHub Copilot model catalog response has no data array",
+      code = "response_fields"
+    ))
+  }
+  models <- Filter(rho_github_copilot_model_selectable, document$data)
+  unique(vapply(models, function(model) model$id, character(1)))
+}
+
+rho_github_copilot_discover_models <- function(auth, credential) {
+  url <- if (nzchar(auth@endpoints@models)) {
+    auth@endpoints@models
+  } else {
+    paste0(sub("/+$", "", credential@session_base_url), "/models")
+  }
+  request <- rho.http::rho_http_request(
+    method = "GET",
+    url = url,
+    headers = utils::modifyList(
+      list(
+        Accept = "application/json",
+        Authorization = paste("Bearer", credential@state$access),
+        `X-GitHub-Api-Version` = "2026-06-01"
+      ),
+      rho_github_copilot_static_headers(auth@identity)
+    ),
+    timeout_ms = 30000L,
+    response_headers = "content-type",
+    convert = TRUE
+  )
+  rho.async::rho_then(
+    rho_github_copilot_http_task(auth, request, "model catalog"),
+    function(document) {
+      if (S7::S7_inherits(document, ProviderErrorValue)) {
+        return(document)
+      }
+      model_ids <- rho_github_copilot_model_ids(document)
+      if (S7::S7_inherits(model_ids, ProviderErrorValue)) {
+        return(model_ids)
+      }
+      rho_github_copilot_credential(
+        session_token = credential@state$access,
+        github_token = credential@state$refresh,
+        expires = credential@expires,
+        github_domain = credential@github_domain,
+        session_base_url = credential@session_base_url,
+        available_model_ids = model_ids,
+        model_catalog_complete = TRUE,
+        source = credential@source
+      )
+    }
+  )
+}
+
+S7::method(
+  rho_prepare_github_copilot_models,
+  GitHubCopilotDiscoverModels
+) <- function(policy, auth, credential, io, ...) {
+  rho_github_copilot_discover_models(auth, credential)
+}
+
+rho_github_copilot_model_policy_task <- function(auth, credential, model_id) {
+  encoded_id <- utils::URLencode(model_id, reserved = TRUE)
+  request <- rho.http::rho_http_request(
+    method = "POST",
+    url = paste0(
+      sub("/+$", "", credential@session_base_url),
+      "/models/",
+      encoded_id,
+      "/policy"
+    ),
+    headers = utils::modifyList(
+      list(
+        Accept = "application/json",
+        Authorization = paste("Bearer", credential@state$access),
+        `Content-Type` = "application/json"
+      ),
+      rho_github_copilot_static_headers(auth@identity)
+    ),
+    body = list(state = "enabled"),
+    timeout_ms = 30000L,
+    response_headers = "content-type",
+    convert = TRUE
+  )
+  rho.async::rho_then(
+    rho.http::rho_http_send(auth@http, request),
+    function(response) {
+      GitHubCopilotModelPolicyResult(
+        model_id = model_id,
+        enabled = !is.na(response@status) && response@status >= 200L && response@status < 300L
+      )
+    },
+    function(error) {
+      GitHubCopilotModelPolicyResult(model_id = model_id, enabled = FALSE)
+    }
+  )
+}
+
+S7::method(
+  rho_prepare_github_copilot_models,
+  GitHubCopilotEnableKnownModels
+) <- function(policy, auth, credential, io, ...) {
+  tasks <- lapply(
+    policy@model_ids,
+    function(model_id) rho_github_copilot_model_policy_task(auth, credential, model_id)
+  )
+  rho.async::rho_then(rho.async::rho_all(tasks), function(results) {
+    notifications <- lapply(results, function(result) {
+      rho_auth_notify(
+        io,
+        RhoAuthProgressEvent(
+          message = sprintf(
+            "GitHub Copilot model %s: %s",
+            result@model_id,
+            if (result@enabled) "enabled" else "not enabled"
+          )
+        )
+      )
+    })
+    rho.async::rho_then(
+      rho.async::rho_all(notifications),
+      function(ignored) rho_github_copilot_discover_models(auth, credential)
+    )
+  })
+}
+
+rho_github_copilot_exchange <- function(auth, github_token, source = "") {
   request <- rho.http::rho_http_request(
     method = "GET",
     url = auth@endpoints@copilot_token,
@@ -361,11 +570,24 @@ rho_github_copilot_refresh <- function(auth, github_token, source = "") {
   )
 }
 
+rho_github_copilot_refresh <- function(auth, github_token, source = "") {
+  rho.async::rho_then(
+    rho_github_copilot_exchange(auth, github_token, source),
+    function(credential) {
+      if (S7::S7_inherits(credential, ProviderErrorValue)) {
+        return(credential)
+      }
+      rho_github_copilot_discover_models(auth, credential)
+    }
+  )
+}
+
 rho_github_copilot_auth <- function(
   github_domain = "github.com",
   client_id = "Iv1.b507a08c87ecfe98",
   identity = rho_github_copilot_client_identity(),
   endpoints = NULL,
+  model_policy = rho_github_copilot_enable_known_models_policy(),
   http = rho.http::rho_http_client(timeout_ms = 30000L)
 ) {
   github_domain <- rho_github_copilot_domain(github_domain)
@@ -376,6 +598,7 @@ rho_github_copilot_auth <- function(
     client_id = client_id,
     identity = identity,
     endpoints = endpoints,
+    model_policy = model_policy,
     http = http
   )
 }
@@ -405,7 +628,20 @@ S7::method(rho_auth_login, GitHubCopilotOAuthAuth) <- function(auth, provider_id
             ) {
               return(github_token)
             }
-            rho_github_copilot_refresh(auth, github_token, source = "login")
+            rho.async::rho_then(
+              rho_github_copilot_exchange(auth, github_token, source = "login"),
+              function(credential) {
+                if (S7::S7_inherits(credential, ProviderErrorValue)) {
+                  return(credential)
+                }
+                rho_prepare_github_copilot_models(
+                  auth@model_policy,
+                  auth,
+                  credential,
+                  io
+                )
+              }
+            )
           }
         )
       }
@@ -469,6 +705,8 @@ rho_github_copilot_credential_from_document <- function(document, source) {
       github_token = value$refresh,
       expires = value$expires %||% NA_real_,
       github_domain = domain,
+      available_model_ids = unlist(value$availableModelIds %||% character(), use.names = FALSE),
+      model_catalog_complete = !is.null(value$availableModelIds),
       source = source
     ),
     error = function(error) {
@@ -568,6 +806,93 @@ rho_github_copilot_model <- function(id, catalog = rho_default_model_catalog()) 
   )
 }
 
+S7::method(
+  rho_provider_models,
+  list(RhoProvider, GitHubCopilotCredential)
+) <- function(provider, credential, ...) {
+  if (!identical(provider@id, "github-copilot") || !credential@model_catalog_complete) {
+    return(provider@models)
+  }
+  Filter(
+    function(model) model@id %in% credential@available_model_ids,
+    provider@models
+  )
+}
+
+S7::method(
+  rho_provider_dialect,
+  list(GitHubCopilotApi, AnthropicMessagesModel)
+) <- function(provider, model, ...) {
+  GitHubCopilotAnthropicApi(provider = provider, version = "2023-06-01")
+}
+
+S7::method(
+  rho_provider_headers,
+  list(GitHubCopilotAnthropicApi, AnthropicMessagesModel, Context)
+) <- function(provider, model, context, options = list(), ...) {
+  rho_provider_headers(provider@provider, model, context, options = options)
+}
+
+S7::method(
+  rho_anthropic_endpoint_url,
+  GitHubCopilotAnthropicApi
+) <- function(provider, model, auth, ...) {
+  base_url <- if (nzchar(auth@base_url)) auth@base_url else model@base_url
+  rho_anthropic_messages_url(base_url)
+}
+
+S7::method(
+  rho_anthropic_endpoint_headers,
+  GitHubCopilotAnthropicApi
+) <- function(
+  provider,
+  model,
+  context,
+  auth,
+  beta_features,
+  options = list(),
+  ...
+) {
+  headers <- list(
+    Authorization = paste("Bearer", auth@api_key),
+    `anthropic-version` = provider@version,
+    Accept = "text/event-stream",
+    `Content-Type` = "application/json"
+  )
+  if (length(beta_features)) {
+    headers$`anthropic-beta` <- paste(
+      vapply(beta_features, rho_anthropic_beta_name, character(1)),
+      collapse = ","
+    )
+  }
+  headers <- utils::modifyList(
+    headers,
+    rho_provider_headers(provider, model, context, options = options)
+  )
+  utils::modifyList(headers, auth@headers)
+}
+
+S7::method(
+  rho_anthropic_endpoint_http,
+  GitHubCopilotAnthropicApi
+) <- function(provider, ...) {
+  provider@provider@http
+}
+
+S7::method(
+  rho_build_provider_request,
+  list(GitHubCopilotAnthropicApi, AnthropicMessagesModel, Context)
+) <- function(provider, model, context, options = list(), ...) {
+  rho_anthropic_build_request(provider, model, context, options)
+}
+
+S7::method(
+  rho_stream,
+  list(GitHubCopilotAnthropicApi, AnthropicMessagesModel, Context)
+) <- function(provider, model, context, options = list(), ...) {
+  rho_anthropic_stream(provider, model, context, options)
+}
+
 rho_github_copilot_provider <- function(
   github_domain = "github.com",
   identity = rho_github_copilot_client_identity(),
@@ -587,7 +912,10 @@ rho_github_copilot_provider <- function(
       )
     ),
     models = Filter(
-      function(model) S7::S7_inherits(model, GitHubCopilotResponsesModel),
+      function(model) {
+        S7::S7_inherits(model, GitHubCopilotResponsesModel) ||
+          S7::S7_inherits(model, AnthropicMessagesModel)
+      },
       rho_catalog_models(catalog, provider = "github-copilot")
     )
   )
@@ -631,11 +959,33 @@ S7::method(
 ) <- function(provider, model, context, options = list(), ...) {
   auth <- options$auth
   if (!S7::S7_inherits(auth, RhoModelAuth) || !nzchar(auth@api_key)) {
-    rho_abort("GitHub Copilot requests require explicit resolved auth in `options$auth`")
+    return(rho_provider_error(
+      "GitHub Copilot requests require explicit resolved auth in `options$auth`",
+      kind = "auth",
+      code = "missing_request_auth"
+    ))
   }
   placement <- options$tool_placement %||% rho_plan_tools(provider, model, context)
   if (!S7::S7_inherits(placement, RhoToolPlacement)) {
-    rho_abort("`options$tool_placement` must inherit from RhoToolPlacement")
+    return(rho_provider_error(
+      "GitHub Copilot `tool_placement` must inherit from RhoToolPlacement",
+      kind = "configuration",
+      code = "github_copilot_tool_placement"
+    ))
+  }
+  operation_plan <- rho_bound_operation_plan(
+    provider,
+    model,
+    context,
+    options
+  )
+  if (S7::S7_inherits(operation_plan, ProviderErrorValue)) {
+    return(operation_plan)
+  }
+  options$operation_plan <- operation_plan
+  body <- rho_openai_responses_body(model, context, placement, options)
+  if (S7::S7_inherits(body, ProviderErrorValue)) {
+    return(body)
   }
   base_url <- if (nzchar(auth@base_url)) auth@base_url else model@base_url
   headers <- utils::modifyList(
@@ -654,7 +1004,7 @@ S7::method(
     method = "POST",
     url = paste0(sub("/+$", "", base_url), "/responses"),
     headers = headers,
-    body = rho_openai_responses_body(model, context, placement, options),
+    body = body,
     timeout_ms = as.integer(options$timeout_ms %||% 120000L),
     response_headers = c("content-type", "retry-after", "retry-after-ms"),
     convert = TRUE
@@ -672,6 +1022,9 @@ S7::method(
   ...
 ) {
   request <- rho_github_copilot_request(provider, model, context, options)
+  if (S7::S7_inherits(request, ProviderErrorValue)) {
+    return(rho_provider_error_stream(model, request))
+  }
   stream <- rho.http::rho_sse_connect(provider@http, request)
   decoder <- rho_openai_responses_decoder(model)
   rho.async::rho_stream_flat_map(

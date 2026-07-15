@@ -6,6 +6,76 @@ rho_unique_tools <- function(tools) {
   tools[!duplicated(names, fromLast = TRUE)]
 }
 
+rho_request_operation_plan <- function(context, options) {
+  plan <- options$operation_plan
+  if (!is.null(plan)) {
+    if (S7::S7_inherits(plan, RhoOperationPlan)) {
+      planned <- lapply(plan@bindings, function(binding) binding@operation)
+      requested <- lapply(context@operations, function(operation) {
+        if (S7::S7_inherits(operation, RhoOperationBinding)) {
+          operation@operation
+        } else {
+          operation
+        }
+      })
+      unbound <- Filter(
+        function(operation) {
+          !any(vapply(
+            planned,
+            function(candidate) identical(candidate, operation),
+            logical(1)
+          ))
+        },
+        requested
+      )
+      if (length(unbound)) {
+        return(rho_provider_error(
+          "`operation_plan` must bind every operation in the request context",
+          kind = "configuration",
+          code = "operation_plan_incomplete",
+          details = list(
+            operations = vapply(unbound, rho_class_label, character(1))
+          )
+        ))
+      }
+      return(plan)
+    }
+    return(rho_provider_error(
+      "`operation_plan` must inherit from RhoOperationPlan",
+      kind = "configuration",
+      code = "operation_plan_type"
+    ))
+  }
+  unbound <- Filter(
+    function(operation) !S7::S7_inherits(operation, RhoOperationBinding),
+    context@operations
+  )
+  if (length(unbound)) {
+    return(rho_provider_error(
+      "A context with semantic operations must be bound by rho_plan_operations() before request translation",
+      kind = "configuration",
+      code = "operation_plan_required",
+      details = list(operations = vapply(unbound, rho_class_label, character(1)))
+    ))
+  }
+  rho_operation_plan(context@operations)
+}
+
+rho_bound_operation_plan <- function(handler, model, context, options) {
+  if (is.null(options$operation_plan)) {
+    return(rho_plan_operations(handler, model, context))
+  }
+  rho_request_operation_plan(context, options)
+}
+
+rho_first_provider_error <- function(values) {
+  errors <- Filter(
+    function(value) S7::S7_inherits(value, ProviderErrorValue),
+    values
+  )
+  if (length(errors)) errors[[1L]] else NULL
+}
+
 rho_class_label <- function(value) {
   s7_class <- S7::S7_class(value)
   if (is.null(s7_class)) {
@@ -91,7 +161,7 @@ S7::method(rho_provider_http_error, RhoHttpStatusError) <- function(error, ...) 
 
 S7::method(
   rho_provider_support,
-  list(S7::class_any, Model, RhoProviderOperation)
+  list(S7::class_any, Model, RhoOperation)
 ) <- function(provider, model, operation, ...) {
   rho_provider_support_value(
     supported = FALSE,
@@ -101,6 +171,117 @@ S7::method(
       operation_class = rho_class_label(operation)
     )
   )
+}
+
+S7::method(
+  rho_bind_operation,
+  list(S7::class_any, Model, RhoOperation)
+) <- function(handler, model, operation, context, ...) {
+  rho_operation_unsupported(
+    operation,
+    handler,
+    sprintf(
+      "%s does not implement %s for model %s",
+      rho_class_label(handler),
+      rho_class_label(operation),
+      model@id
+    ),
+    details = list(model = model@id)
+  )
+}
+
+S7::method(
+  rho_bind_web_search,
+  RhoWebSearchUnavailable
+) <- function(capability, handler, model, operation, context, ...) {
+  rho_operation_unsupported(
+    operation,
+    handler,
+    capability@reason,
+    details = list(model = model@id)
+  )
+}
+
+S7::method(
+  rho_bind_operation,
+  list(S7::class_any, Model, RhoNativeCompactionOperation)
+) <- function(handler, model, operation, context, ...) {
+  support <- rho_provider_support(handler, model, operation)
+  if (!support@supported) {
+    return(rho_operation_unsupported(
+      operation,
+      handler,
+      sprintf(
+        "%s does not declare native compaction for model %s",
+        rho_class_label(handler),
+        model@id
+      ),
+      details = support@details
+    ))
+  }
+  RhoProviderCompactionBinding(
+    operation = operation,
+    handler = handler,
+    reason = sprintf(
+      "%s declares a provider-native compaction primitive for model %s",
+      support@source,
+      model@id
+    ),
+    model = model
+  )
+}
+
+S7::method(
+  rho_plan_operations,
+  list(S7::class_any, Model, Context)
+) <- function(handler, model, context, ...) {
+  bindings <- list()
+  for (operation in context@operations) {
+    binding <- if (S7::S7_inherits(operation, RhoOperationBinding)) {
+      operation
+    } else {
+      rho_bind_operation(handler, model, operation, context, ...)
+    }
+    if (S7::S7_inherits(binding, ProviderErrorValue)) {
+      return(binding)
+    }
+    bindings[[length(bindings) + 1L]] <- binding
+  }
+  rho_operation_plan(bindings)
+}
+
+S7::method(
+  rho_execute_operation,
+  RhoOperationBinding
+) <- function(binding, context, ...) {
+  rho.async::rho_task(rho_operation_unsupported(
+    binding@operation,
+    binding@handler,
+    sprintf(
+      "%s binds %s for translation, not local execution",
+      rho_class_label(binding),
+      rho_class_label(binding@operation)
+    )
+  ))
+}
+
+S7::method(
+  rho_execute_operation,
+  RhoProviderCompactionBinding
+) <- function(binding, context, ...) {
+  rho_compact_provider_input(
+    binding@handler,
+    binding@model,
+    context,
+    ...
+  )
+}
+
+S7::method(
+  rho_provider_dialect,
+  list(S7::class_any, Model)
+) <- function(provider, model, ...) {
+  provider
 }
 
 S7::method(
@@ -145,35 +326,66 @@ S7::method(
 
 S7::method(
   rho_provider_support,
-  list(RhoProvider, Model, RhoProviderOperation)
+  list(RhoProvider, Model, RhoOperation)
 ) <- function(provider, model, operation, ...) {
-  rho_provider_support(provider@implementation, model, operation, ...)
+  dialect <- rho_provider_dialect(provider@implementation, model)
+  rho_provider_support(dialect, model, operation, ...)
+}
+
+S7::method(
+  rho_bind_operation,
+  list(RhoProvider, Model, RhoOperation)
+) <- function(handler, model, operation, context, ...) {
+  rho_bind_operation(
+    handler@implementation,
+    model,
+    operation,
+    context,
+    ...
+  )
+}
+
+S7::method(
+  rho_bind_operation,
+  list(RhoProvider, Model, RhoNativeCompactionOperation)
+) <- function(handler, model, operation, context, ...) {
+  rho_bind_operation(
+    handler@implementation,
+    model,
+    operation,
+    context,
+    ...
+  )
 }
 
 S7::method(
   rho_plan_tools,
   list(RhoProvider, Model, Context)
 ) <- function(provider, model, context, ...) {
-  rho_plan_tools(provider@implementation, model, context, ...)
+  dialect <- rho_provider_dialect(provider@implementation, model)
+  rho_plan_tools(dialect, model, context, ...)
 }
 
 S7::method(
   rho_build_provider_request,
   list(RhoProvider, Model, Context)
 ) <- function(provider, model, context, options = list(), ...) {
-  rho_build_provider_request(provider@implementation, model, context, options = options, ...)
+  dialect <- rho_provider_dialect(provider@implementation, model)
+  rho_build_provider_request(dialect, model, context, options = options, ...)
 }
 
 S7::method(
   rho_provider_headers,
   list(RhoProvider, Model, Context)
 ) <- function(provider, model, context, options = list(), ...) {
-  rho_provider_headers(provider@implementation, model, context, options = options, ...)
+  dialect <- rho_provider_dialect(provider@implementation, model)
+  rho_provider_headers(dialect, model, context, options = options, ...)
 }
 
 S7::method(
   rho_compact_provider_input,
   list(RhoProvider, Model, Context)
 ) <- function(provider, model, context, options = list(), ...) {
-  rho_compact_provider_input(provider@implementation, model, context, options = options, ...)
+  dialect <- rho_provider_dialect(provider@implementation, model)
+  rho_compact_provider_input(dialect, model, context, options = options, ...)
 }

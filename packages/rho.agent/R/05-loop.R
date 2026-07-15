@@ -3,7 +3,8 @@ rho_agent_run_result <- function(
   events_before,
   tool_results,
   status = "completed",
-  error = NULL
+  error = NULL,
+  context = NULL
 ) {
   first_event <- events_before + 1L
   events <- if (first_event <= length(agent@state$events)) {
@@ -16,7 +17,8 @@ rho_agent_run_result <- function(
     tool_results = tool_results,
     events = events,
     status = status,
-    error = error
+    error = error,
+    context = context
   )
 }
 
@@ -91,7 +93,12 @@ rho_invalid_agent_run <- function(agent, events_before, message) {
   rho_agent_run_result(agent, events_before, list(), status = "error", error = error)
 }
 
-rho_run_agent_loop <- function(agent, prompts, continue = FALSE) {
+rho_run_agent_loop <- function(
+  agent,
+  prompts,
+  continue = FALSE,
+  application = NULL
+) {
   events_before <- length(agent@state$events)
   if (!identical(agent@state$phase, "idle")) {
     return(rho.async::rho_task(rho_invalid_agent_run(
@@ -121,6 +128,7 @@ rho_run_agent_loop <- function(agent, prompts, continue = FALSE) {
     )))
   }
 
+  run_context <- rho_run_context(agent, application)
   agent@state$phase <- "running"
   agent@state$cancelled <- FALSE
   agent@state$cancel_reason <- NULL
@@ -158,13 +166,14 @@ rho_run_agent_loop <- function(agent, prompts, continue = FALSE) {
           pending <- list()
         }
 
-        context <- rho.ai::rho_context(
+        model_context <- rho.ai::rho_context(
           agent@options@system_prompt,
           agent@state$messages,
-          agent@state$tools
+          agent@state$tools,
+          agent@options@operations
         )
         response <- coro::await(rho.async::rho_as_promise(
-          rho_receive_assistant(agent, context)
+          rho_receive_assistant(agent, model_context)
         ))
         assistant <- response@message
         if (!is.null(response@error)) {
@@ -182,7 +191,12 @@ rho_run_agent_loop <- function(agent, prompts, continue = FALSE) {
 
         batch <- tryCatch(
           coro::await(rho.async::rho_as_promise(
-            rho_execute_assistant_tools(agent, assistant, context)
+            rho_execute_assistant_tools(
+              agent,
+              assistant,
+              run_context,
+              model_context
+            )
           )),
           error = function(error) error
         )
@@ -210,7 +224,7 @@ rho_run_agent_loop <- function(agent, prompts, continue = FALSE) {
             agent,
             assistant,
             batch@messages,
-            context,
+            model_context,
             agent@state$messages
           ))),
           error = function(error) error
@@ -280,7 +294,8 @@ rho_run_agent_loop <- function(agent, prompts, continue = FALSE) {
         events_before,
         tool_results,
         status = run_status,
-        error = run_error
+        error = run_error,
+        context = run_context
       )
     },
     label = "agent-loop"

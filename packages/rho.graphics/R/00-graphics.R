@@ -201,7 +201,10 @@ rho_render_graphic_expression <- function(
   grDevices::dev.off()
   open <- FALSE
   if (!file.exists(path)) {
-    stop(sprintf("Graphics device did not create artifact: %s", path), call. = FALSE)
+    return(RhoGraphicErrorValue(
+      message = sprintf("Graphics device did not create artifact: %s", path),
+      source = list(path = path, device = device)
+    ))
   }
 
   RhoGraphicArtifact(
@@ -250,6 +253,7 @@ S7::method(
 }
 
 S7::method(rho_graphic_outcome, RhoGraphicArtifact) <- function(value, ...) value
+S7::method(rho_graphic_outcome, RhoGraphicErrorValue) <- function(value, ...) value
 S7::method(rho_graphic_outcome, rho.compute::RhoComputeErrorValue) <- function(value, ...) {
   RhoGraphicErrorValue(message = value@message, source = value)
 }

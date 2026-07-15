@@ -49,7 +49,13 @@ rho_fail_tool_call <- function(agent, call, message) {
   rho_finish_tool_call(agent, call, rho_error_tool_result(message), TRUE)
 }
 
-rho_schedule_tool_call <- function(agent, assistant, call, context) {
+rho_schedule_tool_call <- function(
+  agent,
+  assistant,
+  call,
+  run_context,
+  model_context
+) {
   rho.async::rho_coro_task(
     function() {
       coro::await(rho.async::rho_as_promise(
@@ -87,14 +93,30 @@ rho_schedule_tool_call <- function(agent, assistant, call, context) {
         return(failure)
       }
 
+      prepared_call <- rho.ai::ToolCall(
+        id = call@id,
+        name = call@name,
+        arguments = args
+      )
+      updates <- new.env(parent = emptyenv())
+      updates$tasks <- list()
+      context <- rho_tool_context(
+        run_context,
+        tool,
+        prepared_call,
+        assistant = assistant,
+        model_context = model_context,
+        on_update = function(partial_result) {
+          updates$tasks[[length(updates$tasks) + 1L]] <- rho_emit_agent_event(
+            agent,
+            rho_tool_execution_update_event(prepared_call, partial_result)
+          )
+        }
+      )
+
       decision <- tryCatch(
         coro::await(rho.async::rho_as_promise(rho_before_tool_call(
           agent@options@policy,
-          agent,
-          assistant,
-          tool,
-          call,
-          args,
           context
         ))),
         error = function(error) error
@@ -127,24 +149,13 @@ rho_schedule_tool_call <- function(agent, assistant, call, context) {
         return(failure)
       }
 
-      prepared_call <- rho.ai::ToolCall(
-        id = call@id,
-        name = call@name,
-        arguments = args
-      )
-      updates <- new.env(parent = emptyenv())
-      updates$tasks <- list()
       tool_task <- tryCatch(
         rho.ai::rho_execute_tool(
           tool,
           prepared_call,
-          ctx = context,
-          on_update = function(partial_result) {
-            updates$tasks[[length(updates$tasks) + 1L]] <- rho_emit_agent_event(
-              agent,
-              rho_tool_execution_update_event(prepared_call, partial_result)
-            )
-          }
+          context = context,
+          signal = context@signal,
+          on_update = context@on_update
         ),
         error = function(error) error
       )
@@ -182,17 +193,15 @@ rho_schedule_tool_call <- function(agent, assistant, call, context) {
       }
 
       result_is_error <- S7::S7_inherits(result, rho.ai::ToolErrorResult)
+      completed_context <- rho_completed_tool_context(
+        context,
+        result,
+        result_is_error
+      )
       after <- tryCatch(
         coro::await(rho.async::rho_as_promise(rho_after_tool_call(
           agent@options@policy,
-          agent,
-          assistant,
-          tool,
-          prepared_call,
-          args,
-          result,
-          result_is_error,
-          context
+          completed_context
         ))),
         error = function(error) error
       )
@@ -237,13 +246,27 @@ S7::method(
   RhoSequentialToolExecution()
 }
 
-rho_tool_batch_execution <- function(mode, agent, calls, context) {
+rho_tool_batch_execution <- function(
+  mode,
+  agent,
+  assistant,
+  calls,
+  run_context,
+  model_context
+) {
   for (call in calls) {
     tool <- rho_agent_tool(agent, call@name)
     if (is.null(tool)) {
       next
     }
-    overlap <- rho.ai::rho_tool_overlap(tool, call, ctx = context)
+    context <- rho_tool_context(
+      run_context,
+      tool,
+      call,
+      assistant = assistant,
+      model_context = model_context
+    )
+    overlap <- rho.ai::rho_tool_overlap(tool, call, context = context)
     mode <- rho_resolve_tool_execution(mode, overlap)
   }
   mode
@@ -262,13 +285,19 @@ rho_tool_batch <- function(messages) {
 S7::method(
   rho_execute_tool_batch,
   RhoToolExecutionMode
-) <- function(mode, agent, assistant, context, calls, ...) {
+) <- function(mode, agent, assistant, run_context, model_context, calls, ...) {
   rho.async::rho_coro_task(
     function() {
       messages <- vector("list", length(calls))
       for (index in seq_along(calls)) {
         message <- coro::await(rho.async::rho_as_promise(
-          rho_schedule_tool_call(agent, assistant, calls[[index]], context)
+          rho_schedule_tool_call(
+            agent,
+            assistant,
+            calls[[index]],
+            run_context,
+            model_context
+          )
         ))
         messages[[index]] <- message
         coro::await(rho.async::rho_as_promise(
@@ -284,12 +313,20 @@ S7::method(
 S7::method(
   rho_execute_tool_batch,
   RhoParallelToolExecution
-) <- function(mode, agent, assistant, context, calls, ...) {
+) <- function(mode, agent, assistant, run_context, model_context, calls, ...) {
   rho.async::rho_coro_task(
     function() {
       tasks <- lapply(
         calls,
-        function(call) rho_schedule_tool_call(agent, assistant, call, context)
+        function(call) {
+          rho_schedule_tool_call(
+            agent,
+            assistant,
+            call,
+            run_context,
+            model_context
+          )
+        }
       )
       messages <- coro::await(rho.async::rho_as_promise(rho.async::rho_all(tasks)))
       for (message in messages) {
@@ -331,7 +368,12 @@ rho_fail_truncated_tool_calls <- function(agent, calls) {
   )
 }
 
-rho_execute_assistant_tools <- function(agent, assistant, context) {
+rho_execute_assistant_tools <- function(
+  agent,
+  assistant,
+  run_context,
+  model_context
+) {
   calls <- rho_tool_calls(assistant)
   if (!length(calls)) {
     return(rho.async::rho_task(rho_tool_batch(list())))
@@ -344,10 +386,19 @@ rho_execute_assistant_tools <- function(agent, assistant, context) {
     mode <- rho_tool_batch_execution(
       agent@options@tool_execution,
       agent,
+      assistant,
       calls,
-      context
+      run_context,
+      model_context
     )
-    rho_execute_tool_batch(mode, agent, assistant, context, calls)
+    rho_execute_tool_batch(
+      mode,
+      agent,
+      assistant,
+      run_context,
+      model_context,
+      calls
+    )
   }
 
   rho.async::rho_then(
@@ -358,7 +409,7 @@ rho_execute_assistant_tools <- function(agent, assistant, context) {
     },
     function(error) {
       agent@state$pending_tool_calls <- character()
-      stop(error)
+      rho.async::rho_rejected(error)
     }
   )
 }

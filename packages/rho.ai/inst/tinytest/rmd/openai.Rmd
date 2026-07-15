@@ -18,10 +18,16 @@ expect_true(S7::S7_inherits(provider@implementation, OpenAIApi))
 expect_true(S7::S7_inherits(provider@auth@api_key, OpenAIApiKeyAuth))
 expect_true(S7::S7_inherits(model, OpenAIResponsesModel))
 expect_equal(model@api, "openai-responses")
-expect_true(length(provider@models) > 1L)
 expect_true(S7::S7_inherits(
-  rho_openai_codex_model("gpt-5.3-codex-spark"),
-  OpenAICodexResponsesModel
+  model@compatibility@web_search,
+  OpenAIWebSearchTextAndImage
+))
+expect_true(length(provider@models) > 1L)
+spark <- rho_openai_codex_model("gpt-5.3-codex-spark")
+expect_true(S7::S7_inherits(spark, OpenAICodexResponsesModel))
+expect_true(S7::S7_inherits(
+  spark@compatibility@web_search,
+  RhoWebSearchUnavailable
 ))
 expect_true(S7::S7_inherits(
   rho_github_copilot_model("gpt-5.3-codex"),
@@ -76,7 +82,7 @@ expect_true(all(vapply(
 )))
 expect_true(s7contract::implements(
   S7::S7_class(sections[[1L]]),
-  OpenAIRequestSectionProtocol
+  ProviderRequestSectionProtocol
 ))
 expect_equal(body$instructions, "Use the tool when needed.")
 expect_equal(body$tools[[1L]]$name, "lookup")
@@ -97,6 +103,155 @@ disabled <- rho_openai_responses_body(
 )
 expect_equal(disabled$reasoning$effort, "none")
 expect_true(is.null(disabled$include))
+```
+
+```{r hosted-web-search-operation}
+search <- rho_web_search(
+  domains = rho_web_search_allowed_domains(c("r-project.org", "cran.r-project.org")),
+  location = rho_approximate_location(country = "DE", city = "Berlin")
+)
+search_context <- rho_context(
+  messages = list(rho_user_message("Find the current R release.")),
+  tools = list(tool),
+  operations = list(search)
+)
+unbound_search <- rho_openai_responses_body(
+  model,
+  search_context,
+  rho_plan_tools(provider, model, search_context)
+)
+search_plan <- rho_plan_operations(provider, model, search_context)
+search_support <- rho_provider_support(provider, model, search)
+search_body <- rho_openai_responses_body(
+  model,
+  search_context,
+  rho_plan_tools(provider, model, search_context),
+  options = list(operation_plan = search_plan)
+)
+
+expect_true(S7::S7_inherits(unbound_search, ProviderErrorValue))
+expect_equal(unbound_search@code, "operation_plan_required")
+expect_true(search_support@supported)
+expect_true(S7::S7_inherits(search_plan, RhoOperationPlan))
+expect_true(S7::S7_inherits(search_plan@bindings[[1L]], OpenAIWebSearchBinding))
+expect_equal(search_body$tools[[1L]]$type, "function")
+expect_equal(search_body$tools[[2L]]$type, "web_search")
+expect_equal(
+  search_body$tools[[2L]]$filters$allowed_domains,
+  c("r-project.org", "cran.r-project.org")
+)
+expect_equal(search_body$tools[[2L]]$user_location$country, "DE")
+expect_equal(search_body$tools[[2L]]$user_location$city, "Berlin")
+
+spark_search <- rho_plan_operations(
+  rho_openai_codex_provider(),
+  spark,
+  rho_context(operations = list(rho_web_search()))
+)
+spark_support <- rho_provider_support(
+  rho_openai_codex_provider(),
+  spark,
+  rho_web_search()
+)
+expect_true(S7::S7_inherits(spark_search, OperationUnsupported))
+expect_equal(spark_search@details$model, "gpt-5.3-codex-spark")
+expect_false(spark_support@supported)
+
+blocked_context <- rho_context(
+  messages = list(rho_user_message("Search.")),
+  operations = list(rho_web_search(
+    domains = rho_web_search_blocked_domains("example.invalid")
+  ))
+)
+blocked <- rho_plan_operations(provider, model, blocked_context)
+blocked_request <- rho_openai_request(
+  provider,
+  model,
+  blocked_context,
+  options = list(auth = rho_model_auth(api_key = "test"))
+)
+invalid_plan_request <- rho_openai_request(
+  provider,
+  model,
+  context,
+  options = list(
+    auth = rho_model_auth(api_key = "test"),
+    operation_plan = "invalid"
+  )
+)
+incomplete_plan_request <- rho_openai_request(
+  provider,
+  model,
+  search_context,
+  options = list(
+    auth = rho_model_auth(api_key = "test"),
+    operation_plan = rho_operation_plan()
+  )
+)
+expect_true(S7::S7_inherits(blocked, OperationUnsupported))
+expect_true(S7::S7_inherits(blocked_request, OperationUnsupported))
+expect_true(S7::S7_inherits(blocked@operation, RhoWebSearchOperation))
+expect_equal(blocked@handler_class, "OpenAIApi")
+expect_true(S7::S7_inherits(invalid_plan_request, ProviderErrorValue))
+expect_equal(invalid_plan_request@code, "operation_plan_type")
+expect_true(S7::S7_inherits(incomplete_plan_request, ProviderErrorValue))
+expect_equal(incomplete_plan_request@code, "operation_plan_incomplete")
+```
+
+```{r hosted-web-search-events}
+search_decoder <- rho_openai_responses_decoder(model)
+openai_event <- function(value) {
+  rho.http::RhoSseEvent(
+    event = "message",
+    data = yyjsonr::write_json_str(value, auto_unbox = TRUE),
+    id = "",
+    retry = NA_integer_
+  )
+}
+
+started <- rho_decode_provider_event(search_decoder, openai_event(list(
+  type = "response.output_item.added",
+  output_index = 0L,
+  item = list(
+    type = "web_search_call",
+    id = "search_1",
+    status = "in_progress"
+  )
+)))
+finished <- rho_decode_provider_event(search_decoder, openai_event(list(
+  type = "response.output_item.done",
+  output_index = 0L,
+  item = list(
+    type = "web_search_call",
+    id = "search_1",
+    status = "completed",
+    action = list(type = "search", query = "current R release")
+  )
+)))
+
+expect_equal(
+  vapply(c(started, finished), rho_assistant_event_type, character(1)),
+  c("start", "operation_start", "operation_end")
+)
+search_content <- finished[[1L]]@partial@content[[1L]]
+expect_true(S7::S7_inherits(search_content, WebSearchCallContent))
+expect_false(S7::S7_inherits(search_content, ToolCall))
+expect_true(S7::S7_inherits(search_content@status, OperationCompleted))
+expect_equal(search_content@action@queries, "current R release")
+
+history <- rho_context(messages = list(rho_assistant_message(
+  content = list(search_content),
+  provider = "openai",
+  model = model@id
+)))
+history_body <- rho_openai_responses_body(
+  model,
+  history,
+  rho_plan_tools(provider, model, history)
+)
+expect_equal(history_body$input[[1L]]$type, "web_search_call")
+expect_equal(history_body$input[[1L]]$status, "completed")
+expect_equal(history_body$input[[1L]]$action$query, "current R release")
 ```
 
 ```{r explicit-login}

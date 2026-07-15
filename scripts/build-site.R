@@ -8,7 +8,7 @@ package_dirs <- list.dirs("packages", recursive = FALSE, full.names = TRUE)
 package_dirs <- package_dirs[file.exists(file.path(package_dirs, "DESCRIPTION"))]
 
 dir.create("_site", recursive = TRUE, showWarnings = FALSE)
-file.create(file.path("_site", ".nojekyll"))
+invisible(file.create(file.path("_site", ".nojekyll")))
 site_root <- normalizePath("_site", mustWork = TRUE)
 
 for (package_dir in package_dirs) {

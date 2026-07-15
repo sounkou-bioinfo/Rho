@@ -29,13 +29,21 @@ rho_extension_api <- function(runtime = rho_extension_runtime(), source = "<memo
   RhoExtensionAPI(runtime = runtime, state = rho_new_state(source = source))
 }
 
-rho_on <- S7::new_generic("rho_on", "api", function(api, event, handler, ...) S7::S7_dispatch())
-rho_register_tool <- S7::new_generic("rho_register_tool", "api", function(api, tool, ...) {
-  S7::S7_dispatch()
-})
+rho_on <- S7::new_generic(
+  "rho_on",
+  c("api", "event", "handler"),
+  function(api, event, handler, ...) S7::S7_dispatch()
+)
+rho_register_tool <- S7::new_generic(
+  "rho_register_tool",
+  c("api", "tool"),
+  function(api, tool, ...) {
+    S7::S7_dispatch()
+  }
+)
 rho_register_command <- S7::new_generic(
   "rho_register_command",
-  "api",
+  c("api", "name", "handler"),
   function(api, name, handler, description = NULL, ...) S7::S7_dispatch()
 )
 rho_register_provider <- S7::new_generic(
@@ -49,10 +57,10 @@ rho_dispatch_event <- S7::new_generic(
   function(runtime, event, ctx = NULL, ...) S7::S7_dispatch()
 )
 
-S7::method(rho_on, RhoExtensionAPI) <- function(api, event, handler, ...) {
-  if (!is.function(handler)) {
-    rho_abort("`handler` must be a function")
-  }
+S7::method(
+  rho_on,
+  list(RhoExtensionAPI, S7::class_character, S7::class_function)
+) <- function(api, event, handler, ...) {
   handlers <- api@runtime@state$handlers
   current <- if (exists(event, handlers, inherits = FALSE)) get(event, handlers) else list()
   current[[length(current) + 1L]] <- handler
@@ -60,24 +68,24 @@ S7::method(rho_on, RhoExtensionAPI) <- function(api, event, handler, ...) {
   invisible(api)
 }
 
-S7::method(rho_register_tool, RhoExtensionAPI) <- function(api, tool, ...) {
-  if (!S7::S7_inherits(tool, rho.ai::ToolSpec)) {
-    rho_abort("`tool` must be a rho.ai ToolSpec value")
-  }
+S7::method(
+  rho_register_tool,
+  list(RhoExtensionAPI, rho.ai::ToolSpec)
+) <- function(api, tool, ...) {
   assign(tool@name, tool, api@runtime@state$tools)
   invisible(api)
 }
 
-S7::method(rho_register_command, RhoExtensionAPI) <- function(
+S7::method(
+  rho_register_command,
+  list(RhoExtensionAPI, S7::class_character, S7::class_function)
+) <- function(
   api,
   name,
   handler,
   description = NULL,
   ...
 ) {
-  if (!is.function(handler)) {
-    rho_abort("`handler` must be a function")
-  }
   assign(
     name,
     list(name = name, handler = handler, description = description),

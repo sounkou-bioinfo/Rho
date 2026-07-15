@@ -74,11 +74,37 @@ cache-read, cache-write, and output counts are disjoint; reasoning and one-hour
 cache writes are typed subsets of their parent counts. `rho_price_usage()` applies
 the model catalog's component rates and long-context tiers through S7 dispatch.
 
-OpenAI Responses request bodies are composed from `OpenAIRequestSection` values.
-The standard OpenAI, Codex, and Copilot model subclasses select their sections
-through `rho_openai_request_sections()`. Wire names are emitted only by
-`rho_openai_request_fields()` methods, so extensions can replace one policy or
-append a section without copying the complete request builder.
+Provider request bodies are composed from `ProviderRequestSection` values, with
+OpenAI and Anthropic subclasses for their wire dialects. The standard OpenAI,
+Codex, and Copilot model subclasses select OpenAI sections through
+`rho_openai_request_sections()`; Anthropic models select sections through
+`rho_anthropic_request_sections()`. Wire names are emitted only by
+`rho_request_fields()` methods, so extensions can replace one policy or append
+a section without copying a complete request builder.
+
+`AnthropicMessagesEndpoint` separates Messages semantics from endpoint auth and
+transport. Anthropic and GitHub Copilot share content translation, request
+sections, and typed stream reduction while implementing different endpoint
+methods. Model capability profiles select adaptive or budget thinking,
+temperature acceptance, cache retention, tool-input streaming, and hosted
+operation dialects without request-time model-name tests.
+
+`ToolSpec` and `RhoOperation` are deliberately different. A `ToolSpec` names
+host code that the agent may execute after receiving a `ToolCall`.
+`RhoOperation` states a semantic capability requested by the conversation.
+`rho_plan_operations()` asks a handler to bind each operation for the selected
+model; every `RhoOperationBinding` records that handler and the reason for its
+selection. An OpenAI or Anthropic web-search binding is translated into a
+provider-hosted tool declaration. Its response becomes typed content and
+operation lifecycle events, never an executable local `ToolCall`.
+
+Bindings are the override point. A context may carry a binding supplied by an
+extension or host, while an unbound operation must pass through
+`rho_plan_operations()`. Low-level request translation returns a typed
+configuration error when handed an unbound semantic operation. The same
+protocol applies outside providers: `rho.coding` binds an `RhoRExpression` to a
+current-session or mirai evaluator, and a remote NNG evaluator can implement
+the same methods without changing the agent loop.
 
 For dynamic tools, `ToolResultMessage@added_tool_names` is the portable transcript
 fact. `rho_plan_tools()` returns one of these successful plans:
@@ -96,21 +122,16 @@ operation values and `rho_provider_support()` instead of a universal boolean map
 
 ## Compaction boundary
 
-Session compaction is an agent-harness concern, not an AI-provider concern.
+Session compaction belongs to the agent harness. A provider-native compaction
+primitive is one possible binding of that semantic operation, not the owner of
+the policy.
 
-- `rho.ai` may expose `rho_compact_provider_input()` for a provider-native wire
-  primitive such as encrypted Responses input compaction. Its broad method returns
-  a typed unsupported value because no equivalent provider operation was performed.
-- `rho.agent` owns the generic session preparation, cut point, summary generation,
-  durable entry, overflow recovery, and before/after protocol. Its broad method is
-  the working model-summary implementation.
-- `rho.coding` specializes retained coding facts such as file reads and edits.
-- `rho.bio.agent` specializes retained evidence such as resource receipts,
-  observations, artifact identifiers, and provenance.
-
-A provider-native encrypted item is not treated as a durable semantic summary. The
-agent layer may select it as an input optimization only when its session contract
-can still be satisfied.
+`rho.ai` currently defines `RhoCompactionOperation`, the provider-binding point,
+and typed unsupported defaults. It does not yet claim a working compactor.
+`rho.agent` still needs the session cut point, summary generation, durable entry,
+overflow recovery, and before/after protocol. Coding and bio packages may then
+specialize which facts survive. A provider-encrypted item is an input
+optimization, not a durable semantic summary.
 
 ## Authentication boundary
 

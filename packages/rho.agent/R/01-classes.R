@@ -37,6 +37,7 @@ RhoAgentOptions <- S7::new_class(
     provider = S7::class_any,
     model = rho.ai::Model,
     system_prompt = S7::class_character,
+    operations = S7::class_list,
     tool_execution = RhoToolExecutionMode,
     steering_mode = RhoQueueMode,
     follow_up_mode = RhoQueueMode,
@@ -59,6 +60,7 @@ RhoAgent <- S7::new_class(
       "pending_tool_calls",
       "events",
       "event_sequence",
+      "run_sequence",
       "idle_condition",
       "idle_waiters",
       "cancelled",
@@ -66,6 +68,66 @@ RhoAgent <- S7::new_class(
     )
     missing <- setdiff(required, ls(self@state, all.names = TRUE))
     if (length(missing)) sprintf("@state missing field(s): %s", paste(missing, collapse = ", "))
+  }
+)
+
+rho_run_context_id <- S7::new_property(
+  S7::class_character,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value) || !nzchar(value)) {
+      "must be one non-empty string"
+    }
+  }
+)
+
+rho_optional_update_handler <- S7::new_property(
+  S7::class_any,
+  default = NULL,
+  validator = function(value) {
+    if (!is.null(value) && !is.function(value)) "must be NULL or a function"
+  }
+)
+
+RhoRunContext <- S7::new_class(
+  "RhoRunContext",
+  properties = list(
+    id = rho_run_context_id,
+    agent = RhoAgent,
+    application = S7::class_any,
+    state = S7::class_environment
+  )
+)
+
+RhoToolContext <- S7::new_class(
+  "RhoToolContext",
+  properties = list(
+    run = RhoRunContext,
+    model_context = rho.ai::Context,
+    assistant = rho.ai::AssistantMessage,
+    tool = rho.ai::ToolSpec,
+    call = rho.ai::ToolCall,
+    arguments = S7::class_list,
+    signal = S7::new_property(S7::class_any, default = NULL),
+    on_update = rho_optional_update_handler
+  )
+)
+
+RhoCompletedToolContext <- S7::new_class(
+  "RhoCompletedToolContext",
+  parent = RhoToolContext,
+  properties = list(
+    result = rho.ai::ToolResult,
+    is_error = S7::class_logical
+  )
+)
+
+rho_optional_run_context <- S7::new_property(
+  S7::class_any,
+  default = NULL,
+  validator = function(value) {
+    if (!is.null(value) && !S7::S7_inherits(value, RhoRunContext)) {
+      "must be NULL or a RhoRunContext value"
+    }
   }
 )
 
@@ -86,7 +148,8 @@ RhoAgentRunResult <- S7::new_class(
     tool_results = S7::class_list,
     events = S7::class_list,
     status = rho_agent_run_status,
-    error = S7::class_any
+    error = S7::class_any,
+    context = rho_optional_run_context
   )
 )
 

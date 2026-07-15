@@ -19,48 +19,6 @@ OpenAICodexOAuthAuth <- S7::new_class(
 
 rho_openai_codex_client_id <- "app_EMoamEEZ73f0CkXaXp7hrann"
 
-rho_form_urlencode <- function(fields) {
-  if (!length(fields)) {
-    return("")
-  }
-  values <- vapply(
-    fields,
-    function(value) {
-      utils::URLencode(as.character(value), reserved = TRUE)
-    },
-    character(1)
-  )
-  paste(paste(utils::URLencode(names(values), reserved = TRUE), values, sep = "="), collapse = "&")
-}
-
-rho_base64url_encode <- function(value) {
-  encoded <- base64enc::base64encode(value)
-  sub("=+$", "", chartr("+/", "-_", encoded))
-}
-
-rho_base64url_decode <- function(value) {
-  encoded <- chartr("-_", "+/", value)
-  padding <- (4L - nchar(encoded) %% 4L) %% 4L
-  if (padding) {
-    encoded <- paste0(encoded, strrep("=", padding))
-  }
-  base64enc::base64decode(encoded)
-}
-
-rho_openai_codex_pkce <- function() {
-  verifier <- rho_base64url_encode(nanonext::random(32L, convert = FALSE))
-  list(
-    verifier = verifier,
-    challenge = rho_base64url_encode(digest::digest(
-      charToRaw(verifier),
-      algo = "sha256",
-      serialize = FALSE,
-      raw = TRUE
-    )),
-    state = nanonext::random(16L)
-  )
-}
-
 rho_openai_codex_json_document <- function(response, operation) {
   if (is.na(response@status) || response@status < 200L || response@status >= 300L) {
     return(rho_auth_error(
@@ -167,54 +125,12 @@ rho_openai_codex_exchange_code <- function(auth, code, verifier, redirect_uri, s
   )
 }
 
-rho_openai_codex_query <- function(input) {
-  value <- trimws(input)
-  if (!nzchar(value)) {
-    return(list())
-  }
-  query <- if (grepl("?", value, fixed = TRUE)) {
-    sub("^[^?]*\\?", "", value)
-  } else {
-    value
-  }
-  query <- sub("#.*$", "", query)
-  fields <- strsplit(query, "&", fixed = TRUE)[[1L]]
-  pairs <- lapply(fields, function(field) strsplit(field, "=", fixed = TRUE)[[1L]])
-  names <- vapply(pairs, function(pair) utils::URLdecode(pair[[1L]]), character(1))
-  values <- vapply(
-    pairs,
-    function(pair) {
-      utils::URLdecode(paste(pair[-1L], collapse = "="))
-    },
-    character(1)
-  )
-  as.list(stats::setNames(values, names))
-}
-
 rho_openai_codex_authorization_input <- function(input, expected_state) {
-  value <- trimws(input)
-  if (grepl("#", value, fixed = TRUE) && !grepl("?", value, fixed = TRUE)) {
-    pieces <- strsplit(value, "#", fixed = TRUE)[[1L]]
-    parsed <- list(code = pieces[[1L]], state = pieces[[2L]] %||% "")
-  } else if (grepl("code=", value, fixed = TRUE) || grepl("?", value, fixed = TRUE)) {
-    parsed <- rho_openai_codex_query(value)
-  } else {
-    parsed <- list(code = value, state = "")
-  }
-  if (nzchar(parsed$state %||% "") && !identical(parsed$state, expected_state)) {
-    return(rho_auth_error("OpenAI Codex authorization state mismatch", code = "state"))
-  }
-  if (!is.character(parsed$code) || length(parsed$code) != 1L || !nzchar(parsed$code)) {
-    return(rho_auth_error(
-      "OpenAI Codex authorization code is missing",
-      code = "authorization_code"
-    ))
-  }
-  parsed$code
+  rho_authorization_code(input, expected_state, "OpenAI Codex")
 }
 
 rho_openai_codex_browser_login <- function(auth, io) {
-  pkce <- rho_openai_codex_pkce()
+  pkce <- rho_pkce()
   redirect_uri <- "http://localhost:1455/auth/callback"
   authorize_url <- paste0(
     auth@auth_base_url,
@@ -496,7 +412,7 @@ S7::method(rho_auth_to_request, OpenAICodexOAuthAuth) <- function(auth, credenti
 rho_decode_jwt_payload <- function(token) {
   parts <- strsplit(token, ".", fixed = TRUE)[[1L]]
   if (length(parts) != 3L) {
-    rho_abort("OAuth access token is not a JWT")
+    rho.async::rho_signal_contract_violation("OAuth access token is not a JWT")
   }
   decoded <- rawToChar(rho_base64url_decode(parts[[2L]]))
   yyjsonr::read_json_str(decoded, arr_of_objs_to_df = FALSE, obj_of_arrs_to_df = FALSE)
@@ -506,7 +422,9 @@ rho_openai_codex_account_id <- function(access_token) {
   payload <- rho_decode_jwt_payload(access_token)
   account_id <- payload[["https://api.openai.com/auth"]]$chatgpt_account_id
   if (!is.character(account_id) || length(account_id) != 1L || !nzchar(account_id)) {
-    rho_abort("OAuth token does not contain a ChatGPT account id")
+    rho.async::rho_signal_contract_violation(
+      "OAuth token does not contain a ChatGPT account id"
+    )
   }
   account_id
 }
@@ -518,9 +436,6 @@ rho_openai_codex_credential <- function(
   expires = NA_real_,
   source = ""
 ) {
-  if (!is.character(access_token) || length(access_token) != 1L || !nzchar(access_token)) {
-    rho_abort("`access_token` must be one non-empty string")
-  }
   account_id <- account_id %||% rho_openai_codex_account_id(access_token)
   secret_state <- new.env(parent = emptyenv())
   secret_state$access <- access_token
@@ -684,16 +599,12 @@ rho_openai_responses_input <- function(context, placement) {
           content = list(list(type = "output_text", text = text))
         )
       }
-      for (content in message@content) {
-        if (S7::S7_inherits(content, ToolCall)) {
-          input[[length(input) + 1L]] <- list(
-            type = "function_call",
-            call_id = content@id,
-            name = content@name,
-            arguments = yyjsonr::write_json_str(content@arguments, auto_unbox = TRUE)
-          )
-        }
-      }
+      content_items <- unlist(
+        lapply(message@content, rho_openai_content_input),
+        recursive = FALSE,
+        use.names = FALSE
+      )
+      input <- c(input, content_items)
     } else if (S7::S7_inherits(message, ToolResultMessage)) {
       input[[length(input) + 1L]] <- list(
         type = "function_call_output",
@@ -729,18 +640,11 @@ rho_openai_responses_input <- function(context, placement) {
 }
 
 rho_openai_responses_tools <- function(tools, defer_loading = FALSE) {
-  unname(lapply(tools, function(tool) {
-    definition <- list(
-      type = "function",
-      name = tool@name,
-      description = tool@description,
-      parameters = tool@parameters
-    )
-    if (isTRUE(defer_loading)) {
-      definition$defer_loading <- TRUE
-    }
-    definition
-  }))
+  unname(lapply(
+    tools,
+    rho_openai_tool_fields,
+    defer_loading = defer_loading
+  ))
 }
 
 rho_openai_codex_request <- function(provider, model, context, options = list()) {
@@ -758,6 +662,32 @@ S7::method(
     supported,
     source = "openai-responses-compatibility",
     details = list(api = model@api, model = model@id)
+  )
+}
+
+S7::method(
+  rho_provider_support,
+  list(OpenAICodexApi, OpenAICodexResponsesModel, RhoWebSearchOperation)
+) <- function(provider, model, operation, ...) {
+  capability <- model@compatibility@web_search
+  rho_provider_support_value(
+    S7::S7_inherits(capability, OpenAIWebSearchCapability),
+    source = "openai-codex-model-profile",
+    details = list(model = model@id, capability = rho_class_label(capability))
+  )
+}
+
+S7::method(
+  rho_bind_operation,
+  list(OpenAICodexApi, OpenAICodexResponsesModel, RhoWebSearchOperation)
+) <- function(handler, model, operation, context, ...) {
+  rho_bind_web_search(
+    model@compatibility@web_search,
+    handler,
+    model,
+    operation,
+    context,
+    ...
   )
 }
 
@@ -804,15 +734,37 @@ S7::method(
 ) <- function(provider, model, context, options = list(), ...) {
   auth <- options$auth
   if (!S7::S7_inherits(auth, RhoModelAuth) || !nzchar(auth@api_key)) {
-    rho_abort("OpenAI Codex requests require explicit resolved auth in `options$auth`")
+    return(rho_provider_error(
+      "OpenAI Codex requests require explicit resolved auth in `options$auth`",
+      kind = "auth",
+      code = "missing_request_auth"
+    ))
   }
 
   placement <- options$tool_placement %||% rho_plan_tools(provider, model, context)
   if (!S7::S7_inherits(placement, RhoToolPlacement)) {
-    rho_abort("`options$tool_placement` must inherit from RhoToolPlacement")
+    return(rho_provider_error(
+      "OpenAI Codex `tool_placement` must inherit from RhoToolPlacement",
+      kind = "configuration",
+      code = "openai_codex_tool_placement"
+    ))
   }
 
+  operation_plan <- rho_bound_operation_plan(
+    provider,
+    model,
+    context,
+    options
+  )
+  if (S7::S7_inherits(operation_plan, ProviderErrorValue)) {
+    return(operation_plan)
+  }
+  options$operation_plan <- operation_plan
+
   request_body <- rho_openai_responses_body(model, context, placement, options)
+  if (S7::S7_inherits(request_body, ProviderErrorValue)) {
+    return(request_body)
+  }
 
   headers <- utils::modifyList(
     list(
@@ -830,9 +782,10 @@ S7::method(
     ),
     auth@headers
   )
-  if (!is.null(options$session_id)) {
-    headers$`session-id` <- options$session_id
-    headers$`x-client-request-id` <- options$session_id
+  session_id <- request_body$prompt_cache_key
+  if (!is.null(session_id)) {
+    headers$`session-id` <- session_id
+    headers$`x-client-request-id` <- session_id
   }
 
   rho.http::rho_http_request(
@@ -857,6 +810,9 @@ S7::method(
   ...
 ) {
   request <- rho_openai_codex_request(provider, model, context, options)
+  if (S7::S7_inherits(request, ProviderErrorValue)) {
+    return(rho_provider_error_stream(model, request))
+  }
   raw_stream <- rho.http::rho_sse_connect(provider@http, request)
   decoder <- rho_openai_responses_decoder(model)
   rho.async::rho_stream_flat_map(

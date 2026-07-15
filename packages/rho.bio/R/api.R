@@ -11,9 +11,9 @@
 #' @name rho_bio_contracts
 #' @aliases ContentAddress ResourceHandle VirtualResourceSpec BioResolverSpec
 #' @aliases TermRef TermSet BioOperationSpec BioManifest ResolutionReceipt
-#' @aliases BioRegistry BIO_MANIFEST_SCHEMA RESOLUTION_RECEIPT_SCHEMA
+#' @aliases BioRegistry BioErrorValue BIO_MANIFEST_SCHEMA RESOLUTION_RECEIPT_SCHEMA
 #' @aliases rho_virtual_resource rho_resolver_spec rho_operation_spec
-#' @aliases rho_manifest rho_resource_handle rho_bio_registry
+#' @aliases rho_manifest rho_resource_handle rho_bio_error rho_bio_registry
 #' @aliases rho_validate_manifest rho_register_manifest rho_bind_resolver_impl
 #' @aliases rho_resolve_resource rho_get_operation rho_sql_all rho_sql_run
 #' @export ContentAddress
@@ -26,6 +26,7 @@
 #' @export BioManifest
 #' @export ResolutionReceipt
 #' @export BioRegistry
+#' @export BioErrorValue
 #' @export BIO_MANIFEST_SCHEMA
 #' @export RESOLUTION_RECEIPT_SCHEMA
 #' @export rho_virtual_resource
@@ -33,6 +34,7 @@
 #' @export rho_operation_spec
 #' @export rho_manifest
 #' @export rho_resource_handle
+#' @export rho_bio_error
 #' @export rho_bio_registry
 #' @export rho_validate_manifest
 #' @export rho_register_manifest

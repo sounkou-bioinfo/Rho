@@ -35,7 +35,8 @@ rho_register_bio_extension(rho_extension_api(runtime), registry)
 tool <- get("bio_describe_manifest", runtime@state$tools)
 result <- rho_execute_tool(
   tool,
-  ToolCall("bio-1", "bio_describe_manifest", list())
+  ToolCall("bio-1", "bio_describe_manifest", list()),
+  context = NULL
 ) |>
   rho_await(timeout = 1000)
 

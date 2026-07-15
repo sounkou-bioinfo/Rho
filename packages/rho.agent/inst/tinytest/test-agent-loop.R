@@ -88,6 +88,39 @@ expect_equal(
 expect_true(S7::S7_inherits(result@messages[[3]], ToolResultMessage))
 expect_equal(result@messages[[4]]@content[[1]]@text, "finished")
 
+executions <- 0L
+local_search <- rho_fixture_tool(
+  "web_search",
+  function(id, args, signal, on_update, ctx) {
+    executions <<- executions + 1L
+    rho_tool_result()
+  }
+)
+provider <- rho_scripted_agent_provider(list(rho_assistant_message(
+  content = list(WebSearchCallContent(
+    id = "search_1",
+    status = OperationCompleted(),
+    action = WebSearchSearchAction(
+      queries = "current R release",
+      sources = list()
+    )
+  )),
+  model = "fixture"
+)))
+agent <- rho_agent(
+  provider,
+  rho_model("fixture", "fixture"),
+  tools = list(local_search),
+  operations = list(rho_web_search())
+)
+result <- rho_prompt(agent, "search") |> rho_await(timeout = 1000L)
+
+expect_equal(result@status, "completed")
+expect_equal(executions, 0L)
+expect_equal(length(result@tool_results), 0L)
+expect_true(S7::S7_inherits(result@messages[[2L]]@content[[1L]], WebSearchCallContent))
+expect_false(S7::S7_inherits(result@messages[[2L]]@content[[1L]], ToolCall))
+
 listener_order <- character()
 agent <- rho_agent(rho_faux_provider(), rho_model("faux", "faux"))
 unsubscribe_first <- rho_subscribe(agent, function(event, agent) {
@@ -125,13 +158,43 @@ expect_true(S7::S7_inherits(result@messages[[3]], UserMessage))
 expect_equal(result@messages[[3]]@content, "one more")
 expect_equal(provider@state$index, 2L)
 
+queue_agent <- rho_agent(rho_faux_provider(), rho_model("faux", "faux"))
+queue_agent@state$phase <- "provider"
+
+rho_steer(queue_agent, "first") |> rho_await()
+rho_steer(queue_agent, "second") |> rho_await()
+
+first <- rho_take_agent_queue(
+  RhoOneAtATimeQueue(),
+  queue_agent,
+  "steering_queue",
+  "steering"
+) |> rho_await()
+expect_equal(length(first), 1L)
+expect_equal(first[[1L]]@content, "first")
+expect_equal(length(queue_agent@state$steering_queue), 1L)
+
+remaining <- rho_take_agent_queue(
+  RhoAllQueue(),
+  queue_agent,
+  "steering_queue",
+  "steering"
+) |> rho_await()
+expect_equal(length(remaining), 1L)
+expect_equal(remaining[[1L]]@content, "second")
+expect_equal(length(queue_agent@state$steering_queue), 0L)
+
 RhoBlockingAgentPolicy <- S7::new_class(
   "RhoBlockingAgentPolicy",
   parent = RhoDefaultAgentPolicy
 )
-S7::method(rho_before_tool_call, RhoBlockingAgentPolicy) <- function(
-  policy, agent, assistant, tool, call, args, context, ...
+S7::method(
+  rho_before_tool_call,
+  list(RhoBlockingAgentPolicy, RhoToolContext)
+) <- function(
+  policy, context, ...
 ) {
+  expect_true(S7::S7_inherits(context, RhoToolContext))
   rho_task(rho_before_tool_call_decision(TRUE, "blocked by fixture policy"))
 }
 
@@ -159,6 +222,60 @@ result <- rho_prompt(agent, "try") |> rho_await()
 expect_equal(executions, 0L)
 expect_true(result@tool_results[[1]]@is_error)
 expect_true(grepl("blocked by fixture policy", result@tool_results[[1]]@content[[1]]@text))
+
+RhoFixtureApplicationContext <- S7::new_class(
+  "RhoFixtureApplicationContext",
+  properties = list(user_id = S7::class_character)
+)
+
+contexts <- list()
+context_tool <- rho_fixture_tool("context", function(id, args, signal, on_update, ctx) {
+  contexts[[length(contexts) + 1L]] <<- ctx
+  ctx@run@state$count <- (ctx@run@state$count %||% 0L) + 1L
+  rho_tool_result(list(rho_text(as.character(ctx@run@state$count))))
+})
+provider <- rho_scripted_agent_provider(list(
+  rho_scripted_tool_turn(list(
+    ToolCall(id = "context_1", name = "context", arguments = list(value = "one")),
+    ToolCall(id = "context_2", name = "context", arguments = list(value = "two"))
+  )),
+  rho_scripted_text_turn()
+))
+application <- RhoFixtureApplicationContext(user_id = "user-1")
+agent <- rho_agent(
+  provider,
+  rho_model("fixture", "fixture"),
+  tools = list(context_tool)
+)
+result <- rho_prompt(agent, "context", context = application) |> rho_await()
+
+expect_true(S7::S7_inherits(result@context, RhoRunContext))
+expect_identical(result@context@application, application)
+expect_equal(length(contexts), 2L)
+expect_true(all(vapply(
+  contexts,
+  function(context) S7::S7_inherits(context, RhoToolContext),
+  logical(1)
+)))
+expect_true(all(vapply(
+  contexts,
+  function(context) identical(context@run, result@context),
+  logical(1)
+)))
+expect_true(all(vapply(
+  contexts,
+  function(context) S7::S7_inherits(context@model_context, Context),
+  logical(1)
+)))
+expect_equal(result@context@state$count, 2L)
+
+other_agent <- rho_agent(rho_faux_provider(), rho_model("faux", "faux"))
+foreign_context <- rho_run_context(other_agent, NULL)
+expect_error(
+  rho_prompt(agent, "wrong context", context = foreign_context),
+  "different agent"
+)
+expect_equal(agent@state$phase, "idle")
 
 trace <- character()
 make_async_tool <- function(name, overlap = ToolMayOverlap()) {
@@ -237,6 +354,20 @@ expect_equal(result@status, "aborted")
 expect_true(S7::S7_inherits(result@error, RhoAgentErrorValue))
 expect_equal(result@error@message, "fixture cancellation")
 expect_equal(agent@state$phase, "idle")
+
+state_agent <- rho_agent(rho_faux_provider(), rho_model("faux", "faux"))
+rho_prompt(state_agent, "state") |> rho_await()
+
+expect_true(length(rho_state_messages(state_agent)) > 0L)
+expect_true(rho_is_task(rho_wait_for_idle(state_agent)))
+expect_true(is.null(rho_wait_for_idle(state_agent) |> rho_await()))
+
+rho_reset(state_agent) |> rho_await()
+expect_equal(length(rho_state_messages(state_agent)), 0L)
+expect_equal(length(state_agent@state$events), 0L)
+expect_equal(length(state_agent@state$pending_tool_calls), 0L)
+expect_equal(length(state_agent@state$steering_queue), 0L)
+expect_equal(length(state_agent@state$follow_up_queue), 0L)
 
 agent <- rho_agent(rho_faux_provider(), rho_model("faux", "faux"))
 result <- rho_continue(agent) |> rho_await()

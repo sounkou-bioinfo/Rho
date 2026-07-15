@@ -10,6 +10,9 @@
 \alias{RhoPromiseTask}
 \alias{RhoAsyncError}
 \alias{RhoTimeoutError}
+\alias{RhoCancellation}
+\alias{rho_contract_violation}
+\alias{rho_signal_contract_violation}
 \alias{RhoStream}
 \alias{RhoListStream}
 \alias{RhoMappedStream}

@@ -8,8 +8,16 @@ library(rho.coding)
 tmp <- tempfile()
 write_tool <- rho_tool_write()
 read_tool <- rho_tool_read()
-rho_await(rho_execute_tool(write_tool, ToolCall("1", "write", list(path = tmp, text = "hello"))))
-out <- rho_await(rho_execute_tool(read_tool, ToolCall("2", "read", list(path = tmp))))
+rho_await(rho_execute_tool(
+  write_tool,
+  ToolCall("1", "write", list(path = tmp, text = "hello")),
+  context = NULL
+))
+out <- rho_await(rho_execute_tool(
+  read_tool,
+  ToolCall("2", "read", list(path = tmp)),
+  context = NULL
+))
 expect_equal(out@content[[1]]@text, "hello")
 
 shell <- rho_resolve_bash(rho_current_platform())
@@ -32,7 +40,8 @@ if (S7::S7_inherits(shell, RhoShellConfig)) {
   bash <- rho_tool_bash(shell = shell)
   success <- rho_execute_tool(
     bash,
-    ToolCall("shell-1", "bash", list(command = "printf rho-shell-ok"))
+    ToolCall("shell-1", "bash", list(command = "printf rho-shell-ok")),
+    context = NULL
   )
   expect_true(rho_is_task(success))
   success <- rho_await(success, timeout = 10000)
@@ -40,7 +49,8 @@ if (S7::S7_inherits(shell, RhoShellConfig)) {
 
   failure <- rho_execute_tool(
     bash,
-    ToolCall("shell-2", "bash", list(command = "printf shell-error >&2; exit 7"))
+    ToolCall("shell-2", "bash", list(command = "printf shell-error >&2; exit 7")),
+    context = NULL
   ) |>
     rho_await(timeout = 10000)
   expect_true(S7::S7_inherits(failure, ToolErrorResult))
@@ -51,7 +61,8 @@ if (S7::S7_inherits(shell, RhoShellConfig)) {
 r_tool <- rho_tool_r()
 r_task <- rho_execute_tool(
   r_tool,
-  ToolCall("r-1", "r", list(code = "21L * 2L"))
+  ToolCall("r-1", "r", list(code = "21L * 2L")),
+  context = NULL
 )
 
 expect_true(rho_is_task(r_task))
@@ -61,9 +72,26 @@ expect_equal(r_result@details$value, 42L)
 expect_true(grepl("42", r_result@content[[1]]@text, fixed = TRUE))
 expect_true(S7::S7_inherits(r_tool@overlap, ToolMayOverlap))
 
+expression <- RhoRExpression(code = "6L * 7L")
+evaluator <- RhoMiraiExpressionEvaluator(compute = NULL)
+binding <- rho_bind_operation(
+  evaluator,
+  rho_model("fixture", "fixture"),
+  expression,
+  rho_context()
+)
+expect_true(S7::S7_inherits(expression, RhoOperation))
+expect_true(S7::S7_inherits(binding, RhoREvaluationBinding))
+expect_true(S7::S7_inherits(binding@handler, RhoMiraiExpressionEvaluator))
+expect_true(grepl("mirai worker", binding@reason, fixed = TRUE))
+bound_result <- rho_execute_operation(binding, NULL) |>
+  rho_await(timeout = 10000)
+expect_equal(bound_result@value, 42L)
+
 r_failure <- rho_execute_tool(
   r_tool,
-  ToolCall("r-2", "r", list(code = "stop('r-eval-failed', call. = FALSE)"))
+  ToolCall("r-2", "r", list(code = "stop('r-eval-failed', call. = FALSE)")),
+  context = NULL
 ) |>
   rho_await(timeout = 10000)
 expect_true(S7::S7_inherits(r_failure, ToolErrorResult))
@@ -75,12 +103,14 @@ r_repl <- rho_tool_r(evaluator)
 
 rho_execute_tool(
   r_repl,
-  ToolCall("r-3", "r", list(code = "answer <- 41L"))
+  ToolCall("r-3", "r", list(code = "answer <- 41L")),
+  context = NULL
 ) |>
   rho_await(timeout = 5000)
 repl_result <- rho_execute_tool(
   r_repl,
-  ToolCall("r-4", "r", list(code = "answer + 1L"))
+  ToolCall("r-4", "r", list(code = "answer + 1L")),
+  context = NULL
 ) |>
   rho_await(timeout = 5000)
 

@@ -18,5 +18,7 @@ expect_equal(msg@timestamp, 1)
 tool <- rho_tool_spec("echo", description = "echo", parameters = list(required = "x"), execute = function(id, params, signal, on_update, ctx) rho_tool_result(list(rho_text(params$x))))
 args <- rho_validate_tool_args(tool, list(x = "ok"))
 expect_equal(args$x, "ok")
-expect_error(rho_validate_tool_args(tool, list()), "missing")
+invalid <- rho_validate_tool_args(tool, list())
+expect_true(S7::S7_inherits(invalid, ToolErrorResult))
+expect_equal(invalid@details$missing, "x")
 ```

@@ -12,7 +12,7 @@ rho_sse_decoder <- function() {
 
 rho_sse_decode <- S7::new_generic(
   "rho_sse_decode",
-  "decoder",
+  c("decoder", "chunk"),
   function(decoder, chunk = raw(), final = FALSE, ...) S7::S7_dispatch()
 )
 
@@ -133,23 +133,50 @@ rho_sse_take_line <- function(decoder, final) {
   list(line = line, complete = TRUE)
 }
 
-S7::method(rho_sse_decode, RhoSseDecoder) <- function(
+S7::method(
+  rho_sse_decode,
+  list(RhoSseDecoder, S7::class_character)
+) <- function(
   decoder,
-  chunk = raw(),
+  chunk,
+  final = FALSE,
+  ...
+) {
+  if (length(chunk) != 1L || is.na(chunk)) {
+    rho.async::rho_signal_contract_violation(
+      "An SSE character chunk must be one non-missing string"
+    )
+  }
+  rho_sse_decode(decoder, charToRaw(enc2utf8(chunk)), final = final, ...)
+}
+
+S7::method(
+  rho_sse_decode,
+  list(RhoSseDecoder, S7::class_any)
+) <- function(
+  decoder,
+  chunk,
+  final = FALSE,
+  ...
+) {
+  rho.async::rho_signal_contract_violation(
+    "An SSE chunk must be one string or a raw vector"
+  )
+}
+
+S7::method(
+  rho_sse_decode,
+  list(RhoSseDecoder, S7::class_raw)
+) <- function(
+  decoder,
+  chunk,
   final = FALSE,
   ...
 ) {
   if (decoder@state$closed) {
-    rho_abort("An SSE decoder cannot receive data after it is finalized")
-  }
-  if (is.character(chunk)) {
-    if (length(chunk) != 1L || is.na(chunk)) {
-      rho_abort("An SSE chunk must be one string or a raw vector")
-    }
-    chunk <- charToRaw(enc2utf8(chunk))
-  }
-  if (!is.raw(chunk)) {
-    rho_abort("An SSE chunk must be one string or a raw vector")
+    rho.async::rho_signal_contract_violation(
+      "An SSE decoder cannot receive data after it is finalized"
+    )
   }
   decoder@state$buffer <- c(decoder@state$buffer, chunk)
 
@@ -175,7 +202,7 @@ S7::method(rho_sse_decode, RhoSseDecoder) <- function(
 
 rho_sse_parse <- function(text) {
   if (!is.character(text)) {
-    rho_abort("`text` must be a character vector")
+    rho.async::rho_signal_contract_violation("`text` must be a character vector")
   }
   text <- paste(text, collapse = "\n")
   rho_sse_decode(rho_sse_decoder(), text, final = TRUE)

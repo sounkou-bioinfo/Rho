@@ -22,11 +22,9 @@
 \alias{RhoProviderOperation}
 \alias{RhoToolSearchOperation}
 \alias{RhoToolReferencesOperation}
-\alias{RhoNativeCompactionOperation}
 \alias{RhoCacheRetentionOperation}
 \alias{RhoProviderSupport}
 \alias{OpenAIResponsesCompatibility}
-\alias{AnthropicMessagesCompatibility}
 \alias{RhoToolPlacement}
 \alias{RhoFullToolPlacement}
 \alias{RhoOpenAIToolSearchPlacement}
@@ -34,7 +32,6 @@
 \alias{FauxProvider}
 \alias{OpenAIApi}
 \alias{OpenAIApiKeyAuth}
-\alias{AnthropicProvider}
 \alias{OllamaProvider}
 \alias{rho_context}
 \alias{rho_model_capabilities}
@@ -55,8 +52,10 @@
 \alias{rho_unsupported_provider_operation}
 \alias{rho_provider_support_value}
 \alias{rho_provider_support}
+\alias{rho_provider_dialect}
 \alias{rho_plan_tools}
 \alias{rho_build_provider_request}
+\alias{rho_openai_chat_request_body}
 \alias{rho_openai_responses_body}
 \alias{rho_provider_headers}
 \alias{rho_compact_provider_input}
@@ -69,10 +68,8 @@
 \alias{rho_openai_provider}
 \alias{rho_openai_request}
 \alias{rho_openai_responses_url}
-\alias{rho_anthropic_provider}
-\alias{rho_anthropic_messages_request}
-\alias{rho_anthropic_sse_task}
 \alias{rho_ollama_provider}
+\alias{rho_ollama_model}
 \alias{rho_ollama_chat_request}
 \alias{rho_ollama_chat_task}
 \title{Models, providers, and capability operations}

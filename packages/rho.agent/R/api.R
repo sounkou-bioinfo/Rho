@@ -16,6 +16,7 @@
 #' @aliases RhoToolExecutionMode RhoParallelToolExecution
 #' @aliases RhoSequentialToolExecution RhoQueueMode RhoOneAtATimeQueue
 #' @aliases RhoAllQueue RhoBeforeToolCallDecision RhoAfterToolCallDecision
+#' @aliases RhoRunContext RhoToolContext RhoCompletedToolContext
 #' @aliases RhoNextTurnDecision RhoAssistantTurn RhoAssistantResponse RhoToolBatch
 #' @aliases RhoAgentEvent RhoAgentStartEvent RhoAgentEndEvent
 #' @aliases RhoAgentSettledEvent RhoTurnStartEvent RhoTurnEndEvent
@@ -28,6 +29,7 @@
 #' @aliases rho_transform_agent_context rho_before_tool_call rho_after_tool_call
 #' @aliases rho_prepare_next_turn rho_reduce_assistant_event
 #' @aliases rho_execute_tool_batch rho_resolve_tool_execution rho_take_agent_queue
+#' @aliases rho_run_context rho_tool_context rho_completed_tool_context
 #' @aliases rho_agent_error rho_before_tool_call_decision
 #' @aliases rho_after_tool_call_decision rho_next_turn_decision
 #' @export RhoAgent
@@ -46,6 +48,9 @@
 #' @export RhoAllQueue
 #' @export RhoBeforeToolCallDecision
 #' @export RhoAfterToolCallDecision
+#' @export RhoRunContext
+#' @export RhoToolContext
+#' @export RhoCompletedToolContext
 #' @export RhoNextTurnDecision
 #' @export RhoAssistantTurn
 #' @export RhoAssistantResponse
@@ -84,6 +89,9 @@
 #' @export rho_execute_tool_batch
 #' @export rho_resolve_tool_execution
 #' @export rho_take_agent_queue
+#' @export rho_run_context
+#' @export rho_tool_context
+#' @export rho_completed_tool_context
 #' @export rho_agent_error
 #' @export rho_before_tool_call_decision
 #' @export rho_after_tool_call_decision

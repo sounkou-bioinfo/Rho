@@ -1,7 +1,13 @@
-rho_prompt <- S7::new_generic("rho_prompt", "agent", function(agent, input, images = NULL, ...) {
-  S7::S7_dispatch()
-})
-rho_continue <- S7::new_generic("rho_continue", "agent", function(agent, ...) S7::S7_dispatch())
+rho_prompt <- S7::new_generic(
+  "rho_prompt",
+  "agent",
+  function(agent, input, images = NULL, context = NULL, ...) S7::S7_dispatch()
+)
+rho_continue <- S7::new_generic(
+  "rho_continue",
+  "agent",
+  function(agent, context = NULL, ...) S7::S7_dispatch()
+)
 rho_subscribe <- S7::new_generic("rho_subscribe", "agent", function(agent, listener, ...) {
   S7::S7_dispatch()
 })
@@ -34,15 +40,13 @@ rho_transform_agent_context <- S7::new_generic(
 )
 rho_before_tool_call <- S7::new_generic(
   "rho_before_tool_call",
-  "policy",
-  function(policy, agent, assistant, tool, call, args, context, ...) S7::S7_dispatch()
+  c("policy", "context"),
+  function(policy, context, ...) S7::S7_dispatch()
 )
 rho_after_tool_call <- S7::new_generic(
   "rho_after_tool_call",
-  "policy",
-  function(policy, agent, assistant, tool, call, args, result, is_error, context, ...) {
-    S7::S7_dispatch()
-  }
+  c("policy", "context"),
+  function(policy, context, ...) S7::S7_dispatch()
 )
 rho_prepare_next_turn <- S7::new_generic(
   "rho_prepare_next_turn",
@@ -57,7 +61,9 @@ rho_reduce_assistant_event <- S7::new_generic(
 rho_execute_tool_batch <- S7::new_generic(
   "rho_execute_tool_batch",
   "mode",
-  function(mode, agent, assistant, context, calls, ...) S7::S7_dispatch()
+  function(mode, agent, assistant, run_context, model_context, calls, ...) {
+    S7::S7_dispatch()
+  }
 )
 rho_resolve_tool_execution <- S7::new_generic(
   "rho_resolve_tool_execution",
@@ -68,6 +74,32 @@ rho_take_agent_queue <- S7::new_generic(
   "rho_take_agent_queue",
   "mode",
   function(mode, agent, field, label, ...) S7::S7_dispatch()
+)
+rho_run_context <- S7::new_generic(
+  "rho_run_context",
+  c("agent", "application"),
+  function(agent, application, ...) S7::S7_dispatch()
+)
+rho_tool_context <- S7::new_generic(
+  "rho_tool_context",
+  c("run", "tool", "call"),
+  function(
+    run,
+    tool,
+    call,
+    assistant,
+    model_context,
+    signal = NULL,
+    on_update = NULL,
+    ...
+  ) {
+    S7::S7_dispatch()
+  }
+)
+rho_completed_tool_context <- S7::new_generic(
+  "rho_completed_tool_context",
+  c("context", "result"),
+  function(context, result, is_error = FALSE, ...) S7::S7_dispatch()
 )
 
 rho_agent_error <- function(message, kind = "agent", retryable = FALSE, details = list()) {
@@ -103,7 +135,9 @@ rho_next_turn_decision <- function(
 
 rho_tool_registry <- function(tools) {
   if (!is.list(tools)) {
-    rho_abort("`tools` must be a list of ToolSpec values")
+    rho.async::rho_signal_contract_violation(
+      "`tools` must be a list of ToolSpec values"
+    )
   }
   invalid <- vapply(
     tools,
@@ -111,12 +145,17 @@ rho_tool_registry <- function(tools) {
     logical(1)
   )
   if (any(invalid)) {
-    rho_abort("`tools` must contain only ToolSpec values")
+    rho.async::rho_signal_contract_violation(
+      "`tools` must contain only ToolSpec values"
+    )
   }
   tool_names <- vapply(tools, function(tool) tool@name, character(1))
   duplicated_names <- unique(tool_names[duplicated(tool_names)])
   if (length(duplicated_names)) {
-    rho_abort("Tool names must be unique: %s", paste(duplicated_names, collapse = ", "))
+    rho.async::rho_signal_contract_violation(
+      "Tool names must be unique: %s",
+      paste(duplicated_names, collapse = ", ")
+    )
   }
   stats::setNames(tools, tool_names)
 }
@@ -186,6 +225,7 @@ rho_agent <- function(
   provider,
   model,
   tools = list(),
+  operations = list(),
   system_prompt = "",
   tool_execution = RhoParallelToolExecution(),
   steering_mode = RhoOneAtATimeQueue(),
@@ -203,6 +243,7 @@ rho_agent <- function(
     pending_tool_calls = character(),
     events = list(),
     event_sequence = 0L,
+    run_sequence = 0L,
     idle_condition = nanonext::cv(),
     idle_waiters = list(),
     cancelled = FALSE,
@@ -215,6 +256,7 @@ rho_agent <- function(
       provider = provider,
       model = model,
       system_prompt = system_prompt,
+      operations = operations,
       tool_execution = tool_execution,
       steering_mode = steering_mode,
       follow_up_mode = follow_up_mode,
@@ -336,14 +378,88 @@ S7::method(rho_reset, RhoAgent) <- function(agent, ...) {
   rho.async::rho_task(NULL)
 }
 
-S7::method(rho_prompt, RhoAgent) <- function(agent, input, images = NULL, ...) {
+S7::method(rho_prompt, RhoAgent) <- function(
+  agent,
+  input,
+  images = NULL,
+  context = NULL,
+  ...
+) {
   content <- if (is.null(images)) input else c(list(rho.ai::rho_text(input)), images)
   prompts <- list(rho.ai::rho_user_message(content))
-  rho_run_agent_loop(agent, prompts, continue = FALSE)
+  rho_run_agent_loop(agent, prompts, continue = FALSE, application = context)
 }
 
-S7::method(rho_continue, RhoAgent) <- function(agent, ...) {
-  rho_run_agent_loop(agent, list(), continue = TRUE)
+S7::method(rho_continue, RhoAgent) <- function(agent, context = NULL, ...) {
+  rho_run_agent_loop(agent, list(), continue = TRUE, application = context)
+}
+
+S7::method(
+  rho_run_context,
+  list(RhoAgent, S7::class_any)
+) <- function(agent, application, ...) {
+  agent@state$run_sequence <- agent@state$run_sequence + 1L
+  RhoRunContext(
+    id = sprintf("run-%d", agent@state$run_sequence),
+    agent = agent,
+    application = application,
+    state = rho_new_state()
+  )
+}
+
+S7::method(
+  rho_run_context,
+  list(RhoAgent, RhoRunContext)
+) <- function(agent, application, ...) {
+  if (!identical(agent, application@agent)) {
+    rho.async::rho_signal_contract_violation(
+      "A run context cannot be reused with a different agent"
+    )
+  }
+  application
+}
+
+S7::method(
+  rho_tool_context,
+  list(RhoRunContext, rho.ai::ToolSpec, rho.ai::ToolCall)
+) <- function(
+  run,
+  tool,
+  call,
+  assistant,
+  model_context,
+  signal = NULL,
+  on_update = NULL,
+  ...
+) {
+  RhoToolContext(
+    run = run,
+    model_context = model_context,
+    assistant = assistant,
+    tool = tool,
+    call = call,
+    arguments = call@arguments,
+    signal = signal,
+    on_update = on_update
+  )
+}
+
+S7::method(
+  rho_completed_tool_context,
+  list(RhoToolContext, rho.ai::ToolResult)
+) <- function(context, result, is_error = FALSE, ...) {
+  RhoCompletedToolContext(
+    run = context@run,
+    model_context = context@model_context,
+    assistant = context@assistant,
+    tool = context@tool,
+    call = context@call,
+    arguments = context@arguments,
+    signal = context@signal,
+    on_update = context@on_update,
+    result = result,
+    is_error = isTRUE(is_error)
+  )
 }
 
 S7::method(rho_transform_agent_context, RhoDefaultAgentPolicy) <- function(
@@ -355,32 +471,21 @@ S7::method(rho_transform_agent_context, RhoDefaultAgentPolicy) <- function(
   rho.async::rho_task(context)
 }
 
-S7::method(rho_before_tool_call, RhoDefaultAgentPolicy) <- function(
-  policy,
-  agent,
-  assistant,
-  tool,
-  call,
-  args,
-  context,
-  ...
-) {
+S7::method(
+  rho_before_tool_call,
+  list(RhoDefaultAgentPolicy, RhoToolContext)
+) <- function(policy, context, ...) {
   rho.async::rho_task(rho_before_tool_call_decision())
 }
 
-S7::method(rho_after_tool_call, RhoDefaultAgentPolicy) <- function(
-  policy,
-  agent,
-  assistant,
-  tool,
-  call,
-  args,
-  result,
-  is_error,
-  context,
-  ...
-) {
-  rho.async::rho_task(rho_after_tool_call_decision(result, is_error))
+S7::method(
+  rho_after_tool_call,
+  list(RhoDefaultAgentPolicy, RhoCompletedToolContext)
+) <- function(policy, context, ...) {
+  rho.async::rho_task(rho_after_tool_call_decision(
+    context@result,
+    context@is_error
+  ))
 }
 
 S7::method(rho_prepare_next_turn, RhoDefaultAgentPolicy) <- function(

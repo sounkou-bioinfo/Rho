@@ -2,7 +2,7 @@ Package: rho.agent
 Type: Package
 Depends: R (>= 4.4.0)
 Title: Rho Async Agent Core
-Version: 0.0.0.9000
+Version: 0.0.1.9000
 Authors@R:
     person(given = "Sounkou Mahamane", family = "Toure",
            email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
@@ -12,11 +12,12 @@ Description: Implements the asynchronous multi-turn agent loop over the Rho AI
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Imports:
-    S7, s7contract, rho.async, rho.ai, nanonext, coro, promises
+    S7, s7contract, rho.async (>= 0.0.1.9000), rho.ai (>= 0.0.1.9000),
+    nanonext, coro, promises
 Suggests:
-    tinytest, knitr, rho.http, yyjsonr
+    tinytest, knitr, rho.http (>= 0.0.1.9000), yyjsonr
 URL: https://github.com/sounkou-bioinfo/Rho,
     https://sounkou-bioinfo.github.io/Rho/rho.agent/
 BugReports: https://github.com/sounkou-bioinfo/Rho/issues
+Config/roxygen2/version: 8.0.0

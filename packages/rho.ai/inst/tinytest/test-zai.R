@@ -44,6 +44,17 @@ expect_identical(request@body$tool_stream, TRUE)
 expect_equal(request@body$tools[[1L]][["function"]]$name, "read_file")
 expect_true(s7contract::implements(ZaiApi, ProviderRequestTranslator))
 
+unsupported_operation <- rho_zai_request(
+  provider@implementation,
+  model,
+  rho_context(
+    messages = list(rho_user_message("search")),
+    operations = list(rho_web_search())
+  ),
+  options = list(auth = auth)
+)
+expect_true(S7::S7_inherits(unsupported_operation, OperationUnsupported))
+
 disabled <- rho_zai_request(
   provider@implementation,
   model,

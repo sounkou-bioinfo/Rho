@@ -1,7 +1,7 @@
 # Monorepo driver. Package installation and checks run in dependency order.
 # Each package also includes ../../tools/package.mk for focused work.
 
-.PHONY: all deps install purl-tests check-purled-tests models update-models check-models format check-format check-style test check rd rdm rdm-codex site clean tarball
+.PHONY: all deps install purl-tests check-purled-tests models update-models check-models format check-format check-style check-version check-parity check-secrets public-ready test check rd rdm rdm-codex site clean tarball
 
 all: test
 
@@ -31,6 +31,20 @@ check-style:
 	Rscript scripts/check-style.R
 	air format . --check
 
+check-version:
+	Rscript scripts/check-version.R
+
+check-parity:
+	Rscript scripts/check-parity.R
+
+check-secrets:
+	Rscript scripts/check-secrets.R
+
+public-ready: check-version check-purled-tests check-models check-style check-parity check-secrets
+	$(MAKE) test
+	$(MAKE) check
+	$(MAKE) site
+
 test:
 	Rscript scripts/purl-tests.R
 	Rscript packages/rho.ai/data-raw/compile-model-catalog.R --check
@@ -39,7 +53,8 @@ test:
 	Rscript scripts/test-all.R
 
 check:
-	Rscript scripts/purl-tests.R
+	Rscript scripts/check-version.R
+	Rscript scripts/purl-tests.R --check
 	Rscript packages/rho.ai/data-raw/compile-model-catalog.R --check
 	Rscript scripts/check-style.R
 	Rscript scripts/install-all.R

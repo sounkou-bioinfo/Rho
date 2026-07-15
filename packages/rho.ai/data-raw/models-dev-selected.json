@@ -15,6 +15,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
@@ -22,6 +25,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -42,7 +46,11 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "budget_tokens"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -63,7 +71,11 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "budget_tokens"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -84,7 +96,11 @@
           "status": "deprecated",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "budget_tokens"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -105,7 +121,11 @@
           "status": "deprecated",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "budget_tokens"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -126,11 +146,16 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort",
+            "budget_tokens"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -151,11 +176,16 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort",
+            "budget_tokens"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -176,12 +206,17 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort",
+            "budget_tokens"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high",
             "max"
           ],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -202,6 +237,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
@@ -209,6 +247,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -229,6 +268,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
@@ -236,6 +278,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -256,7 +299,11 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "budget_tokens"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -277,7 +324,11 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "budget_tokens"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -298,12 +349,17 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort",
+            "budget_tokens"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high",
             "max"
           ],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -324,6 +380,10 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "toggle",
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
@@ -331,6 +391,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -357,6 +418,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
@@ -364,6 +428,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -384,7 +449,11 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "budget_tokens"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -405,7 +474,11 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "budget_tokens"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -426,12 +499,16 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high",
             "max"
           ],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -452,6 +529,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
@@ -459,6 +539,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -479,6 +560,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
@@ -486,6 +570,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -506,7 +591,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -527,7 +614,11 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "budget_tokens"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -548,12 +639,17 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort",
+            "budget_tokens"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high",
             "max"
           ],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -574,6 +670,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
@@ -581,6 +680,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -601,7 +701,11 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "budget_tokens"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -624,11 +728,16 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort",
+            "budget_tokens"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -651,11 +760,16 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort",
+            "budget_tokens"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -678,12 +792,17 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort",
+            "budget_tokens"
+          ],
           "reasoning_levels": [
             "minimal",
             "low",
             "medium",
             "high"
           ],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -706,7 +825,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -727,11 +848,15 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -751,7 +876,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -771,7 +898,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -792,12 +921,16 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -818,6 +951,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -825,6 +961,7 @@
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -845,6 +982,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -852,6 +992,7 @@
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -871,7 +1012,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -891,6 +1034,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -898,6 +1044,7 @@
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -918,6 +1065,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -926,6 +1076,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -946,6 +1097,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -954,6 +1108,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -974,6 +1129,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -982,6 +1140,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -1002,7 +1161,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1022,11 +1183,15 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": true,
           "input": [
             "text"
           ],
@@ -1051,7 +1216,9 @@
           "status": "active",
           "tool_call": false,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1071,7 +1238,9 @@
           "status": "active",
           "tool_call": false,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text"
           ],
@@ -1090,7 +1259,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text"
           ],
@@ -1109,7 +1280,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image"
@@ -1129,7 +1302,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -1150,7 +1325,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -1171,7 +1348,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image"
@@ -1191,7 +1370,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -1212,7 +1393,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image"
@@ -1232,7 +1415,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image"
@@ -1252,7 +1437,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image"
@@ -1272,7 +1459,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",
@@ -1293,12 +1482,16 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "minimal",
             "low",
             "medium",
             "high"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1318,7 +1511,9 @@
           "status": "active",
           "tool_call": false,
           "reasoning": true,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image"
@@ -1338,11 +1533,15 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1362,12 +1561,16 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "minimal",
             "low",
             "medium",
             "high"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1387,12 +1590,16 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "minimal",
             "low",
             "medium",
             "high"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1412,9 +1619,13 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "high"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1434,12 +1645,16 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
             "medium",
             "high"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1459,9 +1674,13 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "medium"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1481,11 +1700,15 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1505,12 +1728,16 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1530,11 +1757,15 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1554,6 +1785,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -1561,6 +1795,7 @@
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1580,9 +1815,13 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "medium"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1602,12 +1841,16 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -1628,11 +1871,15 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "medium",
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1652,7 +1899,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image"
@@ -1672,6 +1921,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -1679,6 +1931,7 @@
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -1699,6 +1952,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -1706,6 +1962,7 @@
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -1726,6 +1983,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -1733,6 +1993,7 @@
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -1753,6 +2014,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -1760,6 +2024,7 @@
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1779,6 +2044,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -1786,6 +2054,7 @@
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1805,11 +2074,15 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "medium",
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -1829,6 +2102,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -1836,6 +2112,7 @@
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -1856,11 +2133,15 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "medium",
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -1881,6 +2162,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -1889,6 +2173,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -1909,6 +2194,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -1917,6 +2205,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -1937,6 +2226,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -1945,6 +2237,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -1965,6 +2258,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "none",
             "low",
@@ -1973,6 +2269,7 @@
             "xhigh",
             "max"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -1993,7 +2290,9 @@
           "status": "active",
           "tool_call": false,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -2013,7 +2312,9 @@
           "status": "active",
           "tool_call": false,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -2033,7 +2334,9 @@
           "status": "active",
           "tool_call": false,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -2053,7 +2356,9 @@
           "status": "active",
           "tool_call": false,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -2073,6 +2378,9 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "minimal",
             "low",
@@ -2080,6 +2388,7 @@
             "high",
             "xhigh"
           ],
+          "temperature": false,
           "input": [
             "text",
             "audio",
@@ -2100,11 +2409,15 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -2125,11 +2438,15 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -2149,11 +2466,15 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image",
@@ -2174,9 +2495,13 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "medium"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -2196,11 +2521,15 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": false,
           "input": [
             "text"
           ],
@@ -2219,11 +2548,15 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -2243,11 +2576,15 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "low",
             "medium",
             "high"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -2267,9 +2604,13 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "medium"
           ],
+          "temperature": false,
           "input": [
             "text",
             "image"
@@ -2289,7 +2630,9 @@
           "status": "active",
           "tool_call": false,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": false,
           "input": [
             "text"
           ],
@@ -2308,7 +2651,9 @@
           "status": "active",
           "tool_call": false,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": false,
           "input": [
             "text"
           ],
@@ -2327,7 +2672,9 @@
           "status": "active",
           "tool_call": false,
           "reasoning": false,
+          "reasoning_modes": [],
           "reasoning_levels": [],
+          "temperature": false,
           "input": [
             "text"
           ],
@@ -2352,7 +2699,11 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "toggle"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text"
           ],
@@ -2371,7 +2722,11 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "toggle"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text"
           ],
@@ -2390,7 +2745,11 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "toggle"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text"
           ],
@@ -2409,7 +2768,11 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "toggle"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text"
           ],
@@ -2428,10 +2791,14 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "effort"
+          ],
           "reasoning_levels": [
             "high",
             "max"
           ],
+          "temperature": true,
           "input": [
             "text"
           ],
@@ -2450,7 +2817,11 @@
           "status": "active",
           "tool_call": true,
           "reasoning": true,
+          "reasoning_modes": [
+            "toggle"
+          ],
           "reasoning_levels": [],
+          "temperature": true,
           "input": [
             "text",
             "image",

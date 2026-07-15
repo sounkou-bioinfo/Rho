@@ -11,6 +11,8 @@
 #' @name rho_async_contracts
 #' @aliases RhoTask RhoImmediateTask RhoRejectedTask RhoFunctionTask
 #' @aliases RhoNanonextAioTask RhoPromiseTask RhoAsyncError RhoTimeoutError
+#' @aliases RhoCancellation rho_contract_violation
+#' @aliases rho_signal_contract_violation
 #' @aliases RhoStream RhoListStream RhoMappedStream RhoFlatMappedStream
 #' @aliases RhoTaskStream RhoStreamItem RhoStreamValue RhoStreamEnd
 #' @aliases RhoPollDecision RhoPollPending RhoPollComplete RhoPollFailed
@@ -38,6 +40,9 @@
 #' @export RhoPromiseTask
 #' @export RhoAsyncError
 #' @export RhoTimeoutError
+#' @export RhoCancellation
+#' @export rho_contract_violation
+#' @export rho_signal_contract_violation
 #' @export RhoStream
 #' @export RhoListStream
 #' @export RhoMappedStream

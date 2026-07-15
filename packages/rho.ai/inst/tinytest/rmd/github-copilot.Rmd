@@ -41,6 +41,17 @@ expect_equal(request@headers$`Copilot-Integration-Id`, "vscode-chat")
 expect_equal(request@body$model, "gpt-5.3-codex")
 expect_true(s7contract::implements(GitHubCopilotOAuthAuth, OAuthAuth))
 expect_true(s7contract::implements(GitHubCopilotApi, ProviderRequestTranslator))
+
+unsupported_operation <- rho_github_copilot_request(
+  provider@implementation,
+  model,
+  rho_context(
+    messages = list(rho_user_message("search")),
+    operations = list(rho_web_search())
+  ),
+  options = list(auth = auth)
+)
+expect_true(S7::S7_inherits(unsupported_operation, OperationUnsupported))
 ```
 
 ```{r dynamic-headers}
@@ -64,32 +75,59 @@ expect_equal(rho_message_initiator(image_context@messages[[2L]]), "agent")
 
 ```{r explicit-session-refresh}
 received_headers <- NULL
+received_model_headers <- NULL
 server <- nanonext::http_server(
   "http://127.0.0.1:0",
-  handlers = list(nanonext::handler(
-    "/copilot-token",
-    function(request) {
-      received_headers <<- request$headers
-      list(
-        status = 200L,
-        headers = c("Content-Type" = "application/json"),
-        body = yyjsonr::write_json_str(list(
-          token = paste0(
-            "tid=test;exp=9999999999;",
-            "proxy-ep=proxy.individual.githubcopilot.com;"
-          ),
-          expires_at = 9999999999
-        ), auto_unbox = TRUE)
-      )
-    }
-  ))
+  handlers = list(
+    nanonext::handler(
+      "/copilot-token",
+      function(request) {
+        received_headers <<- request$headers
+        list(
+          status = 200L,
+          headers = c("Content-Type" = "application/json"),
+          body = yyjsonr::write_json_str(list(
+            token = paste0(
+              "tid=test;exp=9999999999;",
+              "proxy-ep=proxy.individual.githubcopilot.com;"
+            ),
+            expires_at = 9999999999
+          ), auto_unbox = TRUE)
+        )
+      }
+    ),
+    nanonext::handler(
+      "/models",
+      function(request) {
+        received_model_headers <<- request$headers
+        list(
+          status = 200L,
+          headers = c("Content-Type" = "application/json"),
+          body = yyjsonr::write_json_str(list(data = list(
+            list(
+              id = "gpt-5.3-codex",
+              model_picker_enabled = TRUE,
+              capabilities = list(supports = list(tool_calls = TRUE))
+            ),
+            list(
+              id = "disabled-model",
+              model_picker_enabled = TRUE,
+              policy = list(state = "disabled")
+            ),
+            list(id = "hidden-model", model_picker_enabled = FALSE)
+          )), auto_unbox = TRUE)
+        )
+      }
+    )
+  )
 )
 expect_equal(server$start(), 0L)
 
 endpoints <- GitHubCopilotEndpoints(
   device_code = paste0(server$url, "/unused-device"),
   access_token = paste0(server$url, "/unused-access"),
-  copilot_token = paste0(server$url, "/copilot-token")
+  copilot_token = paste0(server$url, "/copilot-token"),
+  models = paste0(server$url, "/models")
 )
 strategy <- rho_github_copilot_auth(
   endpoints = endpoints,
@@ -104,8 +142,26 @@ refreshed <- rho_github_copilot_credential_from_github_token(
 expect_true(S7::S7_inherits(refreshed, GitHubCopilotCredential))
 expect_equal(refreshed@source, "explicit-test")
 expect_equal(refreshed@session_base_url, "https://api.individual.githubcopilot.com")
+expect_true(refreshed@model_catalog_complete)
+expect_equal(refreshed@available_model_ids, "gpt-5.3-codex")
 expect_equal(received_headers[["Authorization"]], "Bearer github-test-token")
+expect_equal(
+  received_model_headers[["Authorization"]],
+  paste("Bearer", refreshed@state$access)
+)
+expect_equal(received_model_headers[["X-GitHub-Api-Version"]], "2026-06-01")
 expect_true(grepl("GitHubCopilotChat", received_headers[["User-Agent"]]))
+
+account_models <- rho_models(
+  list(provider),
+  rho_memory_credential_store(list(`github-copilot` = refreshed))
+)
+available <- rho_available_models(account_models, "github-copilot") |>
+  rho_await(timeout = 2000L)
+expect_equal(
+  vapply(available, function(model) model@id, character(1)),
+  "gpt-5.3-codex"
+)
 expect_equal(server$close(), 0L)
 ```
 
@@ -164,6 +220,22 @@ server <- nanonext::http_server(
           ), auto_unbox = TRUE)
         )
       }
+    ),
+    nanonext::handler(
+      "/models",
+      function(request) {
+        list(
+          status = 200L,
+          headers = c("Content-Type" = "application/json"),
+          body = yyjsonr::write_json_str(list(data = list(
+            list(
+              id = "gpt-5.3-codex",
+              model_picker_enabled = TRUE,
+              capabilities = list(supports = list(tool_calls = TRUE))
+            )
+          )), auto_unbox = TRUE)
+        )
+      }
     )
   )
 )
@@ -173,8 +245,10 @@ strategy <- rho_github_copilot_auth(
   endpoints = GitHubCopilotEndpoints(
     device_code = paste0(server$url, "/device"),
     access_token = paste0(server$url, "/access"),
-    copilot_token = paste0(server$url, "/token")
+    copilot_token = paste0(server$url, "/token"),
+    models = paste0(server$url, "/models")
   ),
+  model_policy = rho_github_copilot_discover_models_policy(),
   http = rho.http::rho_http_client(timeout_ms = 2000L)
 )
 io <- rho_login_io(
@@ -188,10 +262,102 @@ logged_in <- rho_auth_login(strategy, "github-copilot", io) |>
   rho_await(timeout = 5000L)
 
 expect_true(S7::S7_inherits(logged_in, GitHubCopilotCredential))
+expect_true(logged_in@model_catalog_complete)
+expect_equal(logged_in@available_model_ids, "gpt-5.3-codex")
 expect_equal(poll_count, 2L)
 expect_equal(length(notified), 1L)
 expect_true(S7::S7_inherits(notified[[1L]], RhoDeviceCodeEvent))
 expect_equal(notified[[1L]]@user_code, "ABCD-EFGH")
+expect_equal(server$close(), 0L)
+```
+
+```{r model-policy}
+policy_requests <- character()
+policy_notifications <- character()
+server <- nanonext::http_server(
+  "http://127.0.0.1:0",
+  handlers = list(
+    nanonext::handler(
+      "/models/model-a/policy",
+      function(request) {
+        policy_requests <<- c(policy_requests, "model-a")
+        list(
+          status = 200L,
+          headers = c("Content-Type" = "application/json"),
+          body = "{}"
+        )
+      },
+      method = "POST"
+    ),
+    nanonext::handler(
+      "/models/model-b/policy",
+      function(request) {
+        policy_requests <<- c(policy_requests, "model-b")
+        list(
+          status = 403L,
+          headers = c("Content-Type" = "application/json"),
+          body = "{}"
+        )
+      },
+      method = "POST"
+    ),
+    nanonext::handler(
+      "/models",
+      function(request) {
+        list(
+          status = 200L,
+          headers = c("Content-Type" = "application/json"),
+          body = yyjsonr::write_json_str(list(data = list(
+            list(
+              id = "model-a",
+              model_picker_enabled = TRUE,
+              capabilities = list(supports = list(tool_calls = TRUE))
+            )
+          )), auto_unbox = TRUE)
+        )
+      }
+    )
+  )
+)
+expect_equal(server$start(), 0L)
+
+policy <- rho_github_copilot_enable_known_models_policy(c("model-a", "model-b"))
+strategy <- rho_github_copilot_auth(
+  endpoints = GitHubCopilotEndpoints(
+    device_code = paste0(server$url, "/unused-device"),
+    access_token = paste0(server$url, "/unused-access"),
+    copilot_token = paste0(server$url, "/unused-token"),
+    models = paste0(server$url, "/models")
+  ),
+  model_policy = policy,
+  http = rho.http::rho_http_client(timeout_ms = 2000L)
+)
+credential <- rho_github_copilot_credential(
+  session_token = "session-token",
+  github_token = "github-token",
+  expires = Inf,
+  session_base_url = server$url
+)
+io <- rho_login_io(
+  prompt = function(prompt) "",
+  notify = function(event) {
+    policy_notifications <<- c(policy_notifications, event@message)
+    NULL
+  }
+)
+prepared <- rho_prepare_github_copilot_models(
+  policy,
+  strategy,
+  credential,
+  io
+) |> rho_await(timeout = 5000L)
+
+expect_equal(sort(policy_requests), c("model-a", "model-b"))
+expect_equal(length(policy_notifications), 2L)
+expect_true(any(grepl("model-a: enabled", policy_notifications, fixed = TRUE)))
+expect_true(any(grepl("model-b: not enabled", policy_notifications, fixed = TRUE)))
+expect_true(prepared@model_catalog_complete)
+expect_equal(prepared@available_model_ids, "model-a")
 expect_equal(server$close(), 0L)
 ```
 

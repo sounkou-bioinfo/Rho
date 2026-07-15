@@ -22,6 +22,28 @@ rho_catalog_read <- function(path) {
   )
 }
 
+rho_catalog_has_text <- function(value) {
+  is.character(value) && length(value) == 1L && !is.na(value) && nzchar(value)
+}
+
+rho_catalog_validate_curation <- function(entry, label) {
+  if (!rho_catalog_has_text(entry$reason)) {
+    stop(sprintf("%s must declare a non-empty reason", label), call. = FALSE)
+  }
+  evidence <- entry$evidence
+  if (
+    !is.list(evidence) ||
+      !rho_catalog_has_text(evidence$kind) ||
+      !rho_catalog_has_text(evidence$reference)
+  ) {
+    stop(
+      sprintf("%s must declare evidence.kind and evidence.reference", label),
+      call. = FALSE
+    )
+  }
+  invisible(entry)
+}
+
 rho_catalog_supported_input <- function(model) {
   input <- intersect(unlist(model$input, use.names = FALSE), c("text", "image"))
   if (!length(input)) {
@@ -59,6 +81,9 @@ rho_catalog_thinking_map <- function(model, provider_kind) {
   ) {
     mapped$minimal <- "low"
   }
+  if (is.null(mapped$xhigh) && "max" %in% levels) {
+    mapped$xhigh <- "max"
+  }
   if (
     identical(provider_kind, "zai") &&
       identical(model$id, "glm-5.2")
@@ -69,7 +94,13 @@ rho_catalog_thinking_map <- function(model, provider_kind) {
   mapped
 }
 
-rho_catalog_record <- function(model, provider, protocol, source = "models.dev") {
+rho_catalog_record <- function(
+  model,
+  provider,
+  protocol,
+  provider_capabilities = list(),
+  source = "models.dev"
+) {
   if (is.null(model$context_window) || is.null(model$max_tokens)) {
     stop(sprintf("Model %s is missing declared limits", model$id), call. = FALSE)
   }
@@ -93,6 +124,7 @@ rho_catalog_record <- function(model, provider, protocol, source = "models.dev")
     max_tokens = as.integer(model$max_tokens),
     pricing = lapply(pricing[required_pricing], as.double),
     headers = list(),
+    provider_capabilities = provider_capabilities,
     source = source
   )
 }
@@ -119,6 +151,26 @@ rho_compile_openai_models <- function(provider) {
   )
 }
 
+rho_anthropic_provider_capabilities <- function(model) {
+  modes <- unlist(model$reasoning_modes, use.names = FALSE)
+  thinking <- if (!isTRUE(model$reasoning)) {
+    "none"
+  } else if ("effort" %in% modes) {
+    "adaptive"
+  } else {
+    "budget"
+  }
+  list(
+    thinking = thinking,
+    temperature = isTRUE(model$temperature),
+    long_cache_retention = TRUE,
+    cache_tools = TRUE,
+    tool_input = "eager",
+    allow_empty_signature = FALSE,
+    supports_tool_references = FALSE
+  )
+}
+
 rho_compile_anthropic_models <- function(provider) {
   profile <- list(
     kind = "anthropic",
@@ -126,12 +178,14 @@ rho_compile_anthropic_models <- function(provider) {
     name = "Anthropic",
     base_url = "https://api.anthropic.com"
   )
-  lapply(
-    rho_catalog_active_tool_models(provider),
-    rho_catalog_record,
-    provider = profile,
-    protocol = "anthropic_messages"
-  )
+  lapply(rho_catalog_active_tool_models(provider), function(model) {
+    rho_catalog_record(
+      model,
+      profile,
+      "anthropic_messages",
+      provider_capabilities = rho_anthropic_provider_capabilities(model)
+    )
+  })
 }
 
 rho_copilot_protocol <- function(model) {
@@ -158,7 +212,18 @@ rho_compile_copilot_models <- function(provider) {
     base_url = "https://api.individual.githubcopilot.com"
   )
   lapply(rho_catalog_active_tool_models(provider), function(model) {
-    rho_catalog_record(model, profile, rho_copilot_protocol(model))
+    protocol <- rho_copilot_protocol(model)
+    capabilities <- if (identical(protocol, "anthropic_messages")) {
+      rho_anthropic_provider_capabilities(model)
+    } else {
+      list()
+    }
+    rho_catalog_record(
+      model,
+      profile,
+      protocol,
+      provider_capabilities = capabilities
+    )
   })
 }
 
@@ -215,25 +280,90 @@ rho_compile_source_models <- function(snapshot) {
 }
 
 rho_catalog_normalize_override <- function(record) {
+  rho_catalog_validate_curation(
+    record,
+    sprintf("Curated record %s/%s", record$provider$id, record$id)
+  )
   record$input <- unlist(record$input, use.names = FALSE)
   record$transports <- unlist(record$transports, use.names = FALSE)
   record$context_window <- as.integer(record$context_window)
   record$max_tokens <- as.integer(record$max_tokens)
   record$pricing <- lapply(record$pricing, as.double)
+  record$provider_capabilities <- record$provider_capabilities %||% list()
   record$source <- "rho"
+  record$reason <- NULL
+  record$evidence <- NULL
   record
+}
+
+rho_catalog_profile_key <- function(record) {
+  paste(record$provider$id, record$id, sep = "/")
+}
+
+rho_catalog_apply_profile_overrides <- function(records, overrides) {
+  profiles <- overrides$profile_overrides %||% list()
+  if (!length(profiles)) {
+    return(records)
+  }
+  for (index in seq_along(profiles)) {
+    profile <- profiles[[index]]
+    rho_catalog_validate_curation(
+      profile,
+      sprintf("Profile override %s/%s", profile$provider, profile$model)
+    )
+  }
+  profile_keys <- vapply(
+    profiles,
+    function(profile) paste(profile$provider, profile$model, sep = "/"),
+    character(1)
+  )
+  if (anyDuplicated(profile_keys)) {
+    stop(
+      sprintf(
+        "Duplicate profile override key(s): %s",
+        paste(unique(profile_keys[duplicated(profile_keys)]), collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
+  record_keys <- vapply(records, rho_catalog_profile_key, character(1))
+  unmatched <- setdiff(profile_keys, record_keys)
+  if (length(unmatched)) {
+    stop(
+      sprintf("Profile override(s) match no catalog record: %s", paste(unmatched, collapse = ", ")),
+      call. = FALSE
+    )
+  }
+  names(profiles) <- profile_keys
+  lapply(records, function(record) {
+    profile <- profiles[[rho_catalog_profile_key(record)]]
+    if (!is.null(profile)) {
+      record$provider_capabilities <- utils::modifyList(
+        record$provider_capabilities %||% list(),
+        profile$values %||% list()
+      )
+      record$thinking_level_map <- utils::modifyList(
+        record$thinking_level_map %||% list(),
+        profile$thinking_level_map %||% list()
+      )
+    }
+    record
+  })
 }
 
 rho_catalog_data <- function(snapshot, overrides, override_path) {
   if (!identical(as.integer(snapshot$schema_version), 1L)) {
     stop("Unsupported models.dev snapshot schema", call. = FALSE)
   }
-  if (!identical(as.integer(overrides$schema_version), 1L)) {
+  if (!identical(as.integer(overrides$schema_version), 2L)) {
     stop("Unsupported model override schema", call. = FALSE)
   }
-  records <- c(
-    rho_compile_source_models(snapshot),
-    lapply(overrides$records, rho_catalog_normalize_override)
+  records <- rho_catalog_apply_profile_overrides(
+    c(
+      rho_compile_source_models(snapshot),
+      lapply(overrides$records, rho_catalog_normalize_override)
+    ),
+    overrides
   )
   keys <- vapply(
     records,

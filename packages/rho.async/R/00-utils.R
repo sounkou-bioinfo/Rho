@@ -1,5 +1,19 @@
-rho_abort <- function(..., call. = FALSE) {
-  stop(sprintf(...), call. = call.)
+rho_contract_violation <- function(message, call = NULL) {
+  structure(
+    list(message = as.character(message), call = call),
+    class = c("rho_contract_violation", "error", "condition")
+  )
+}
+
+rho_signal_contract_violation <- function(..., call = sys.call(-1L)) {
+  base::stop(rho_contract_violation(sprintf(...), call = call))
+}
+
+rho_signal_task_failure <- function(error) {
+  if (!inherits(error, "condition")) {
+    error <- simpleError(as.character(error))
+  }
+  base::stop(error)
 }
 
 rho_new_state <- function(parent = emptyenv(), ...) {

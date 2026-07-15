@@ -234,7 +234,7 @@ rho_openai_chat_tools <- function(tools) {
   }))
 }
 
-rho_zai_request_body <- function(model, context, options = list()) {
+rho_openai_chat_core_request_body <- function(model, context, options) {
   request <- list(
     model = model@id,
     messages = rho_openai_chat_messages(context),
@@ -255,6 +255,22 @@ rho_zai_request_body <- function(model, context, options = list()) {
   if (!is.null(options$top_p)) {
     request$top_p <- as.double(options$top_p)
   }
+  request
+}
+
+S7::method(
+  rho_openai_chat_request_body,
+  list(OpenAIChatCompletionsModel, Context)
+) <- function(model, context, options = list(), ...) {
+  rho_openai_chat_core_request_body(model, context, options)
+}
+
+S7::method(
+  rho_openai_chat_request_body,
+  list(ZaiChatCompletionsModel, Context)
+) <- function(model, context, options = list(), ...) {
+  request <- rho_openai_chat_core_request_body(model, context, options)
+  has_tools <- model@capabilities@tools && length(context@tools) > 0L
   request <- rho_apply_thinking_control(
     model@thinking_control,
     request,
@@ -262,6 +278,10 @@ rho_zai_request_body <- function(model, context, options = list()) {
     options
   )
   rho_apply_tool_call_streaming(model@tool_call_streaming, request, has_tools)
+}
+
+rho_zai_request_body <- function(model, context, options = list()) {
+  rho_openai_chat_request_body(model, context, options = options)
 }
 
 S7::method(rho_auth_login, ZaiApiKeyAuth) <- function(auth, provider_id, io, ...) {
@@ -362,7 +382,25 @@ S7::method(
 ) <- function(provider, model, context, options = list(), ...) {
   auth <- options$auth
   if (!S7::S7_inherits(auth, RhoModelAuth) || !nzchar(auth@api_key)) {
-    rho_abort("Z.ai requests require explicit resolved auth in `options$auth`")
+    return(rho_provider_error(
+      "Z.ai requests require explicit resolved auth in `options$auth`",
+      kind = "auth",
+      code = "missing_request_auth"
+    ))
+  }
+  operation_plan <- rho_bound_operation_plan(
+    provider,
+    model,
+    context,
+    options
+  )
+  if (S7::S7_inherits(operation_plan, ProviderErrorValue)) {
+    return(operation_plan)
+  }
+  options$operation_plan <- operation_plan
+  body <- rho_zai_request_body(model, context, options)
+  if (S7::S7_inherits(body, ProviderErrorValue)) {
+    return(body)
   }
   base_url <- if (nzchar(auth@base_url)) auth@base_url else provider@endpoint@base_url
   headers <- utils::modifyList(
@@ -378,7 +416,7 @@ S7::method(
     method = "POST",
     url = paste0(sub("/+$", "", base_url), "/chat/completions"),
     headers = headers,
-    body = rho_zai_request_body(model, context, options),
+    body = body,
     timeout_ms = as.integer(options$timeout_ms %||% 120000L),
     response_headers = c("content-type", "retry-after"),
     convert = TRUE
@@ -393,6 +431,9 @@ S7::method(rho_stream, list(ZaiApi, ZaiChatCompletionsModel, Context)) <- functi
   ...
 ) {
   request <- rho_zai_request(provider, model, context, options)
+  if (S7::S7_inherits(request, ProviderErrorValue)) {
+    return(rho_provider_error_stream(model, request))
+  }
   stream <- rho.http::rho_sse_connect(provider@http, request)
   decoder <- rho_openai_chat_decoder(model)
   rho.async::rho_stream_flat_map(
