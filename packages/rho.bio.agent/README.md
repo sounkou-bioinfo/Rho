@@ -1,6 +1,12 @@
 
 # rho.bio.agent
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.bio.agent`](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/)
 exposes declared bioinformatics resources to an agent through the
 ordinary [`rho.ext`](../rho.ext/README.md) and

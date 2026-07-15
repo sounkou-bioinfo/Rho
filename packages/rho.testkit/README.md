@@ -1,6 +1,12 @@
 
 # rho.testkit
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.testkit`](https://sounkou-bioinfo.github.io/Rho/rho.testkit/)
 supplies bounded tinytest assertions for Rho tasks and streams. Every
 assertion has an explicit timeout, so a broken asynchronous path fails

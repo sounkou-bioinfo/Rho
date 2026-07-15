@@ -1,6 +1,12 @@
 
 # rho.ext
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.ext`](https://sounkou-bioinfo.github.io/Rho/rho.ext/) is the open
 extension runtime for [Rho](../../README.md). Extensions register
 handlers, tools, commands, and providers through an explicit API object;

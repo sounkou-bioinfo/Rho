@@ -1,6 +1,12 @@
 
 # rho.duckdb
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.duckdb`](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/)
 implements the database-neutral [`rho.bio`](../rho.bio/README.md) SQL
 generics for DuckDB. Queries return tasks, and declared read-only paths

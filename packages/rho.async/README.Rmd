@@ -8,6 +8,10 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 # rho.async
 
+<!-- badges: start -->
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.async`](https://sounkou-bioinfo.github.io/Rho/rho.async/) is the small
 asynchronous contract at the base of [Rho](../../README.md). A `RhoTask`
 represents one eventual value; a `RhoStream` represents an asynchronous

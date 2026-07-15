@@ -1,6 +1,12 @@
 
 # rho.graphics
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.graphics`](https://sounkou-bioinfo.github.io/Rho/rho.graphics/)
 makes R graphics first-class asynchronous artifacts. A render declares
 its device and returns dimensions, media type, digest, alternative text,

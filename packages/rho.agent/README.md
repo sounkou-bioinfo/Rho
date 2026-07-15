@@ -1,6 +1,12 @@
 
 # rho.agent
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.agent`](https://sounkou-bioinfo.github.io/Rho/rho.agent/) is Rho’s
 provider-neutral, multi-turn agent loop. It turns provider streams into
 an ordered lifecycle, schedules typed tools, drains steering and

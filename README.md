@@ -4,6 +4,8 @@
 <!-- badges: start -->
 
 [![R-CMD-check](https://github.com/sounkou-bioinfo/Rho/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sounkou-bioinfo/Rho/actions/workflows/R-CMD-check.yaml)
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
 **An asynchronous agent runtime for R, inspired by
@@ -175,6 +177,7 @@ make format       # Air
 make rd           # roxygen2
 make purl-tests   # Rmd tests -> executable tinytest files
 make rdm          # rebuild package READMEs
+make check-publication
 make test
 make check        # every package must report Status: OK
 make public-ready # complete publication gate

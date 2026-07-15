@@ -1,6 +1,12 @@
 
 # rho.coding
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.coding`](https://sounkou-bioinfo.github.io/Rho/rho.coding/)
 supplies coding tools with explicit execution semantics: file
 operations, Bash with a typed cross-platform resolution, isolated R
