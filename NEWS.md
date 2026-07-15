@@ -1,5 +1,8 @@
 # Rho 0.0.1.9000
 
+- Makes the provider-operation agent fixture reliable across the R-universe
+  operating-system matrix.
+
 - Establishes the experimental monorepo for Rho's asynchronous S7 provider,
   agent, extension, compute, graphics, coding, and bioinformatics packages.
 - Adds append-only agent sessions, semantic compaction, threshold compaction,

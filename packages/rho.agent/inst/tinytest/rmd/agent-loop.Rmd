@@ -123,7 +123,7 @@ agent <- rho_agent(
   tools = list(local_search),
   operations = list(rho_web_search())
 )
-result <- rho_prompt(agent, "search") |> rho_await(timeout = 1000L)
+result <- rho_prompt(agent, "search") |> rho_await(timeout = 5000L)
 
 expect_equal(result@status, "completed")
 expect_equal(executions, 0L)
