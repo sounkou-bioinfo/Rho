@@ -117,7 +117,7 @@ RhoCredentialGate <- S7::new_class(
   "RhoCredentialGate",
   properties = list(state = S7::class_environment),
   validator = function(self) {
-    required <- c("busy", "condition")
+    required <- "queue"
     missing <- setdiff(required, ls(self@state, all.names = TRUE))
     if (length(missing)) sprintf("@state missing field(s): %s", paste(missing, collapse = ", "))
   }
@@ -270,8 +270,7 @@ rho_provider_auth <- function(api_key = NULL, oauth = NULL) {
 
 rho_credential_gate <- function() {
   state <- new.env(parent = emptyenv())
-  state$busy <- FALSE
-  state$condition <- nanonext::cv()
+  state$queue <- rho.async::rho_serial_queue()
   RhoCredentialGate(state = state)
 }
 
@@ -291,20 +290,6 @@ rho_store_gate <- function(store, provider_id) {
   gate
 }
 
-rho_acquire_credential_gate <- function(gate) {
-  while (gate@state$busy) {
-    nanonext::wait_(gate@state$condition)
-  }
-  gate@state$busy <- TRUE
-  invisible(gate)
-}
-
-rho_release_credential_gate <- function(gate) {
-  gate@state$busy <- FALSE
-  nanonext::cv_signal(gate@state$condition)
-  invisible(gate)
-}
-
 S7::method(rho_credential_read, RhoMemoryCredentialStore) <- function(store, provider_id, ...) {
   rho.async::rho_task(store@state$credentials[[provider_id]])
 }
@@ -318,31 +303,30 @@ S7::method(rho_credential_modify, RhoMemoryCredentialStore) <- function(
   if (!is.function(update)) {
     rho.async::rho_signal_contract_violation("`update` must be a function")
   }
-  rho.async::rho_task_from_function(
+  gate <- rho_store_gate(store, provider_id)
+  rho.async::rho_enqueue(
+    gate@state$queue,
     function() {
-      gate <- rho_store_gate(store, provider_id)
-      rho_acquire_credential_gate(gate)
-      on.exit(rho_release_credential_gate(gate), add = TRUE)
       current <- store@state$credentials[[provider_id]]
-      next_value <- rho.async::rho_await(rho.async::rho_as_task(update(current)))
-      if (S7::S7_inherits(next_value, ProviderErrorValue)) {
-        return(next_value)
-      }
-      if (!is.null(next_value)) {
-        store@state$credentials[[provider_id]] <- next_value
-      }
-      next_value %||% current
+      rho.async::rho_then(rho.async::rho_as_task(update(current)), function(next_value) {
+        if (S7::S7_inherits(next_value, ProviderErrorValue)) {
+          return(next_value)
+        }
+        if (!is.null(next_value)) {
+          store@state$credentials[[provider_id]] <- next_value
+        }
+        next_value %||% current
+      })
     },
     label = sprintf("credential-modify:%s", provider_id)
   )
 }
 
 S7::method(rho_credential_delete, RhoMemoryCredentialStore) <- function(store, provider_id, ...) {
-  rho.async::rho_task_from_function(
+  gate <- rho_store_gate(store, provider_id)
+  rho.async::rho_enqueue(
+    gate@state$queue,
     function() {
-      gate <- rho_store_gate(store, provider_id)
-      rho_acquire_credential_gate(gate)
-      on.exit(rho_release_credential_gate(gate), add = TRUE)
       store@state$credentials[[provider_id]] <- NULL
       NULL
     },

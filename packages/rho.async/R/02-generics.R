@@ -8,6 +8,12 @@ rho_catch <- S7::new_generic("rho_catch", "x", function(x, on_rejected, ...) S7:
 rho_as_task <- S7::new_generic("rho_as_task", "x", function(x, ...) S7::S7_dispatch())
 rho_as_promise <- S7::new_generic("rho_as_promise", "x", function(x, ...) S7::S7_dispatch())
 
+rho_enqueue <- S7::new_generic(
+  "rho_enqueue",
+  "queue",
+  function(queue, action, label = NULL, ...) S7::S7_dispatch()
+)
+
 rho_stream_next <- S7::new_generic(
   "rho_stream_next",
   "stream",

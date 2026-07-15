@@ -88,6 +88,7 @@ S7::method(
     state = rho.async::rho_new_state(
       status = "pending",
       handle = m,
+      promise_task = NULL,
       created_at = Sys.time(),
       cancelled = FALSE
     )
@@ -111,6 +112,7 @@ S7::method(
     state = rho.async::rho_new_state(
       status = "pending",
       handle = m,
+      promise_task = NULL,
       created_at = Sys.time(),
       cancelled = FALSE
     )
@@ -140,16 +142,12 @@ rho_compute_error_value <- function(error) {
   RhoComputeErrorValue(message = as.character(error), source = error)
 }
 
-S7::method(rho_pending, RhoMiraiTask) <- function(x, ...) mirai::unresolved(x@state$handle)
-S7::method(rho_await, RhoMiraiTask) <- function(x, timeout = NULL, ...) {
-  rho.async::rho_await(
-    rho.async::rho_task_from_promise(rho_as_promise(x), label = "mirai-await"),
-    timeout = timeout
-  )
-}
-S7::method(rho_as_promise, RhoMiraiTask) <- function(x, ...) {
+rho_mirai_promise_task <- function(task) {
+  if (!is.null(task@state$promise_task)) {
+    return(task@state$promise_task)
+  }
   promise <- promises::then(
-    promises::as.promise(x@state$handle),
+    promises::as.promise(task@state$handle),
     function(envelope) {
       if (!is.list(envelope) || !identical(names(envelope), "value")) {
         return(RhoComputeErrorValue(
@@ -160,14 +158,36 @@ S7::method(rho_as_promise, RhoMiraiTask) <- function(x, ...) {
       envelope$value
     }
   )
-  promises::catch(
+  promise <- promises::catch(
     promise,
     function(error) rho_compute_error_value(error)
   )
+  task@state$promise_task <- rho.async::rho_task_from_promise(
+    promise,
+    cancel = function(reason) mirai::stop_mirai(task@state$handle),
+    label = "mirai"
+  )
+  task@state$promise_task
+}
+
+S7::method(rho_pending, RhoMiraiTask) <- function(x, ...) {
+  if (!is.null(x@state$promise_task)) {
+    return(rho.async::rho_pending(x@state$promise_task))
+  }
+  !isTRUE(x@state$cancelled) && mirai::unresolved(x@state$handle)
+}
+S7::method(rho_await, RhoMiraiTask) <- function(x, timeout = NULL, ...) {
+  rho.async::rho_await(rho_mirai_promise_task(x), timeout = timeout)
+}
+S7::method(rho_as_promise, RhoMiraiTask) <- function(x, ...) {
+  rho.async::rho_as_promise(rho_mirai_promise_task(x))
 }
 S7::method(rho_cancel, RhoMiraiTask) <- function(x, reason = NULL, ...) {
-  x@state$cancelled <- TRUE
-  x@state$cancel_reason <- reason
-  mirai::stop_mirai(x@state$handle)
-  invisible(TRUE)
+  cancelled <- rho.async::rho_cancel(rho_mirai_promise_task(x), reason)
+  if (isTRUE(cancelled)) {
+    x@state$cancelled <- TRUE
+    x@state$cancel_reason <- reason
+    x@state$status <- "cancelled"
+  }
+  invisible(cancelled)
 }

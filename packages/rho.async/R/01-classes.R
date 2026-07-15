@@ -73,3 +73,31 @@ RhoPollFailed <- S7::new_class(
   parent = RhoPollDecision,
   properties = list(error = S7::class_any)
 )
+
+RhoSerialQueue <- S7::new_class(
+  "RhoSerialQueue",
+  properties = list(state = S7::class_environment),
+  validator = function(self) {
+    required <- c("entries", "active", "scheduled")
+    missing <- setdiff(required, ls(self@state, all.names = TRUE))
+    if (length(missing)) {
+      sprintf("@state missing field(s): %s", paste(missing, collapse = ", "))
+    }
+  }
+)
+
+RhoQueueEntry <- S7::new_class(
+  "RhoQueueEntry",
+  properties = list(
+    action = S7::class_function,
+    label = S7::class_character,
+    state = S7::class_environment
+  ),
+  validator = function(self) {
+    required <- c("status", "resolve", "reject", "current", "monitor")
+    missing <- setdiff(required, ls(self@state, all.names = TRUE))
+    if (length(missing)) {
+      sprintf("@state missing field(s): %s", paste(missing, collapse = ", "))
+    }
+  }
+)

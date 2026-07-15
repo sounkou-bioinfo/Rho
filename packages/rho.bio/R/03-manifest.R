@@ -107,110 +107,97 @@ S7::method(
   invisible(registry)
 }
 
+rho_resolver_failure <- function(error, resource) {
+  rho_bio_error(
+    conditionMessage(error),
+    kind = "resolver",
+    code = "resolver_failed",
+    details = list(
+      resource_id = resource@id,
+      resolver_id = resource@resolver,
+      source = error
+    )
+  )
+}
+
+rho_resolution_receipt <- function(resource, spec, out) {
+  if (S7::S7_inherits(out, BioErrorValue)) {
+    return(out)
+  }
+  valid <- is.list(out) &&
+    isTRUE(tryCatch(
+      S7::S7_inherits(out$result, ResourceHandle),
+      error = function(error) FALSE
+    ))
+  if (!valid) {
+    return(rho_bio_error(
+      paste(
+        "Resolver impl must return list(result = ResourceHandle,",
+        "source_snapshots = list(), provenance = list())"
+      ),
+      kind = "resolver",
+      code = "invalid_resolver_result",
+      details = list(resource_id = resource@id, resolver_id = resource@resolver)
+    ))
+  }
+  digest <- paste0(
+    "sha256:",
+    digest::digest(rho_canonical_json(resource@params), algo = "sha256", serialize = FALSE)
+  )
+  ResolutionReceipt(
+    RESOLUTION_RECEIPT_SCHEMA,
+    resource@id,
+    spec@id,
+    spec@version,
+    format(Sys.time(), "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC"),
+    digest,
+    out$source_snapshots %||% list(),
+    out$result,
+    out$provenance %||% list()
+  )
+}
+
 S7::method(rho_resolve_resource, BioRegistry) <- function(
   registry,
   resource_id,
   ctx = list(),
   ...
 ) {
-  rho.async::rho_task_from_function(
-    function() {
-      if (!exists(resource_id, registry@state$resources, inherits = FALSE)) {
-        return(rho_bio_error(
-          sprintf("Unknown resource: %s", resource_id),
-          kind = "resource",
-          code = "unknown_resource",
-          details = list(resource_id = resource_id)
-        ))
-      }
-      resource <- get(resource_id, registry@state$resources)
-      if (!exists(resource@resolver, registry@state$resolvers, inherits = FALSE)) {
-        return(rho_bio_error(
-          sprintf("Missing resolver spec: %s", resource@resolver),
-          kind = "resolver",
-          code = "missing_resolver_spec",
-          details = list(resource_id = resource_id, resolver_id = resource@resolver)
-        ))
-      }
-      if (!exists(resource@resolver, registry@state$resolver_impls, inherits = FALSE)) {
-        return(rho_bio_error(
-          sprintf("Resolver impl is unbound: %s", resource@resolver),
-          kind = "resolver",
-          code = "resolver_unbound",
-          details = list(resource_id = resource_id, resolver_id = resource@resolver)
-        ))
-      }
-      spec <- get(resource@resolver, registry@state$resolvers)
-      impl <- get(resource@resolver, registry@state$resolver_impls)
-      out <- tryCatch(
-        impl(resource, ctx),
-        error = function(error) {
-          rho_bio_error(
-            conditionMessage(error),
-            kind = "resolver",
-            code = "resolver_failed",
-            details = list(
-              resource_id = resource_id,
-              resolver_id = resource@resolver,
-              source = error
-            )
-          )
-        }
-      )
-      if (S7::S7_inherits(out, BioErrorValue)) {
-        return(out)
-      }
-      if (rho.async::rho_is_task(out)) {
-        out <- tryCatch(
-          rho.async::rho_await(out),
-          error = function(error) {
-            rho_bio_error(
-              conditionMessage(error),
-              kind = "resolver",
-              code = "resolver_failed",
-              details = list(
-                resource_id = resource_id,
-                resolver_id = resource@resolver,
-                source = error
-              )
-            )
-          }
-        )
-      }
-      if (S7::S7_inherits(out, BioErrorValue)) {
-        return(out)
-      }
-      if (
-        !is.list(out) ||
-          !isTRUE(tryCatch(S7::S7_inherits(out$result, ResourceHandle), error = function(e) FALSE))
-      ) {
-        return(rho_bio_error(
-          paste(
-            "Resolver impl must return list(result = ResourceHandle,",
-            "source_snapshots = list(), provenance = list())"
-          ),
-          kind = "resolver",
-          code = "invalid_resolver_result",
-          details = list(resource_id = resource_id, resolver_id = resource@resolver)
-        ))
-      }
-      digest <- paste0(
-        "sha256:",
-        digest::digest(rho_canonical_json(resource@params), algo = "sha256", serialize = FALSE)
-      )
-      ResolutionReceipt(
-        RESOLUTION_RECEIPT_SCHEMA,
-        resource@id,
-        spec@id,
-        spec@version,
-        format(Sys.time(), "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC"),
-        digest,
-        out$source_snapshots %||% list(),
-        out$result,
-        out$provenance %||% list()
-      )
-    },
-    label = paste0("resolve-", resource_id)
+  if (!exists(resource_id, registry@state$resources, inherits = FALSE)) {
+    return(rho.async::rho_task(rho_bio_error(
+      sprintf("Unknown resource: %s", resource_id),
+      kind = "resource",
+      code = "unknown_resource",
+      details = list(resource_id = resource_id)
+    )))
+  }
+  resource <- get(resource_id, registry@state$resources, inherits = FALSE)
+  if (!exists(resource@resolver, registry@state$resolvers, inherits = FALSE)) {
+    return(rho.async::rho_task(rho_bio_error(
+      sprintf("Missing resolver spec: %s", resource@resolver),
+      kind = "resolver",
+      code = "missing_resolver_spec",
+      details = list(resource_id = resource_id, resolver_id = resource@resolver)
+    )))
+  }
+  if (!exists(resource@resolver, registry@state$resolver_impls, inherits = FALSE)) {
+    return(rho.async::rho_task(rho_bio_error(
+      sprintf("Resolver impl is unbound: %s", resource@resolver),
+      kind = "resolver",
+      code = "resolver_unbound",
+      details = list(resource_id = resource_id, resolver_id = resource@resolver)
+    )))
+  }
+  spec <- get(resource@resolver, registry@state$resolvers, inherits = FALSE)
+  impl <- get(resource@resolver, registry@state$resolver_impls, inherits = FALSE)
+  out <- tryCatch(impl(resource, ctx), error = identity)
+  if (inherits(out, "error")) {
+    return(rho.async::rho_task(rho_resolver_failure(out, resource)))
+  }
+  rho.async::rho_then(
+    rho.async::rho_as_task(out),
+    function(out) rho_resolution_receipt(resource, spec, out),
+    function(error) rho_resolver_failure(error, resource)
   )
 }
 

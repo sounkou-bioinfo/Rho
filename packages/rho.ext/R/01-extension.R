@@ -105,24 +105,26 @@ S7::method(rho_register_provider, RhoExtensionAPI) <- function(api, name, provid
   invisible(api)
 }
 
+rho_dispatch_handlers <- function(handlers, event, ctx, index = 1L, values = list()) {
+  if (index > length(handlers)) {
+    return(rho.async::rho_task(values))
+  }
+  value <- tryCatch(handlers[[index]](event, ctx), error = identity)
+  if (inherits(value, "error")) {
+    return(rho.async::rho_rejected(value))
+  }
+  rho.async::rho_then(rho.async::rho_as_task(value), function(value) {
+    if (!is.null(value)) {
+      values[[length(values) + 1L]] <- value
+    }
+    rho_dispatch_handlers(handlers, event, ctx, index + 1L, values)
+  })
+}
+
 S7::method(rho_dispatch_event, RhoExtensionRuntime) <- function(runtime, event, ctx = NULL, ...) {
-  rho.async::rho_task_from_function(
-    function() {
-      name <- event$type %||% event[["type"]]
-      if (is.null(name) || !exists(name, runtime@state$handlers, inherits = FALSE)) {
-        return(list())
-      }
-      handlers <- get(name, runtime@state$handlers)
-      out <- list()
-      for (handler in handlers) {
-        value <- handler(event, ctx)
-        if (rho.async::rho_is_task(value)) {
-          value <- rho.async::rho_await(value)
-        }
-        if (!is.null(value)) out[[length(out) + 1L]] <- value
-      }
-      out
-    },
-    label = paste0("extension-event-", event$type %||% "unknown")
-  )
+  name <- event$type %||% event[["type"]]
+  if (is.null(name) || !exists(name, runtime@state$handlers, inherits = FALSE)) {
+    return(rho.async::rho_task(list()))
+  }
+  rho_dispatch_handlers(get(name, runtime@state$handlers), event, ctx)
 }

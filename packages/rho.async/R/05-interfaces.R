@@ -3,3 +3,7 @@ RhoStreamLike <- s7contract::new_interface(
   "RhoStreamLike",
   generics = list(rho_stream_next = rho_stream_next)
 )
+RhoTaskQueue <- s7contract::new_interface(
+  "RhoTaskQueue",
+  generics = list(rho_enqueue = rho_enqueue)
+)

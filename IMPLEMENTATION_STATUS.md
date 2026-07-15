@@ -24,10 +24,19 @@ Semantic operations are planned separately from executable tools. OpenAI and
 Anthropic web search use typed, catalog-backed provider bindings, normalize
 provider activity as content, and reject unbound operations at request
 translation. R expression evaluators use the same binding protocol.
-Agent sessions are append-only: provider context is projected from message,
-compaction, and exclusion entries. Compaction has manual and threshold triggers,
-open policy and compactor methods, typed successful skips and operational
-failures, lifecycle events, and one retry for typed provider input-limit values.
+Task continuations propagate cancellation to their active child. Task groups
+cancel their children when cancelled or rejected, races cancel losing tasks,
+and deadlines cancel their source. Derived streams preserve timeout and close
+semantics, and stream collection applies one total deadline. A serial task queue
+orders asynchronous mutations without blocking the R event loop or allowing a
+cancelled queued entry to cancel active work. Extension handlers, provider
+completion, credential refresh, and bio resolution compose tasks directly;
+none performs an internal blocking wait.
+
+Agent provider context is projected from message, compaction, and exclusion
+entries held in memory. Compaction has manual and threshold triggers, open
+policy and compactor methods, typed successful skips and operational failures,
+lifecycle events, and one retry for typed provider input-limit values.
 The HTTP stream retains a configurable bounded body for non-success responses so
 provider adapters can classify structured wire errors without matching message
 text.
@@ -54,6 +63,15 @@ Known incomplete work, stated directly:
 - `RhoMiraiExpressionEvaluator` gives isolated worker evaluation.
   `RhoCurrentSessionREvaluator` preserves state only in the environment supplied
   by its caller and requires exclusive execution.
+- `rho_task_from_function()` defers an R closure but does not move blocking work
+  out of the main R process. Credential-file reads, coding filesystem tools, and
+  DuckDB calls still need explicit compute bindings where they may block.
+- Agent session entries have no durable store, replay, or crash recovery, and
+  streaming message updates still replace their in-memory entry.
+- Graphics, tool output, and bio resources do not yet share an artifact store.
+- `rho.compute` does not yet model pool lifecycle, placement, affinity, bounded
+  queues, or remote execution receipts.
 
-Publication requires the parity ledger, package checks, provider fixtures,
-generated documentation, and secret scan to pass from the release commit.
+The parity ledger records provider and agent-core behavior. It is not a claim
+that durable storage, execution placement, coding tools, or the downstream bio
+agent are complete.

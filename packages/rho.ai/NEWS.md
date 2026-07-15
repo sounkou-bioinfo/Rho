@@ -6,3 +6,5 @@
   for OpenAI-compatible context limits and Anthropic request-size limits.
 - Preserves HTTP retry semantics when OpenAI-compatible status errors include a
   structured provider error body.
+- Collects provider completions through task composition and serializes
+  asynchronous credential updates without blocking the R event loop.

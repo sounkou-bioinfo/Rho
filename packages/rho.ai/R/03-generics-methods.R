@@ -285,6 +285,54 @@ S7::method(rho_assistant_event_type, AssistantOperationEndEvent) <- function(eve
 S7::method(rho_assistant_event_type, AssistantDoneEvent) <- function(event, ...) "done"
 S7::method(rho_assistant_event_type, AssistantErrorEvent) <- function(event, ...) "error"
 
+rho_complete_terminal <- function(event) {
+  if (is.null(event)) {
+    return(rho_provider_error(
+      "Provider stream ended without a terminal event",
+      kind = "protocol",
+      code = "missing_terminal_event"
+    ))
+  }
+  if (S7::S7_inherits(event, AssistantErrorEvent)) {
+    return(event@error)
+  }
+  event@message
+}
+
+rho_complete_stream <- function(stream, terminal = NULL) {
+  rho.async::rho_then(rho.async::rho_stream_next(stream), function(item) {
+    if (S7::S7_inherits(item, rho.async::RhoAsyncError)) {
+      rho.async::rho_stream_close(stream)
+      return(item)
+    }
+    if (S7::S7_inherits(item, rho.async::RhoStreamEnd)) {
+      rho.async::rho_stream_close(stream)
+      return(rho_complete_terminal(terminal))
+    }
+    if (!S7::S7_inherits(item, rho.async::RhoStreamValue)) {
+      rho.async::rho_stream_close(stream)
+      return(rho_provider_error(
+        "Provider stream yielded a value outside the stream item protocol",
+        kind = "protocol",
+        code = "invalid_stream_item"
+      ))
+    }
+    event <- item@value
+    if (!S7::S7_inherits(event, AssistantEvent)) {
+      rho.async::rho_stream_close(stream)
+      return(rho_provider_error(
+        "Provider stream yielded a value outside the assistant event protocol",
+        kind = "protocol",
+        code = "invalid_assistant_event"
+      ))
+    }
+    if (S7::S7_inherits(event, AssistantTerminalEvent)) {
+      terminal <- event
+    }
+    rho_complete_stream(stream, terminal)
+  })
+}
+
 S7::method(rho_complete, list(S7::class_any, Model, Context)) <- function(
   provider,
   model,
@@ -292,28 +340,34 @@ S7::method(rho_complete, list(S7::class_any, Model, Context)) <- function(
   options = list(),
   ...
 ) {
-  rho.async::rho_task_from_function(
-    function() {
-      stream <- rho_stream(provider, model, context, options = options)
-      events <- rho.async::rho_stream_collect(stream)
-      terminal <- Filter(
-        function(event) S7::S7_inherits(event, AssistantTerminalEvent),
-        events
-      )
-      if (!length(terminal)) {
-        return(rho_provider_error(
-          "Provider stream ended without a terminal event",
-          kind = "protocol",
-          code = "missing_terminal_event"
-        ))
-      }
-      event <- terminal[[length(terminal)]]
-      if (S7::S7_inherits(event, AssistantErrorEvent)) {
-        return(event@error)
-      }
-      event@message
+  stream <- tryCatch(
+    rho_stream(provider, model, context, options = options),
+    error = identity
+  )
+  if (inherits(stream, "error")) {
+    return(rho.async::rho_rejected(stream))
+  }
+  if (!rho.async::rho_is_stream(stream)) {
+    return(rho.async::rho_task(rho_provider_error(
+      "Provider did not return a RhoStream",
+      kind = "protocol",
+      code = "invalid_provider_stream"
+    )))
+  }
+  completion <- rho.async::rho_catch(
+    rho_complete_stream(stream),
+    function(error) {
+      rho.async::rho_stream_close(stream)
+      rho.async::rho_rejected(error)
+    }
+  )
+  rho.async::rho_task_from_promise(
+    rho.async::rho_as_promise(completion),
+    cancel = function(reason) {
+      rho.async::rho_cancel(completion, reason)
+      rho.async::rho_stream_close(stream)
     },
-    label = "rho_complete"
+    label = "complete"
   )
 }
 

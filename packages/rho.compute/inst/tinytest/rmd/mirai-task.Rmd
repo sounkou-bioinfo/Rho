@@ -84,3 +84,22 @@ failure <- rho_mirai_eval(stop("compute failed", call. = FALSE)) |>
 expect_true(S7::S7_inherits(failure, RhoComputeErrorValue))
 expect_true(grepl("compute failed", failure@message, fixed = TRUE))
 ```
+
+```{r mirai-cancellation-is-typed}
+profile <- paste0("rho-cancel-test-", Sys.getpid())
+mirai::daemons(1L, .compute = profile)
+
+cancelled <- tryCatch({
+  task <- rho_mirai_eval(
+    { Sys.sleep(5); "late" },
+    compute = profile
+  )
+  expect_true(rho_cancel(task, reason = "cancel compute"))
+  rho_await(task, timeout = 1000L)
+}, finally = {
+  mirai::daemons(0L, .compute = profile)
+})
+
+expect_true(S7::S7_inherits(cancelled, RhoCancellation))
+expect_equal(cancelled@message, "cancel compute")
+```

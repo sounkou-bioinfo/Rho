@@ -1,5 +1,11 @@
 # Rho 0.0.1.9000
 
+- Makes task composition cancellation-aware, adds `rho_race()`, gives task
+  groups ownership of their children, and applies deadlines through derived
+  streams.
+- Replaces blocking extension, credential-refresh, provider-completion, and bio
+  resolver composition with task chains and a cancellable serial queue.
+- Makes mirai cancellation resolve as a typed `RhoCancellation` value.
 - Pins every installation path to the reviewed nanonext HTTP streaming commit
   and exercises cancellation through the complete SSE receive stack.
 - Makes the provider-operation agent fixture reliable across the R-universe

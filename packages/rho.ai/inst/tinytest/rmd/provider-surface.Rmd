@@ -13,14 +13,16 @@ library(rho.ai)
 provider <- rho_faux_provider()
 model <- rho_model("faux", "faux")
 context <- rho_context(messages = list(rho_user_message("hi")))
-events <- rho_stream(provider, model, context) |> rho_stream_collect()
+events <- rho_stream(provider, model, context) |> rho_stream_collect(timeout = 1000L)
 expect_equal(
   vapply(events, rho_assistant_event_type, character(1)),
   c("start", "text_start", "text_delta", "text_end", "done")
 )
 expect_equal(events[[5]]@message@content[[1]]@text, "faux: hi")
 
-message <- rho_complete(provider, model, context) |> rho_await()
+completion <- rho_complete(provider, model, context)
+expect_true(rho_pending(completion))
+message <- completion |> rho_await(timeout = 1000L)
 expect_true(S7::S7_inherits(message, AssistantMessage))
 expect_equal(message@content[[1L]]@text, "faux: hi")
 ```
@@ -125,7 +127,7 @@ expect_true(grepl('"tools":\\[', encoded_tool_request))
 ```{r explicit-auth-runtime}
 credentials <- rho_memory_credential_store(list(`openai-codex` = credential))
 models <- rho_models(list(codex), credentials)
-resolution <- rho_resolve_model_auth(models, spark) |> rho_await()
+resolution <- rho_resolve_model_auth(models, spark) |> rho_await(timeout = 1000L)
 
 expect_true(resolution@configured)
 expect_equal(resolution@source, credential@source)
@@ -168,8 +170,10 @@ refresh_models <- rho_models(
   rho_memory_credential_store(list(`openai-codex` = expired))
 )
 
-first_resolution <- rho_resolve_model_auth(refresh_models, spark) |> rho_await()
-second_resolution <- rho_resolve_model_auth(refresh_models, spark) |> rho_await()
+first_resolution <- rho_resolve_model_auth(refresh_models, spark) |>
+  rho_await(timeout = 1000L)
+second_resolution <- rho_resolve_model_auth(refresh_models, spark) |>
+  rho_await(timeout = 1000L)
 expect_true(first_resolution@configured)
 expect_true(second_resolution@configured)
 expect_equal(first_resolution@auth@api_key, "fresh-access")
@@ -184,7 +188,7 @@ stored <- rho_api_key_credential(
 )
 store <- rho_memory_credential_store(list(fixture = stored))
 
-initial <- rho_credential_read(store, "fixture") |> rho_await()
+initial <- rho_credential_read(store, "fixture") |> rho_await(timeout = 1000L)
 expect_identical(initial, stored)
 
 updates <- lapply(seq_len(2L), function(index) {
@@ -196,13 +200,55 @@ updates <- lapply(seq_len(2L), function(index) {
     )
   })
 })
-rho_all(updates) |> rho_await()
+rho_all(updates) |> rho_await(timeout = 1000L)
 
-modified <- rho_credential_read(store, "fixture") |> rho_await()
+modified <- rho_credential_read(store, "fixture") |> rho_await(timeout = 1000L)
 expect_equal(modified@provider_env$revision, 2L)
 
-rho_credential_delete(store, "fixture") |> rho_await()
-expect_true(is.null(rho_credential_read(store, "fixture") |> rho_await()))
+rho_credential_delete(store, "fixture") |> rho_await(timeout = 1000L)
+expect_true(is.null(
+  rho_credential_read(store, "fixture") |> rho_await(timeout = 1000L)
+))
+```
+
+```{r asynchronous-credential-updates-are-serialized}
+stored <- rho_api_key_credential(
+  "fixture",
+  "initial",
+  provider_env = list(revision = 0L)
+)
+store <- rho_memory_credential_store(list(fixture = stored))
+state <- new.env(parent = emptyenv())
+state$resolve <- NULL
+state$second_started <- FALSE
+
+first <- rho_credential_modify(store, "fixture", function(current) {
+  rho_task_from_promise(promises::promise(function(resolve, reject) {
+    state$resolve <- resolve
+  }))
+})
+second <- rho_credential_modify(store, "fixture", function(current) {
+  state$second_started <- TRUE
+  rho_api_key_credential(
+    "fixture",
+    "second",
+    provider_env = list(revision = current@provider_env$revision + 1L)
+  )
+})
+later::run_now(0.05)
+
+expect_false(state$second_started)
+state$resolve(rho_api_key_credential(
+  "fixture",
+  "first",
+  provider_env = list(revision = 1L)
+))
+rho_all(list(first, second)) |> rho_await(timeout = 1000L)
+
+modified <- rho_credential_read(store, "fixture") |>
+  rho_await(timeout = 1000L)
+expect_true(state$second_started)
+expect_equal(modified@provider_env$revision, 2L)
 ```
 
 ```{r openai-codex-pkce}

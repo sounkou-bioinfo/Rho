@@ -25,8 +25,12 @@
 \alias{RhoPollPending}
 \alias{RhoPollComplete}
 \alias{RhoPollFailed}
+\alias{RhoSerialQueue}
+\alias{rho_serial_queue}
+\alias{rho_enqueue}
 \alias{RhoAwaitable}
 \alias{RhoStreamLike}
+\alias{RhoTaskQueue}
 \alias{rho_task}
 \alias{rho_rejected}
 \alias{rho_task_from_function}
@@ -41,6 +45,7 @@
 \alias{rho_as_task}
 \alias{rho_as_promise}
 \alias{rho_all}
+\alias{rho_race}
 \alias{rho_timeout}
 \alias{rho_list_stream}
 \alias{rho_stream_from_task}
@@ -85,4 +90,7 @@ tasks with \code{\link[=rho_then]{rho_then()}} or coroutines and block only at \
 \code{rho_new_state()} and the concrete adapter task classes are exported for
 packages implementing new async backends. Polling actions return one of the
 typed \code{RhoPollDecision} subclasses; timing remains inside \code{rho.async}.
+\code{rho_serial_queue()} orders asynchronous actions without blocking the event
+loop. Cancelling a queued task removes only that entry; cancelling active
+work propagates to the task returned by its action.
 }
