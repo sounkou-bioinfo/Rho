@@ -204,7 +204,8 @@ S7::method(
   rho_openai_api_error_value(
     message = as.character(nested$message %||% error@message),
     code = as.character(nested$code %||% error@status),
-    details = rho_http_error_details(error)
+    details = rho_http_error_details(error),
+    retryable = rho_http_status_retryable(error)
   )
 }
 

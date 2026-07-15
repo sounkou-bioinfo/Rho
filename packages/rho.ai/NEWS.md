@@ -4,3 +4,5 @@
   request translation, and normalized streaming adapters inspired by Pi.
 - Adds typed provider input-limit values and exact structured-code translation
   for OpenAI-compatible context limits and Anthropic request-size limits.
+- Preserves HTTP retry semantics when OpenAI-compatible status errors include a
+  structured provider error body.

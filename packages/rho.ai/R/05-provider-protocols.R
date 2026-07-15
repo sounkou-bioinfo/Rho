@@ -175,14 +175,18 @@ S7::method(
   )
 }
 
+rho_http_status_retryable <- function(error) {
+  status <- error@status
+  status %in% c(408L, 409L, 425L, 429L) || status >= 500L
+}
+
 rho_http_status_provider_error <- function(error) {
   status <- error@status
-  retryable <- status %in% c(408L, 409L, 425L, 429L) || status >= 500L
   rho_provider_error(
     message = error@message,
     kind = "http_status",
     code = as.character(status),
-    retryable = retryable,
+    retryable = rho_http_status_retryable(error),
     details = rho_http_error_details(error)
   )
 }
