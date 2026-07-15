@@ -30,6 +30,11 @@ Known boundaries that are deliberately explicit rather than faked:
 - OpenAI Responses/Codex and Anthropic Messages have typed request and event
   protocols with end-to-end agent fixtures. Ollama still needs normalized NDJSON
   decoding. External-account checks remain recorded in the parity ledger.
+- Z.ai authentication is explicitly API-key based. Its
+  [documented API surface](https://docs.z.ai/guides/develop/http/introduction)
+  offers API-key and JWT bearer authentication, not an OAuth device grant;
+  requesting OAuth therefore resolves to a typed unsupported login-method value
+  without prompting or issuing a network request.
 - `rho.http::rho_sse_connect()` opens the response with the pinned nanonext
   `ncurl_stream_aio()` fork and incrementally decodes arbitrary body chunks. The
   transport remains pinned until the primitive is available from an upstream

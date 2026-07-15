@@ -15,6 +15,10 @@
 \alias{RhoFunctionOAuthAuth}
 \alias{RhoProviderAuth}
 \alias{RhoCredentialGate}
+\alias{RhoLoginMethod}
+\alias{RhoApiKeyLogin}
+\alias{RhoOAuthLogin}
+\alias{rho_login_strategy}
 \alias{RhoMemoryCredentialStore}
 \alias{RhoAuthPrompt}
 \alias{RhoTextAuthPrompt}

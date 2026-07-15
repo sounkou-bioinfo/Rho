@@ -605,6 +605,7 @@ NULL
 #' @aliases CredentialStore OAuthAuth LoginIO RhoCredential RhoApiKeyCredential
 #' @aliases RhoOAuthCredential RhoModelAuth RhoAuthResolution RhoApiKeyAuth
 #' @aliases RhoOAuthAuth RhoFunctionOAuthAuth RhoProviderAuth RhoCredentialGate
+#' @aliases RhoLoginMethod RhoApiKeyLogin RhoOAuthLogin rho_login_strategy
 #' @aliases RhoMemoryCredentialStore RhoAuthPrompt RhoTextAuthPrompt
 #' @aliases RhoSecretAuthPrompt RhoManualCodeAuthPrompt RhoSelectAuthPrompt
 #' @aliases RhoAuthEvent RhoAuthUrlEvent RhoDeviceCodeEvent RhoAuthProgressEvent
@@ -645,6 +646,9 @@ NULL
 #' @export RhoApiKeyAuth
 #' @export RhoOAuthAuth
 #' @export RhoFunctionOAuthAuth
+#' @export RhoLoginMethod
+#' @export RhoApiKeyLogin
+#' @export RhoOAuthLogin
 #' @export RhoProviderAuth
 #' @export RhoCredentialGate
 #' @export RhoMemoryCredentialStore
@@ -682,6 +686,7 @@ NULL
 #' @export rho_auth_login
 #' @export rho_auth_refresh
 #' @export rho_auth_to_request
+#' @export rho_login_strategy
 #' @export rho_auth_prompt
 #' @export rho_auth_notify
 #' @export rho_auth_error
