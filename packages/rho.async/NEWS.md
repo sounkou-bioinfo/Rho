@@ -2,3 +2,4 @@
 
 - Adds experimental task, stream, cancellation, timeout, and composition
   contracts over nanonext asynchronous primitives.
+- Propagates cancellation through task continuations to their source task.

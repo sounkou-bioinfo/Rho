@@ -1,5 +1,7 @@
 # Rho 0.0.1.9000
 
+- Pins every installation path to the reviewed nanonext HTTP streaming commit
+  and exercises cancellation through the complete SSE receive stack.
 - Makes the provider-operation agent fixture reliable across the R-universe
   operating-system matrix.
 - Declares dependencies loaded by authored package tests and checks that every

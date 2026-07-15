@@ -14,6 +14,20 @@ t <- rho_task(2)
 out <- rho_then(t, function(x) x + 3)
 expect_equal(rho_await(out), 5)
 
+observed <- new.env(parent = emptyenv())
+observed$reason <- NULL
+source <- rho_task_from_promise(
+  promises::promise(function(resolve, reject) NULL),
+  cancel = function(reason) observed$reason <- reason
+)
+continuation <- rho_then(source, identity)
+
+expect_true(rho_cancel(continuation, reason = "cancel continuation"))
+expect_equal(observed$reason, "cancel continuation")
+cancelled <- rho_await(continuation, timeout = 1000L)
+expect_true(S7::S7_inherits(cancelled, RhoCancellation))
+expect_equal(cancelled@message, "cancel continuation")
+
 ready <- new.env(parent = emptyenv())
 ready$value <- FALSE
 bridge <- rho_task_callback_bridge(

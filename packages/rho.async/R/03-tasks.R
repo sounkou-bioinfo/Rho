@@ -263,7 +263,11 @@ S7::method(rho_then, RhoTask) <- function(x, on_fulfilled, on_rejected = NULL, .
       }
     }
   )
-  rho_task_from_promise(promise, label = "then")
+  rho_task_from_promise(
+    promise,
+    cancel = function(reason) rho_cancel(x, reason),
+    label = "then"
+  )
 }
 
 S7::method(rho_catch, RhoTask) <- function(x, on_rejected, ...) {

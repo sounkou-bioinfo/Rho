@@ -30,7 +30,7 @@ S7::method(rho_stream_next, RhoHttpBodyStream) <- function(
     }
     rho.async::rho_stream_value(result$data)
   })
-  rho.async::rho_catch(next_item, function(error) {
+  handled <- rho.async::rho_catch(next_item, function(error) {
     rho_http_close_connection(stream)
     rho.async::rho_stream_value(RhoHttpTransportError(
       message = sprintf("HTTP stream receive failed: %s", conditionMessage(error)),
@@ -38,6 +38,14 @@ S7::method(rho_stream_next, RhoHttpBodyStream) <- function(
       parent = error
     ))
   })
+  rho.async::rho_task_from_promise(
+    rho.async::rho_as_promise(handled),
+    cancel = function(reason) {
+      rho.async::rho_cancel(handled, reason)
+      rho_http_close_connection(stream)
+    },
+    label = "http-stream-receive"
+  )
 }
 
 S7::method(rho_stream_close, RhoHttpBodyStream) <- function(stream, ...) {
