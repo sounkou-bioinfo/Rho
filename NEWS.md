@@ -2,6 +2,8 @@
 
 - Makes the provider-operation agent fixture reliable across the R-universe
   operating-system matrix.
+- Declares dependencies loaded by authored package tests and checks that every
+  internal test dependency is present in package metadata.
 
 - Establishes the experimental monorepo for Rho's asynchronous S7 provider,
   agent, extension, compute, graphics, coding, and bioinformatics packages.

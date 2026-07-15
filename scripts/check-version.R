@@ -64,6 +64,38 @@ for (index in seq_along(package_dirs)) {
   dependency_names <- sub("[[:space:]]*\\(.*$", "", dependency_specs)
   internal_dependencies <- intersect(package_names, dependency_names)
 
+  test_files <- list.files(
+    file.path(package_dir, "inst", "tinytest", "rmd"),
+    pattern = "[.]Rmd$",
+    full.names = TRUE
+  )
+  test_lines <- unlist(
+    lapply(test_files, readLines, warn = FALSE, encoding = "UTF-8"),
+    use.names = FALSE
+  )
+  loaded_internal_dependencies <- package_names[vapply(
+    package_names,
+    function(dependency) {
+      any(grepl(
+        sprintf("library(%s)", dependency),
+        test_lines,
+        fixed = TRUE
+      ))
+    },
+    logical(1)
+  )]
+  undeclared_test_dependencies <- setdiff(
+    loaded_internal_dependencies,
+    c(package, internal_dependencies)
+  )
+  for (dependency in undeclared_test_dependencies) {
+    record_error(sprintf(
+      "%s tests load undeclared internal dependency %s",
+      package,
+      dependency
+    ))
+  }
+
   for (dependency in internal_dependencies) {
     specification <- dependency_specs[dependency_names == dependency]
     required <- sprintf("%s (>= %s)", dependency, release_version)
