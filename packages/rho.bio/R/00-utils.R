@@ -1,7 +1,3 @@
-rho_abort <- function(..., call. = FALSE) {
-  stop(sprintf(...), call. = call.)
-}
-
 rho_new_state <- function(...) {
   state <- new.env(parent = emptyenv())
   values <- list(...)

@@ -12,6 +12,7 @@
 \alias{BioManifest}
 \alias{ResolutionReceipt}
 \alias{BioRegistry}
+\alias{BioErrorValue}
 \alias{BIO_MANIFEST_SCHEMA}
 \alias{RESOLUTION_RECEIPT_SCHEMA}
 \alias{rho_virtual_resource}
@@ -19,6 +20,7 @@
 \alias{rho_operation_spec}
 \alias{rho_manifest}
 \alias{rho_resource_handle}
+\alias{rho_bio_error}
 \alias{rho_bio_registry}
 \alias{rho_validate_manifest}
 \alias{rho_register_manifest}

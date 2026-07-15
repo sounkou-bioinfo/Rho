@@ -15,7 +15,13 @@ RhoApiKeyCredential <- S7::new_class(
     state = S7::class_environment
   ),
   validator = function(self) {
-    if (!exists("key", self@state, inherits = FALSE)) "@state must contain `key`"
+    if (!exists("key", self@state, inherits = FALSE)) {
+      return("@state must contain `key`")
+    }
+    key <- self@state$key
+    if (!is.character(key) || length(key) != 1L || is.na(key) || !nzchar(key)) {
+      "@state$key must be one non-empty string"
+    }
   }
 )
 
@@ -31,7 +37,17 @@ RhoOAuthCredential <- S7::new_class(
   validator = function(self) {
     required <- c("access", "refresh")
     missing <- setdiff(required, ls(self@state, all.names = TRUE))
-    if (length(missing)) sprintf("@state missing field(s): %s", paste(missing, collapse = ", "))
+    if (length(missing)) {
+      return(sprintf("@state missing field(s): %s", paste(missing, collapse = ", ")))
+    }
+    access <- self@state$access
+    if (!is.character(access) || length(access) != 1L || is.na(access) || !nzchar(access)) {
+      return("@state$access must be one non-empty string")
+    }
+    refresh <- self@state$refresh
+    if (!is.character(refresh) || length(refresh) != 1L || is.na(refresh)) {
+      "@state$refresh must be one string"
+    }
   }
 )
 
@@ -109,7 +125,22 @@ RhoMemoryCredentialStore <- S7::new_class(
   validator = function(self) {
     required <- c("credentials", "gates")
     missing <- setdiff(required, ls(self@state, all.names = TRUE))
-    if (length(missing)) sprintf("@state missing field(s): %s", paste(missing, collapse = ", "))
+    if (length(missing)) {
+      return(sprintf("@state missing field(s): %s", paste(missing, collapse = ", ")))
+    }
+    credentials <- self@state$credentials
+    if (!is.list(credentials)) {
+      return("@state$credentials must be a list")
+    }
+    if (length(credentials)) {
+      names <- names(credentials)
+      if (is.null(names) || anyNA(names) || any(!nzchar(names))) {
+        return("@state$credentials must have non-empty names")
+      }
+    }
+    if (!is.list(self@state$gates)) {
+      "@state$gates must be a list"
+    }
   }
 )
 
@@ -179,9 +210,6 @@ RhoModels <- S7::new_class(
 )
 
 rho_api_key_credential <- function(provider, key, provider_env = list(), source = "explicit") {
-  if (!is.character(key) || length(key) != 1L || !nzchar(key)) {
-    rho_abort("`key` must be one non-empty string")
-  }
   state <- new.env(parent = emptyenv())
   state$key <- key
   RhoApiKeyCredential(
@@ -216,9 +244,6 @@ rho_credential_gate <- function() {
 }
 
 rho_memory_credential_store <- function(credentials = list()) {
-  if (length(credentials) && (is.null(names(credentials)) || any(!nzchar(names(credentials))))) {
-    rho_abort("`credentials` must be a named list")
-  }
   state <- new.env(parent = emptyenv())
   state$credentials <- credentials
   state$gates <- list()
@@ -259,7 +284,7 @@ S7::method(rho_credential_modify, RhoMemoryCredentialStore) <- function(
   ...
 ) {
   if (!is.function(update)) {
-    rho_abort("`update` must be a function")
+    rho.async::rho_signal_contract_violation("`update` must be a function")
   }
   rho.async::rho_task_from_function(
     function() {
@@ -342,6 +367,27 @@ rho_models <- function(
 }
 
 rho_models_provider <- function(models, provider_id) models@providers[[provider_id]]
+
+S7::method(
+  rho_provider_models,
+  list(RhoProvider, S7::class_any)
+) <- function(provider, credential, ...) {
+  provider@models
+}
+
+S7::method(rho_available_models, RhoModels) <- function(models, provider_id, ...) {
+  provider <- rho_models_provider(models, provider_id)
+  if (is.null(provider)) {
+    return(rho.async::rho_task(rho_auth_error(
+      sprintf("Unknown provider: %s", provider_id),
+      "provider"
+    )))
+  }
+  rho.async::rho_then(
+    rho_credential_read(models@credentials, provider_id),
+    function(credential) rho_provider_models(provider, credential)
+  )
+}
 
 rho_login_provider <- function(models, provider_id, io, method = c("oauth", "api_key")) {
   method <- match.arg(method)
@@ -484,7 +530,8 @@ S7::method(rho_stream, list(RhoProvider, Model, Context)) <- function(
   options = list(),
   ...
 ) {
-  rho_stream(provider@implementation, model, context, options = options, ...)
+  dialect <- rho_provider_dialect(provider@implementation, model)
+  rho_stream(dialect, model, context, options = options, ...)
 }
 
 S7::method(rho_stream, list(RhoModels, Model, Context)) <- function(

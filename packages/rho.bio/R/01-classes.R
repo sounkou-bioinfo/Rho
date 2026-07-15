@@ -106,3 +106,13 @@ BioRegistry <- S7::new_class(
   "BioRegistry",
   properties = list(state = S7::class_environment)
 )
+
+BioErrorValue <- S7::new_class(
+  "BioErrorValue",
+  properties = list(
+    kind = rho_non_empty_string,
+    message = rho_non_empty_string,
+    code = S7::class_character,
+    details = S7::class_list
+  )
+)

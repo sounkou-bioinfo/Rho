@@ -19,6 +19,11 @@ rho_model_effort_levels <- function(model) {
   if (!length(effort)) character() else effort[[1L]]$values %||% character()
 }
 
+rho_model_reasoning_modes <- function(model) {
+  options <- model$reasoning_options %||% list()
+  unique(vapply(options, function(option) option$type %||% "", character(1)))
+}
+
 rho_models_dev_record <- function(id, model) {
   list(
     id = id,
@@ -26,7 +31,9 @@ rho_models_dev_record <- function(id, model) {
     status = model$status %||% "active",
     tool_call = isTRUE(model$tool_call),
     reasoning = isTRUE(model$reasoning),
+    reasoning_modes = as.list(rho_model_reasoning_modes(model)),
     reasoning_levels = as.list(rho_model_effort_levels(model)),
+    temperature = isTRUE(model$temperature %||% TRUE),
     input = as.list(model$modalities$input %||% "text"),
     context_window = model$limit$context,
     max_tokens = model$limit$output,

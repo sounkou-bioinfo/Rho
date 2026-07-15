@@ -9,6 +9,7 @@ rho_r_code <- S7::new_property(
 
 RhoRExpression <- S7::new_class(
   "RhoRExpression",
+  parent = rho.ai::RhoOperation,
   properties = list(code = rho_r_code)
 )
 
@@ -22,6 +23,10 @@ RhoMiraiExpressionEvaluator <- S7::new_class(
   "RhoMiraiExpressionEvaluator",
   parent = RhoREvaluator,
   properties = list(compute = S7::class_any)
+)
+RhoREvaluationBinding <- S7::new_class(
+  "RhoREvaluationBinding",
+  parent = rho.ai::RhoOperationBinding
 )
 
 RhoREvaluationOutcome <- S7::new_class("RhoREvaluationOutcome", abstract = TRUE)
@@ -64,6 +69,19 @@ rho_r_evaluator_overlap <- S7::new_generic(
   "evaluator",
   function(evaluator, ...) S7::S7_dispatch()
 )
+rho_r_evaluator_reason <- S7::new_generic(
+  "rho_r_evaluator_reason",
+  "evaluator",
+  function(evaluator, ...) S7::S7_dispatch()
+)
+
+rho_r_evaluation_binding <- function(evaluator, expression) {
+  RhoREvaluationBinding(
+    operation = expression,
+    handler = evaluator,
+    reason = rho_r_evaluator_reason(evaluator)
+  )
+}
 
 rho_evaluate_r_code <- function(code, environment) {
   parsed <- parse(text = code, keep.source = FALSE)
@@ -101,6 +119,20 @@ S7::method(
     },
     label = "current-session-r-evaluation"
   )
+}
+
+S7::method(
+  rho_bind_operation,
+  list(RhoREvaluator, rho.ai::Model, RhoRExpression)
+) <- function(handler, model, operation, context, ...) {
+  rho_r_evaluation_binding(handler, operation)
+}
+
+S7::method(
+  rho_execute_operation,
+  RhoREvaluationBinding
+) <- function(binding, context, ...) {
+  rho_evaluate_r(binding@handler, binding@operation)
 }
 
 S7::method(
@@ -169,8 +201,22 @@ S7::method(rho_r_evaluator_overlap, RhoCurrentSessionREvaluator) <- function(eva
   rho.ai::ToolRequiresExclusiveExecution()
 }
 
+S7::method(rho_r_evaluator_reason, RhoCurrentSessionREvaluator) <- function(
+  evaluator,
+  ...
+) {
+  "The tool author selected explicit mutation of the supplied R environment"
+}
+
 S7::method(rho_r_evaluator_overlap, RhoMiraiExpressionEvaluator) <- function(evaluator, ...) {
   rho.ai::ToolMayOverlap()
+}
+
+S7::method(rho_r_evaluator_reason, RhoMiraiExpressionEvaluator) <- function(
+  evaluator,
+  ...
+) {
+  "The tool author selected isolated evaluation in a mirai worker"
 }
 
 rho_tool_r <- function(evaluator = RhoMiraiExpressionEvaluator(compute = NULL)) {
@@ -189,8 +235,9 @@ rho_tool_r <- function(evaluator = RhoMiraiExpressionEvaluator(compute = NULL)) 
     overlap = rho_r_evaluator_overlap(evaluator),
     execute = function(tool_call_id, params, signal, on_update, ctx) {
       expression <- RhoRExpression(code = params$code)
+      binding <- rho_r_evaluation_binding(evaluator, expression)
       rho.async::rho_then(
-        rho_evaluate_r(evaluator, expression),
+        rho.ai::rho_execute_operation(binding, ctx),
         function(outcome) rho_r_tool_result(outcome, expression)
       )
     }

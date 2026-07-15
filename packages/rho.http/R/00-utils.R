@@ -1,16 +1,8 @@
-rho_abort <- function(..., call. = FALSE) stop(sprintf(...), call. = call.)
-
 rho_normalize_http_headers <- function(headers) {
   if (is.null(headers) || !length(headers)) {
     return(NULL)
   }
-  if (is.list(headers)) {
-    headers <- unlist(headers, use.names = TRUE)
-  }
-  if (!is.character(headers) || is.null(names(headers)) || any(!nzchar(names(headers)))) {
-    rho_abort("HTTP headers must be a named character vector or named list")
-  }
-  headers
+  unlist(headers, use.names = TRUE)
 }
 
 rho_encode_http_body <- function(body, headers) {
@@ -29,5 +21,7 @@ rho_encode_http_body <- function(body, headers) {
       headers = headers
     ))
   }
-  rho_abort("HTTP body must be NULL, raw, character, or list")
+  rho.async::rho_signal_contract_violation(
+    "A RhoHttpRequest body escaped its S7 property validation"
+  )
 }

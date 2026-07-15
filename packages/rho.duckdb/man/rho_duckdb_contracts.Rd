@@ -3,14 +3,23 @@
 \name{rho_duckdb_contracts}
 \alias{rho_duckdb_contracts}
 \alias{RhoDuckDbConn}
+\alias{RhoDuckDbErrorValue}
+\alias{RhoSqlStatement}
+\alias{RhoSqlGuard}
+\alias{RhoConservativeSqlGuard}
+\alias{RhoSqlGuardResult}
+\alias{RhoSqlAccepted}
+\alias{RhoSqlRejected}
 \alias{rho_duckdb_connect}
 \alias{rho_duckdb_disconnect}
-\alias{rho_assert_readonly_sql}
+\alias{rho_sql_guard}
+\alias{rho_check_readonly_sql}
 \title{DuckDB implementation of the Rho SQL contract}
 \description{
 Connections are explicit \code{RhoDuckDbConn} values. Queries and statements
 return tasks through the generic SQL API declared in \code{rho.bio}.
-\code{rho_assert_readonly_sql()} is intentionally conservative and is not a
+\code{rho_check_readonly_sql()} is intentionally conservative and is not a
 substitute for the parser-backed guard required before accepting untrusted
-SQL.
+SQL. It returns a typed \code{RhoSqlAccepted} or \code{RhoSqlRejected} value. Database
+failures resolve to \code{RhoDuckDbErrorValue} rather than aborting the task.
 }

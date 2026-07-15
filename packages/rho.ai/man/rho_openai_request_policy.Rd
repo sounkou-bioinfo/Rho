@@ -9,10 +9,11 @@
 \alias{ThinkingEnabled}
 \alias{rho_thinking_level}
 \alias{OpenAIRequestSection}
+\alias{ProviderRequestSection}
 \alias{OpenAIOmittedRequestSection}
-\alias{OpenAIRequestSectionProtocol}
+\alias{ProviderRequestSectionProtocol}
 \alias{rho_openai_request_sections}
-\alias{rho_openai_request_fields}
+\alias{rho_request_fields}
 \alias{rho_openai_reasoning_section}
 \alias{rho_openai_standard_request_sections}
 \title{Typed OpenAI Responses request composition}
@@ -21,7 +22,7 @@ OpenAI request bodies are reductions over typed sections. Model-specific
 methods select the sections and their defaults; section methods alone emit
 wire field names and provider values. Extensions can specialize
 \code{rho_openai_request_sections()} for a model subclass or append a new
-\code{OpenAIRequestSection} with a \code{rho_openai_request_fields()} method.
+\code{OpenAIRequestSection} with a \code{rho_request_fields()} method.
 }
 \details{
 Canonical thinking requests are values. \code{ThinkingOff} therefore dispatches

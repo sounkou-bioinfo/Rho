@@ -22,7 +22,7 @@ rho_rejected <- function(error) {
 
 rho_task_from_function <- function(fun, label = NULL) {
   if (!is.function(fun)) {
-    rho_abort("`fun` must be a function")
+    rho_signal_contract_violation("`fun` must be a function")
   }
   RhoFunctionTask(
     state = rho_new_state(
@@ -38,10 +38,10 @@ rho_task_from_function <- function(fun, label = NULL) {
 
 rho_task_from_promise <- function(promise, cancel = NULL, label = NULL) {
   if (!promises::is.promise(promise)) {
-    rho_abort("`promise` must be a promises promise")
+    rho_signal_contract_violation("`promise` must be a promises promise")
   }
   if (!is.null(cancel) && !is.function(cancel)) {
-    rho_abort("`cancel` must be NULL or a function")
+    rho_signal_contract_violation("`cancel` must be NULL or a function")
   }
   state <- rho_new_state(
     status = "pending",
@@ -63,7 +63,7 @@ rho_task_from_promise <- function(promise, cancel = NULL, label = NULL) {
     onRejected = function(error) {
       state$status <- "rejected"
       state$error <- error
-      stop(error)
+      promises::promise_reject(error)
     }
   )
   state$promise <- observed
@@ -73,7 +73,7 @@ rho_task_from_promise <- function(promise, cancel = NULL, label = NULL) {
 rho_coro_task <- function(fun, ..., label = NULL) {
   fun_expression <- substitute(fun)
   if (!is.function(eval(fun_expression, envir = parent.frame()))) {
-    rho_abort("`fun` must be an anonymous function")
+    rho_signal_contract_violation("`fun` must be an anonymous function")
   }
   factory_call <- substitute(coro::async(FUN), list(FUN = fun_expression))
   coroutine <- eval(factory_call, envir = parent.frame())
@@ -85,10 +85,10 @@ rho_coro_task <- function(fun, ..., label = NULL) {
 
 rho_wrap_aio <- function(aio, collect = nanonext::collect_aio_) {
   if (!nanonext::is_aio(aio)) {
-    rho_abort("`aio` must be a nanonext Aio object")
+    rho_signal_contract_violation("`aio` must be a nanonext Aio object")
   }
   if (!is.function(collect)) {
-    rho_abort("`collect` must be a function")
+    rho_signal_contract_violation("`collect` must be a function")
   }
   RhoNanonextAioTask(
     state = rho_new_state(
@@ -108,7 +108,10 @@ rho_function_task_promise <- function(task) {
   task@state$promise <- promises::promise(function(resolve, reject) {
     later::later(function() {
       if (isTRUE(task@state$cancelled)) {
-        reject(simpleError(task@state$cancel_reason %||% "Task was cancelled"))
+        resolve(RhoCancellation(
+          message = task@state$cancel_reason %||% "Task was cancelled",
+          parent = NULL
+        ))
         return()
       }
       tryCatch(
@@ -154,14 +157,14 @@ rho_await_promise <- function(promise, timeout = NULL) {
       elapsed_ms <- (proc.time()[["elapsed"]] - started) * 1000
       remaining_ms <- as.double(timeout) - elapsed_ms
       if (remaining_ms <= 0) {
-        stop("Task deadline elapsed", call. = FALSE)
+        return(RhoTimeoutError(message = "Task deadline elapsed", parent = NULL))
       }
       wait_seconds <- remaining_ms / 1000
     }
     later::run_now(timeoutSecs = wait_seconds)
   }
   if (!is.null(settled$error)) {
-    stop(settled$error)
+    rho_signal_task_failure(settled$error)
   }
   settled$value
 }
@@ -175,11 +178,7 @@ S7::method(rho_pending, RhoPromiseTask) <- function(x, ...) identical(x@state$st
 S7::method(rho_await, RhoImmediateTask) <- function(x, timeout = NULL, ...) x@state$value
 
 S7::method(rho_await, RhoRejectedTask) <- function(x, timeout = NULL, ...) {
-  error <- x@state$error
-  if (inherits(error, "condition")) {
-    stop(error)
-  }
-  stop(as.character(error), call. = FALSE)
+  rho_signal_task_failure(x@state$error)
 }
 
 S7::method(rho_await, RhoFunctionTask) <- function(x, timeout = NULL, ...) {
@@ -188,14 +187,20 @@ S7::method(rho_await, RhoFunctionTask) <- function(x, timeout = NULL, ...) {
 
 S7::method(rho_await, RhoNanonextAioTask) <- function(x, timeout = NULL, ...) {
   if (isTRUE(x@state$cancelled)) {
-    rho_abort("Task was cancelled")
+    return(RhoCancellation(
+      message = x@state$cancel_reason %||% "Task was cancelled",
+      parent = NULL
+    ))
   }
   x@state$collect(x@state$handle)
 }
 
 S7::method(rho_await, RhoPromiseTask) <- function(x, timeout = NULL, ...) {
   if (isTRUE(x@state$cancelled)) {
-    rho_abort("Task was cancelled")
+    return(RhoCancellation(
+      message = x@state$cancel_reason %||% "Task was cancelled",
+      parent = NULL
+    ))
   }
   rho_await_promise(x@state$promise, timeout)
 }
@@ -242,10 +247,10 @@ S7::method(rho_cancel, RhoPromiseTask) <- function(x, reason = NULL, ...) {
 
 S7::method(rho_then, RhoTask) <- function(x, on_fulfilled, on_rejected = NULL, ...) {
   if (!is.function(on_fulfilled)) {
-    rho_abort("`on_fulfilled` must be a function")
+    rho_signal_contract_violation("`on_fulfilled` must be a function")
   }
   if (!is.null(on_rejected) && !is.function(on_rejected)) {
-    rho_abort("`on_rejected` must be NULL or a function")
+    rho_signal_contract_violation("`on_rejected` must be NULL or a function")
   }
   promise <- promises::then(
     rho_as_promise(x),
@@ -291,11 +296,11 @@ rho_poll_failed <- function(error) RhoPollFailed(error = error)
 
 rho_poll <- function(action, timeout_ms) {
   if (!is.function(action)) {
-    rho_abort("`action` must be a function")
+    rho_signal_contract_violation("`action` must be a function")
   }
   timeout_ms <- as.integer(timeout_ms)
   if (is.na(timeout_ms) || timeout_ms <= 0L) {
-    rho_abort("`timeout_ms` must be positive")
+    rho_signal_contract_violation("`timeout_ms` must be positive")
   }
 
   rho_task_from_function(

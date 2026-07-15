@@ -9,6 +9,26 @@ name: R-CMD-check.yaml
 permissions: read-all
 
 jobs:
+  secrets:
+    name: Repository history
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Gitleaks 8.30.1
+        run: |
+          curl --fail --location --silent --show-error \
+            --output /tmp/gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  /tmp/gitleaks.tar.gz" | sha256sum --check
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+
+      - name: Scan repository history
+        run: make check-secrets
+
   core:
     name: R ${{ matrix.r }}
     runs-on: ubuntu-latest
@@ -37,11 +57,19 @@ jobs:
 
       - name: Verify generated tests and style contract
         run: |
+          make check-version
           make check-purled-tests
+          make check-models
           make check-style
 
       - name: Install monorepo in dependency order
         run: make install
+
+      - name: Verify generated documentation
+        run: |
+          make rd
+          make rdm
+          git diff --exit-code
 
       - name: Run test suites
         run: make test

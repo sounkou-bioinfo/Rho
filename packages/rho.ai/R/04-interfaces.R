@@ -17,12 +17,12 @@ Tool <- s7contract::new_interface(
     ),
     rho_execute_tool = s7contract::interface_requirement(
       rho_execute_tool,
-      args = list(call = ToolCall),
+      args = list(call = ToolCall, context = S7::class_any),
       returns = rho.async::RhoTask
     ),
     rho_tool_overlap = s7contract::interface_requirement(
       rho_tool_overlap,
-      args = list(call = ToolCall),
+      args = list(call = ToolCall, context = S7::class_any),
       returns = ToolOverlap
     )
   )
@@ -47,11 +47,20 @@ ResponseItemProtocol <- s7contract::new_interface(
     rho_finish_response_item = rho_finish_response_item
   )
 )
-OpenAIRequestSectionProtocol <- s7contract::new_interface(
-  "OpenAIRequestSectionProtocol",
+ProviderRequestSectionProtocol <- s7contract::new_interface(
+  "ProviderRequestSectionProtocol",
   generics = list(
-    rho_openai_request_fields = s7contract::interface_requirement(
-      rho_openai_request_fields,
+    rho_request_fields = s7contract::interface_requirement(
+      rho_request_fields,
+      returns = S7::class_list
+    )
+  )
+)
+ProviderRequestPlanProtocol <- s7contract::new_interface(
+  "ProviderRequestPlanProtocol",
+  generics = list(
+    rho_request_body = s7contract::interface_requirement(
+      rho_request_body,
       returns = S7::class_list
     )
   )
@@ -84,8 +93,36 @@ ProviderCapabilityResolver <- s7contract::new_interface(
   generics = list(
     rho_provider_support = s7contract::interface_requirement(
       rho_provider_support,
-      args = list(model = Model, operation = RhoProviderOperation),
+      args = list(model = Model, operation = RhoOperation),
       returns = RhoProviderSupport
+    )
+  )
+)
+OperationHandler <- s7contract::new_interface(
+  "OperationHandler",
+  generics = list(
+    rho_bind_operation = s7contract::interface_requirement(
+      rho_bind_operation,
+      args = list(model = Model, operation = RhoOperation, context = Context)
+    )
+  )
+)
+OperationPlanner <- s7contract::new_interface(
+  "OperationPlanner",
+  generics = list(
+    rho_plan_operations = s7contract::interface_requirement(
+      rho_plan_operations,
+      args = list(model = Model, context = Context)
+    )
+  )
+)
+OperationExecutor <- s7contract::new_interface(
+  "OperationExecutor",
+  generics = list(
+    rho_execute_operation = s7contract::interface_requirement(
+      rho_execute_operation,
+      args = list(context = S7::class_any),
+      returns = rho.async::RhoTask
     )
   )
 )

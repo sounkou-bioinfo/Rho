@@ -5,13 +5,14 @@
 #' that the agent can dispatch on.
 #'
 #' @name rho_ai_messages
-#' @aliases TextContent ThinkingContent ImageContent ArtifactRefContent ToolCall
+#' @aliases Content TextContent ThinkingContent ImageContent ArtifactRefContent ToolCall
 #' @aliases UserMessage AssistantMessage ToolResultMessage ToolOverlap
 #' @aliases ToolMayOverlap ToolRequiresExclusiveExecution ToolSpec ToolResult
 #' @aliases ToolErrorResult Tool rho_text rho_thinking rho_user_message
 #' @aliases rho_assistant_message rho_tool_result_message rho_tool_spec
 #' @aliases rho_tool_result rho_tool_error_result rho_validate_tool_args
 #' @aliases rho_execute_tool rho_tool_overlap
+#' @export Content
 #' @export TextContent
 #' @export ThinkingContent
 #' @export ImageContent
@@ -38,6 +39,89 @@
 #' @export rho_validate_tool_args
 #' @export rho_execute_tool
 #' @export rho_tool_overlap
+NULL
+
+#' Semantic operations, handlers, and provider activity
+#'
+#' A `RhoOperation` states what a conversation may do. A handler binds that
+#' semantic request to a concrete implementation for the selected model.
+#' Bindings record both the handler and the reason it was selected; request
+#' translators turn bindings into provider wire values only at their boundary.
+#'
+#' Provider-hosted activity is normalized as `Content`, never as a local
+#' `ToolCall`. The agent can therefore retain and report a web search without
+#' placing it in its executable tool registry.
+#'
+#' @name rho_ai_operations
+#' @aliases RhoOperation RhoWebSearchOperation RhoWebSearchDomainPolicy
+#' @aliases RhoCompactionOperation RhoNativeCompactionOperation
+#' @aliases RhoProviderCompactionBinding
+#' @aliases RhoWebSearchAllDomains RhoWebSearchAllowedDomains
+#' @aliases RhoWebSearchBlockedDomains RhoWebSearchLocation
+#' @aliases RhoWebSearchLocationUnspecified RhoApproximateLocation
+#' @aliases RhoWebSearchCapability RhoWebSearchUnavailable
+#' @aliases RhoOperationBinding RhoProviderToolBinding RhoOperationPlan
+#' @aliases OperationHandler OperationPlanner OperationExecutor
+#' @aliases OperationUnsupported
+#' @aliases OperationStatus OperationPending OperationInProgress
+#' @aliases OperationCompleted OperationFailed WebSearchAction
+#' @aliases WebSearchActionUnspecified WebSearchSearchAction
+#' @aliases WebSearchOpenPageAction WebSearchFindInPageAction
+#' @aliases WebSearchUnknownAction WebSearchResult WebSearchCallContent
+#' @aliases WebSearchResultContent AssistantOperationStartEvent
+#' @aliases AssistantOperationEndEvent rho_web_search
+#' @aliases rho_web_search_allowed_domains rho_web_search_blocked_domains
+#' @aliases rho_approximate_location rho_operation_plan
+#' @aliases rho_bind_operation rho_bind_web_search rho_plan_operations
+#' @aliases rho_execute_operation
+#' @aliases rho_operation_unsupported
+#' @export RhoOperation
+#' @export RhoWebSearchOperation
+#' @export RhoCompactionOperation
+#' @export RhoNativeCompactionOperation
+#' @export RhoProviderCompactionBinding
+#' @export RhoWebSearchDomainPolicy
+#' @export RhoWebSearchAllDomains
+#' @export RhoWebSearchAllowedDomains
+#' @export RhoWebSearchBlockedDomains
+#' @export RhoWebSearchLocation
+#' @export RhoWebSearchLocationUnspecified
+#' @export RhoApproximateLocation
+#' @export RhoWebSearchCapability
+#' @export RhoWebSearchUnavailable
+#' @export RhoOperationBinding
+#' @export RhoProviderToolBinding
+#' @export RhoOperationPlan
+#' @export OperationHandler
+#' @export OperationPlanner
+#' @export OperationExecutor
+#' @export OperationUnsupported
+#' @export OperationStatus
+#' @export OperationPending
+#' @export OperationInProgress
+#' @export OperationCompleted
+#' @export OperationFailed
+#' @export WebSearchAction
+#' @export WebSearchActionUnspecified
+#' @export WebSearchSearchAction
+#' @export WebSearchOpenPageAction
+#' @export WebSearchFindInPageAction
+#' @export WebSearchUnknownAction
+#' @export WebSearchResult
+#' @export WebSearchCallContent
+#' @export WebSearchResultContent
+#' @export AssistantOperationStartEvent
+#' @export AssistantOperationEndEvent
+#' @export rho_web_search
+#' @export rho_web_search_allowed_domains
+#' @export rho_web_search_blocked_domains
+#' @export rho_approximate_location
+#' @export rho_operation_plan
+#' @export rho_bind_operation
+#' @export rho_bind_web_search
+#' @export rho_plan_operations
+#' @export rho_execute_operation
+#' @export rho_operation_unsupported
 NULL
 
 #' Normalized token usage and pricing
@@ -67,7 +151,7 @@ NULL
 #' methods select the sections and their defaults; section methods alone emit
 #' wire field names and provider values. Extensions can specialize
 #' `rho_openai_request_sections()` for a model subclass or append a new
-#' `OpenAIRequestSection` with a `rho_openai_request_fields()` method.
+#' `OpenAIRequestSection` with a `rho_request_fields()` method.
 #'
 #' Canonical thinking requests are values. `ThinkingOff` therefore dispatches
 #' separately from enabled levels without comparing provider wire strings.
@@ -75,9 +159,10 @@ NULL
 #' @name rho_openai_request_policy
 #' @aliases ThinkingRequest ThinkingUnspecified ThinkingLevel ThinkingOff
 #' @aliases ThinkingEnabled rho_thinking_level OpenAIRequestSection
-#' @aliases OpenAIOmittedRequestSection OpenAIRequestSectionProtocol
+#' @aliases ProviderRequestSection OpenAIOmittedRequestSection
+#' @aliases ProviderRequestSectionProtocol
 #' @aliases rho_openai_request_sections
-#' @aliases rho_openai_request_fields rho_openai_reasoning_section
+#' @aliases rho_request_fields rho_openai_reasoning_section
 #' @aliases rho_openai_standard_request_sections
 #' @export ThinkingRequest
 #' @export ThinkingUnspecified
@@ -86,12 +171,151 @@ NULL
 #' @export ThinkingEnabled
 #' @export rho_thinking_level
 #' @export OpenAIRequestSection
+#' @export ProviderRequestSection
 #' @export OpenAIOmittedRequestSection
-#' @export OpenAIRequestSectionProtocol
+#' @export ProviderRequestSectionProtocol
 #' @export rho_openai_request_sections
-#' @export rho_openai_request_fields
+#' @export rho_request_fields
 #' @export rho_openai_reasoning_section
 #' @export rho_openai_standard_request_sections
+NULL
+
+#' Anthropic Messages dialect
+#'
+#' Anthropic request construction is a reduction over typed request sections.
+#' Model catalog facts select thinking, temperature, cache, and tool-input
+#' capabilities; request methods never infer behavior from model names.
+#'
+#' `AnthropicMessagesEndpoint` separates the Messages dialect from endpoint
+#' authentication and transport. Anthropic and GitHub Copilot therefore share
+#' message translation and event reduction while retaining their own endpoint
+#' headers, URLs, and credentials.
+#'
+#' Stream JSON is decoded once into typed wire events. S7 methods translate
+#' blocks, deltas, and stop reasons into the provider-neutral `AssistantEvent`
+#' protocol.
+#'
+#' @name rho_anthropic_messages
+#' @aliases AnthropicApi AnthropicApiKeyAuth AnthropicMessagesEndpoint
+#' @aliases AnthropicOAuthCredential AnthropicOAuthModelAuth AnthropicOAuthAuth
+#' @aliases AnthropicThinkingCapability AnthropicNoThinkingCapability
+#' @aliases AnthropicBudgetThinkingCapability AnthropicAdaptiveThinkingCapability
+#' @aliases AnthropicTemperatureCapability AnthropicTemperatureAccepted
+#' @aliases AnthropicTemperatureOmitted AnthropicCacheCapability
+#' @aliases AnthropicToolInputCapability AnthropicEagerToolInput
+#' @aliases AnthropicFineGrainedToolInput AnthropicMessagesCompatibility
+#' @aliases AnthropicCacheRetention AnthropicNoCache AnthropicShortCache
+#' @aliases AnthropicLongCache AnthropicThinkingDisplay
+#' @aliases AnthropicSummarizedThinking AnthropicOmittedThinking
+#' @aliases AnthropicToolChoice AnthropicToolChoiceUnspecified
+#' @aliases AnthropicToolChoiceAuto AnthropicToolChoiceAny
+#' @aliases AnthropicToolChoiceNone AnthropicToolChoiceNamed
+#' @aliases AnthropicToolNamePolicy AnthropicExactToolNames
+#' @aliases AnthropicClaudeCodeToolNames
+#' @aliases AnthropicWebSearchProtocol AnthropicWebSearch20250305
+#' @aliases AnthropicWebSearch20260209 AnthropicWebSearch20260318
+#' @aliases AnthropicWebSearchBinding
+#' @aliases AnthropicRequestSection AnthropicMessagesDecoder AnthropicWireEvent
+#' @aliases rho_anthropic_model rho_anthropic_provider
+#' @aliases rho_anthropic_oauth_auth rho_anthropic_oauth_credential
+#' @aliases rho_load_anthropic_credential
+#' @aliases rho_anthropic_messages_request rho_anthropic_messages_url
+#' @aliases rho_anthropic_no_cache rho_anthropic_short_cache
+#' @aliases rho_anthropic_long_cache rho_anthropic_temperature
+#' @aliases rho_anthropic_tool_choice rho_anthropic_thinking_display
+#' @aliases rho_anthropic_exact_tool_names rho_anthropic_claude_code_tool_names
+#' @aliases rho_anthropic_tool_name rho_anthropic_local_tool_name
+#' @aliases rho_anthropic_tool_name_policy
+#' @aliases rho_anthropic_content_blocks rho_anthropic_message
+#' @aliases rho_anthropic_request_sections rho_anthropic_messages_body
+#' @aliases rho_anthropic_cache_control rho_anthropic_thinking_section
+#' @aliases rho_anthropic_temperature_section rho_anthropic_tool_fields
+#' @aliases rho_anthropic_beta_name rho_anthropic_endpoint_url
+#' @aliases rho_anthropic_endpoint_headers rho_anthropic_endpoint_http
+#' @aliases rho_anthropic_auth_headers rho_anthropic_system_identity
+#' @aliases rho_anthropic_messages_decoder rho_start_anthropic_block
+#' @aliases rho_apply_anthropic_delta rho_finish_anthropic_block
+#' @aliases rho_anthropic_stop_reason_value rho_anthropic_stop_reason_error
+#' @export AnthropicApi
+#' @export AnthropicApiKeyAuth
+#' @export AnthropicOAuthCredential
+#' @export AnthropicOAuthModelAuth
+#' @export AnthropicOAuthAuth
+#' @export AnthropicMessagesEndpoint
+#' @export AnthropicThinkingCapability
+#' @export AnthropicNoThinkingCapability
+#' @export AnthropicBudgetThinkingCapability
+#' @export AnthropicAdaptiveThinkingCapability
+#' @export AnthropicTemperatureCapability
+#' @export AnthropicTemperatureAccepted
+#' @export AnthropicTemperatureOmitted
+#' @export AnthropicCacheCapability
+#' @export AnthropicToolInputCapability
+#' @export AnthropicEagerToolInput
+#' @export AnthropicFineGrainedToolInput
+#' @export AnthropicMessagesCompatibility
+#' @export AnthropicCacheRetention
+#' @export AnthropicNoCache
+#' @export AnthropicShortCache
+#' @export AnthropicLongCache
+#' @export AnthropicThinkingDisplay
+#' @export AnthropicSummarizedThinking
+#' @export AnthropicOmittedThinking
+#' @export AnthropicToolChoice
+#' @export AnthropicToolChoiceUnspecified
+#' @export AnthropicToolChoiceAuto
+#' @export AnthropicToolChoiceAny
+#' @export AnthropicToolChoiceNone
+#' @export AnthropicToolChoiceNamed
+#' @export AnthropicToolNamePolicy
+#' @export AnthropicExactToolNames
+#' @export AnthropicClaudeCodeToolNames
+#' @export AnthropicWebSearchProtocol
+#' @export AnthropicWebSearch20250305
+#' @export AnthropicWebSearch20260209
+#' @export AnthropicWebSearch20260318
+#' @export AnthropicWebSearchBinding
+#' @export AnthropicRequestSection
+#' @export AnthropicMessagesDecoder
+#' @export AnthropicWireEvent
+#' @export rho_anthropic_model
+#' @export rho_anthropic_provider
+#' @export rho_anthropic_oauth_auth
+#' @export rho_anthropic_oauth_credential
+#' @export rho_load_anthropic_credential
+#' @export rho_anthropic_messages_request
+#' @export rho_anthropic_messages_url
+#' @export rho_anthropic_no_cache
+#' @export rho_anthropic_short_cache
+#' @export rho_anthropic_long_cache
+#' @export rho_anthropic_temperature
+#' @export rho_anthropic_tool_choice
+#' @export rho_anthropic_thinking_display
+#' @export rho_anthropic_exact_tool_names
+#' @export rho_anthropic_claude_code_tool_names
+#' @export rho_anthropic_tool_name
+#' @export rho_anthropic_local_tool_name
+#' @export rho_anthropic_tool_name_policy
+#' @export rho_anthropic_content_blocks
+#' @export rho_anthropic_message
+#' @export rho_anthropic_request_sections
+#' @export rho_anthropic_messages_body
+#' @export rho_anthropic_cache_control
+#' @export rho_anthropic_thinking_section
+#' @export rho_anthropic_temperature_section
+#' @export rho_anthropic_tool_fields
+#' @export rho_anthropic_beta_name
+#' @export rho_anthropic_endpoint_url
+#' @export rho_anthropic_endpoint_headers
+#' @export rho_anthropic_endpoint_http
+#' @export rho_anthropic_auth_headers
+#' @export rho_anthropic_system_identity
+#' @export rho_anthropic_messages_decoder
+#' @export rho_start_anthropic_block
+#' @export rho_apply_anthropic_delta
+#' @export rho_finish_anthropic_block
+#' @export rho_anthropic_stop_reason_value
+#' @export rho_anthropic_stop_reason_error
 NULL
 
 #' OpenAI-compatible Chat Completions stream protocol
@@ -273,11 +497,11 @@ NULL
 #' @aliases ProviderRequestTranslator ProviderInputCompactor ProviderErrorValue
 #' @aliases ProviderOperationUnsupported RhoProviderOperation
 #' @aliases RhoToolSearchOperation RhoToolReferencesOperation
-#' @aliases RhoNativeCompactionOperation RhoCacheRetentionOperation
+#' @aliases RhoCacheRetentionOperation
 #' @aliases RhoProviderSupport OpenAIResponsesCompatibility
-#' @aliases AnthropicMessagesCompatibility RhoToolPlacement RhoFullToolPlacement
+#' @aliases RhoToolPlacement RhoFullToolPlacement
 #' @aliases RhoOpenAIToolSearchPlacement RhoAnthropicToolReferencePlacement
-#' @aliases FauxProvider OpenAIApi OpenAIApiKeyAuth AnthropicProvider OllamaProvider
+#' @aliases FauxProvider OpenAIApi OpenAIApiKeyAuth OllamaProvider
 #' @aliases rho_context rho_model_capabilities rho_model_limits
 #' @aliases rho_model_pricing_tier rho_model_pricing rho_model
 #' @aliases rho_thinking_levels rho_supported_thinking_levels
@@ -285,7 +509,8 @@ NULL
 #' @aliases rho_model_supports_input rho_model_supports_transport
 #' @aliases rho_stream rho_complete rho_provider_error rho_provider_http_error
 #' @aliases rho_unsupported_provider_operation rho_provider_support_value
-#' @aliases rho_provider_support rho_plan_tools rho_build_provider_request
+#' @aliases rho_provider_support rho_provider_dialect rho_plan_tools
+#' @aliases rho_build_provider_request rho_openai_chat_request_body
 #' @aliases rho_openai_responses_body
 #' @aliases rho_provider_headers
 #' @aliases rho_compact_provider_input rho_openai_responses_compatibility
@@ -293,8 +518,7 @@ NULL
 #' @aliases rho_faux_content_events rho_faux_message_events
 #' @aliases rho_openai_model rho_openai_provider rho_openai_request
 #' @aliases rho_openai_responses_url
-#' @aliases rho_anthropic_provider rho_anthropic_messages_request
-#' @aliases rho_anthropic_sse_task rho_ollama_provider rho_ollama_chat_request
+#' @aliases rho_ollama_provider rho_ollama_model rho_ollama_chat_request
 #' @aliases rho_ollama_chat_task
 #' @export Context
 #' @export Model
@@ -316,11 +540,9 @@ NULL
 #' @export RhoProviderOperation
 #' @export RhoToolSearchOperation
 #' @export RhoToolReferencesOperation
-#' @export RhoNativeCompactionOperation
 #' @export RhoCacheRetentionOperation
 #' @export RhoProviderSupport
 #' @export OpenAIResponsesCompatibility
-#' @export AnthropicMessagesCompatibility
 #' @export RhoToolPlacement
 #' @export RhoFullToolPlacement
 #' @export RhoOpenAIToolSearchPlacement
@@ -328,7 +550,6 @@ NULL
 #' @export FauxProvider
 #' @export OpenAIApi
 #' @export OpenAIApiKeyAuth
-#' @export AnthropicProvider
 #' @export OllamaProvider
 #' @export rho_context
 #' @export rho_model_capabilities
@@ -349,8 +570,10 @@ NULL
 #' @export rho_unsupported_provider_operation
 #' @export rho_provider_support_value
 #' @export rho_provider_support
+#' @export rho_provider_dialect
 #' @export rho_plan_tools
 #' @export rho_build_provider_request
+#' @export rho_openai_chat_request_body
 #' @export rho_openai_responses_body
 #' @export rho_provider_headers
 #' @export rho_compact_provider_input
@@ -363,10 +586,8 @@ NULL
 #' @export rho_openai_provider
 #' @export rho_openai_request
 #' @export rho_openai_responses_url
-#' @export rho_anthropic_provider
-#' @export rho_anthropic_messages_request
-#' @export rho_anthropic_sse_task
 #' @export rho_ollama_provider
+#' @export rho_ollama_model
 #' @export rho_ollama_chat_request
 #' @export rho_ollama_chat_task
 #' @importFrom rho.http RhoHttpError RhoHttpStatusError RhoHttpTransportError
@@ -391,6 +612,7 @@ NULL
 #' @aliases rho_api_key_credential rho_model_auth rho_api_key_auth rho_oauth_auth
 #' @aliases rho_provider_auth rho_credential_gate rho_memory_credential_store
 #' @aliases rho_login_io rho_provider rho_models rho_models_provider
+#' @aliases rho_provider_models rho_available_models
 #' @aliases rho_login_provider rho_resolve_model_auth rho_credential_read
 #' @aliases rho_credential_modify rho_credential_delete rho_auth_login
 #' @aliases rho_auth_refresh rho_auth_to_request rho_auth_prompt rho_auth_notify
@@ -401,11 +623,16 @@ NULL
 #' @aliases GitHubCopilotClientIdentity GitHubCopilotEndpoints
 #' @aliases GitHubCopilotDeviceAuthorization
 #' @aliases GitHubCopilotCredential GitHubCopilotModelAuth
+#' @aliases GitHubCopilotLoginModelPolicy GitHubCopilotDiscoverModels
+#' @aliases GitHubCopilotEnableKnownModels GitHubCopilotModelPolicyResult
 #' @aliases GitHubCopilotOAuthAuth GitHubCopilotApi
 #' @aliases rho_github_copilot_client_identity rho_github_copilot_auth
 #' @aliases rho_github_copilot_credential rho_github_copilot_credential_from_github_token
 #' @aliases rho_load_github_copilot_credential rho_github_copilot_provider
 #' @aliases rho_github_copilot_model rho_github_copilot_request
+#' @aliases rho_github_copilot_discover_models_policy
+#' @aliases rho_github_copilot_enable_known_models_policy
+#' @aliases rho_prepare_github_copilot_models
 #' @aliases rho_message_initiator rho_has_image_input
 #' @export CredentialStore
 #' @export OAuthAuth
@@ -445,6 +672,8 @@ NULL
 #' @export rho_provider
 #' @export rho_models
 #' @export rho_models_provider
+#' @export rho_provider_models
+#' @export rho_available_models
 #' @export rho_login_provider
 #' @export rho_resolve_model_auth
 #' @export rho_credential_read
@@ -469,9 +698,16 @@ NULL
 #' @export GitHubCopilotDeviceAuthorization
 #' @export GitHubCopilotCredential
 #' @export GitHubCopilotModelAuth
+#' @export GitHubCopilotLoginModelPolicy
+#' @export GitHubCopilotDiscoverModels
+#' @export GitHubCopilotEnableKnownModels
+#' @export GitHubCopilotModelPolicyResult
 #' @export GitHubCopilotOAuthAuth
 #' @export GitHubCopilotApi
 #' @export rho_github_copilot_client_identity
+#' @export rho_github_copilot_discover_models_policy
+#' @export rho_github_copilot_enable_known_models_policy
+#' @export rho_prepare_github_copilot_models
 #' @export rho_github_copilot_auth
 #' @export rho_github_copilot_credential
 #' @export rho_github_copilot_credential_from_github_token
@@ -492,6 +728,9 @@ NULL
 #' @name rho_openai_responses_wire
 #' @aliases OpenAIResponseDecoder OpenAIResponseSlot OpenAIResponseItem
 #' @aliases OpenAIReasoningItem OpenAIMessageItem OpenAIFunctionCallItem
+#' @aliases OpenAIWebSearchCallItem OpenAIWebSearchBinding
+#' @aliases OpenAIWebSearchCapability OpenAIWebSearchText
+#' @aliases OpenAIWebSearchTextAndImage
 #' @aliases OpenAIUnsupportedItem OpenAIResponseWireEvent OpenAIResponseIgnored
 #' @aliases OpenAIResponseCreated OpenAIResponseOutputItemAdded
 #' @aliases OpenAIResponseThinkingDelta OpenAIResponseThinkingBreak
@@ -505,6 +744,11 @@ NULL
 #' @export OpenAIReasoningItem
 #' @export OpenAIMessageItem
 #' @export OpenAIFunctionCallItem
+#' @export OpenAIWebSearchCallItem
+#' @export OpenAIWebSearchBinding
+#' @export OpenAIWebSearchCapability
+#' @export OpenAIWebSearchText
+#' @export OpenAIWebSearchTextAndImage
 #' @export OpenAIUnsupportedItem
 #' @export OpenAIResponseWireEvent
 #' @export OpenAIResponseIgnored

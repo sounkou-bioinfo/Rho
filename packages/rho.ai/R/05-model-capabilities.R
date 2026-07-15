@@ -30,7 +30,7 @@ S7::method(rho_supported_thinking_levels, Model) <- function(model, ...) {
 
 S7::method(rho_clamp_thinking_level, Model) <- function(model, level, ...) {
   if (!level %in% rho_thinking_levels) {
-    rho_abort("Unknown thinking level: %s", level)
+    rho.async::rho_signal_contract_violation("Unknown thinking level: %s", level)
   }
   available <- rho_supported_thinking_levels(model)
   if (level %in% available) {

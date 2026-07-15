@@ -68,6 +68,16 @@ OpenAIFunctionCallItem <- S7::new_class(
   )
 )
 
+OpenAIWebSearchCallItem <- S7::new_class(
+  "OpenAIWebSearchCallItem",
+  parent = OpenAIResponseItem,
+  properties = list(
+    id = rho_non_empty_string,
+    status = OperationStatus,
+    action = WebSearchAction
+  )
+)
+
 OpenAIUnsupportedItem <- S7::new_class(
   "OpenAIUnsupportedItem",
   parent = OpenAIResponseItem,
@@ -176,6 +186,67 @@ rho_openai_function_call_item <- function(payload) {
   )
 }
 
+rho_openai_operation_status_factories <- list(
+  queued = OperationPending,
+  in_progress = OperationInProgress,
+  searching = OperationInProgress,
+  completed = OperationCompleted,
+  failed = OperationFailed
+)
+
+rho_openai_operation_status <- function(value) {
+  factory <- rho_openai_operation_status_factories[[as.character(value %||% "queued")]] %||%
+    OperationPending
+  factory()
+}
+
+rho_openai_web_search_search_action <- function(payload) {
+  queries <- payload$queries %||% payload$query %||% character()
+  WebSearchSearchAction(
+    queries = as.character(queries),
+    sources = payload$sources %||% list()
+  )
+}
+
+rho_openai_web_search_open_action <- function(payload) {
+  WebSearchOpenPageAction(url = as.character(payload$url %||% ""))
+}
+
+rho_openai_web_search_find_action <- function(payload) {
+  WebSearchFindInPageAction(
+    url = as.character(payload$url %||% ""),
+    pattern = as.character(payload$pattern %||% "")
+  )
+}
+
+rho_openai_web_search_unknown_action <- function(payload) {
+  WebSearchUnknownAction(payload = payload)
+}
+
+rho_openai_web_search_action_factories <- list(
+  search = rho_openai_web_search_search_action,
+  open_page = rho_openai_web_search_open_action,
+  find_in_page = rho_openai_web_search_find_action
+)
+
+rho_openai_web_search_action <- function(payload = NULL) {
+  if (is.null(payload)) {
+    return(WebSearchActionUnspecified())
+  }
+  factory <- rho_openai_web_search_action_factories[[as.character(payload$type %||% "")]] %||%
+    rho_openai_web_search_unknown_action
+  factory(payload)
+}
+
+rho_openai_web_search_call_item <- function(payload) {
+  OpenAIWebSearchCallItem(
+    payload = payload,
+    id = as.character(payload$id %||% ""),
+    status = rho_openai_operation_status(payload$status),
+    action = rho_openai_web_search_action(payload$action)
+  )
+}
+
 rho_openai_unsupported_item <- function(payload) {
   OpenAIUnsupportedItem(
     payload = payload,
@@ -186,7 +257,8 @@ rho_openai_unsupported_item <- function(payload) {
 rho_openai_response_item_factories <- list(
   reasoning = rho_openai_reasoning_item,
   message = rho_openai_message_item,
-  function_call = rho_openai_function_call_item
+  function_call = rho_openai_function_call_item,
+  web_search_call = rho_openai_web_search_call_item
 )
 
 rho_openai_response_item <- function(payload) {
@@ -723,6 +795,25 @@ S7::method(rho_start_response_item, OpenAIFunctionCallItem) <- function(
   ))
 }
 
+S7::method(rho_start_response_item, OpenAIWebSearchCallItem) <- function(
+  item,
+  decoder,
+  output_index,
+  ...
+) {
+  content <- WebSearchCallContent(
+    id = item@id,
+    status = item@status,
+    action = item@action
+  )
+  slot <- rho_openai_start_response_slot(decoder, output_index, content)
+  list(rho_assistant_operation_start_event(
+    rho_openai_responses_partial_message(decoder),
+    slot@content_index,
+    content
+  ))
+}
+
 S7::method(rho_start_response_item, OpenAIUnsupportedItem) <- function(
   item,
   decoder,
@@ -816,6 +907,34 @@ S7::method(rho_finish_response_item, OpenAIFunctionCallItem) <- function(
   c(
     resolved$events,
     list(rho_assistant_tool_call_end_event(
+      rho_openai_responses_partial_message(decoder),
+      slot@content_index,
+      content
+    ))
+  )
+}
+
+S7::method(rho_finish_response_item, OpenAIWebSearchCallItem) <- function(
+  item,
+  decoder,
+  output_index,
+  ...
+) {
+  resolved <- rho_openai_ensure_response_slot(item, decoder, output_index)
+  slot <- resolved$slot
+  if (is.null(slot)) {
+    return(resolved$events)
+  }
+  content <- WebSearchCallContent(
+    id = item@id,
+    status = item@status,
+    action = item@action
+  )
+  rho_openai_store_response_content(decoder, slot, content)
+  rho_openai_remove_response_slot(decoder, output_index)
+  c(
+    resolved$events,
+    list(rho_assistant_operation_end_event(
       rho_openai_responses_partial_message(decoder),
       slot@content_index,
       content

@@ -2,6 +2,7 @@
 % Please edit documentation in R/api.R
 \name{rho_ai_messages}
 \alias{rho_ai_messages}
+\alias{Content}
 \alias{TextContent}
 \alias{ThinkingContent}
 \alias{ImageContent}

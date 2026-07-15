@@ -46,6 +46,7 @@ RhoAsyncError <- S7::new_class(
 )
 
 RhoTimeoutError <- S7::new_class("RhoTimeoutError", parent = RhoAsyncError)
+RhoCancellation <- S7::new_class("RhoCancellation", parent = RhoAsyncError)
 
 rho_nonnegative_milliseconds <- S7::new_property(
   S7::class_integer,

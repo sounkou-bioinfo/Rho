@@ -8,6 +8,11 @@
 \alias{OpenAIReasoningItem}
 \alias{OpenAIMessageItem}
 \alias{OpenAIFunctionCallItem}
+\alias{OpenAIWebSearchCallItem}
+\alias{OpenAIWebSearchBinding}
+\alias{OpenAIWebSearchCapability}
+\alias{OpenAIWebSearchText}
+\alias{OpenAIWebSearchTextAndImage}
 \alias{OpenAIUnsupportedItem}
 \alias{OpenAIResponseWireEvent}
 \alias{OpenAIResponseIgnored}

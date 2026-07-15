@@ -69,6 +69,7 @@ ModelCatalogRecord <- S7::new_class(
     max_tokens = rho_positive_integer,
     pricing = ModelPricing,
     headers = S7::class_list,
+    provider_capabilities = S7::class_list,
     source = ModelCatalogSource
   )
 )
@@ -192,7 +193,7 @@ rho_catalog_protocol_builders <- list(
 rho_catalog_build_value <- function(builders, id, data, kind) {
   builder <- builders[[id]]
   if (is.null(builder)) {
-    rho_abort("Unknown model-catalog %s: %s", kind, id)
+    rho.async::rho_signal_contract_violation("Unknown model-catalog %s: %s", kind, id)
   }
   builder(data)
 }
@@ -200,7 +201,7 @@ rho_catalog_build_value <- function(builders, id, data, kind) {
 rho_catalog_record_from_data <- function(data, sources) {
   source <- sources[[data$source]]
   if (is.null(source)) {
-    rho_abort("Unknown model-catalog source: %s", data$source)
+    rho.async::rho_signal_contract_violation("Unknown model-catalog source: %s", data$source)
   }
   provider <- rho_catalog_build_value(
     rho_catalog_provider_builders,
@@ -234,13 +235,14 @@ rho_catalog_record_from_data <- function(data, sources) {
       cache_write = data$pricing$cache_write
     ),
     headers = data$headers %||% list(),
+    provider_capabilities = data$provider_capabilities %||% list(),
     source = source
   )
 }
 
 rho_default_model_catalog <- function() {
   if (!identical(rho_model_catalog_data$schema_version, 1L)) {
-    rho_abort(
+    rho.async::rho_signal_contract_violation(
       "Unsupported model-catalog schema version: %s",
       rho_model_catalog_data$schema_version
     )
@@ -296,6 +298,39 @@ rho_catalog_model_call <- function(
   ))
 }
 
+rho_unavailable_web_search_expression <- function() {
+  quote(RhoWebSearchUnavailable(
+    reason = "Hosted web search is not declared for this model and endpoint"
+  ))
+}
+
+rho_openai_web_search_expression <- function(capabilities) {
+  capability <- capabilities$web_search
+  if (is.null(capability)) {
+    return(rho_unavailable_web_search_expression())
+  }
+  expression <- list(
+    text = quote(OpenAIWebSearchText()),
+    text_and_image = quote(OpenAIWebSearchTextAndImage())
+  )[[capability]]
+  if (is.null(expression)) {
+    rho.async::rho_signal_contract_violation(
+      "Unknown OpenAI web-search capability: %s",
+      capability
+    )
+  }
+  expression
+}
+
+rho_openai_catalog_compatibility_expression <- function(capabilities) {
+  as.call(list(
+    quote(rho_openai_responses_compatibility),
+    supports_tool_search = isTRUE(capabilities$supports_tool_search),
+    supports_native_compaction = isTRUE(capabilities$supports_native_compaction),
+    web_search = rho_openai_web_search_expression(capabilities)
+  ))
+}
+
 S7::method(
   rho_model_expression,
   list(ModelCatalogProvider, OpenAIResponsesProtocol, ModelCatalogRecord)
@@ -304,10 +339,9 @@ S7::method(
     "OpenAIResponsesModel",
     record,
     api = "openai-responses",
-    compatibility = quote(rho_openai_responses_compatibility(
-      supports_tool_search = FALSE,
-      supports_native_compaction = FALSE
-    ))
+    compatibility = rho_openai_catalog_compatibility_expression(
+      record@provider_capabilities
+    )
   )
 }
 
@@ -319,10 +353,9 @@ S7::method(
     "OpenAICodexResponsesModel",
     record,
     api = "openai-codex-responses",
-    compatibility = quote(rho_openai_responses_compatibility(
-      supports_tool_search = FALSE,
-      supports_native_compaction = FALSE
-    ))
+    compatibility = rho_openai_catalog_compatibility_expression(
+      record@provider_capabilities
+    )
   )
 }
 
@@ -334,10 +367,9 @@ S7::method(
     "GitHubCopilotResponsesModel",
     record,
     api = "openai-responses",
-    compatibility = quote(rho_openai_responses_compatibility(
-      supports_tool_search = FALSE,
-      supports_native_compaction = FALSE
-    ))
+    compatibility = rho_openai_catalog_compatibility_expression(
+      record@provider_capabilities
+    )
   )
 }
 
@@ -352,6 +384,66 @@ S7::method(
   )
 }
 
+rho_anthropic_catalog_compatibility_expression <- function(capabilities) {
+  thinking <- list(
+    none = quote(AnthropicNoThinkingCapability()),
+    budget = quote(AnthropicBudgetThinkingCapability()),
+    adaptive = quote(AnthropicAdaptiveThinkingCapability())
+  )[[capabilities$thinking]]
+  if (is.null(thinking)) {
+    rho.async::rho_signal_contract_violation(
+      "Unknown Anthropic thinking capability: %s",
+      capabilities$thinking
+    )
+  }
+  temperature <- if (isTRUE(capabilities$temperature)) {
+    quote(AnthropicTemperatureAccepted())
+  } else {
+    quote(AnthropicTemperatureOmitted())
+  }
+  tool_input <- list(
+    eager = quote(AnthropicEagerToolInput()),
+    fine_grained = quote(AnthropicFineGrainedToolInput())
+  )[[capabilities$tool_input %||% "eager"]]
+  if (is.null(tool_input)) {
+    rho.async::rho_signal_contract_violation(
+      "Unknown Anthropic tool-input capability: %s",
+      capabilities$tool_input
+    )
+  }
+  web_search_capability <- capabilities$web_search
+  web_search <- if (is.null(web_search_capability)) {
+    rho_unavailable_web_search_expression()
+  } else {
+    expression <- list(
+      basic = quote(AnthropicWebSearch20250305()),
+      dynamic = quote(AnthropicWebSearch20260209()),
+      response_inclusion = quote(AnthropicWebSearch20260318())
+    )[[web_search_capability]]
+    if (is.null(expression)) {
+      rho.async::rho_signal_contract_violation(
+        "Unknown Anthropic web-search capability: %s",
+        web_search_capability
+      )
+    }
+    expression
+  }
+  as.call(list(
+    quote(rho_anthropic_messages_compatibility),
+    thinking = thinking,
+    temperature = temperature,
+    cache = as.call(list(
+      quote(AnthropicCacheCapability),
+      long_retention = isTRUE(capabilities$long_cache_retention %||% TRUE),
+      tools = isTRUE(capabilities$cache_tools %||% TRUE)
+    )),
+    tool_input = tool_input,
+    allow_empty_signature = isTRUE(capabilities$allow_empty_signature),
+    supports_tool_references = isTRUE(capabilities$supports_tool_references),
+    web_search = web_search
+  ))
+}
+
 S7::method(
   rho_model_expression,
   list(ModelCatalogProvider, AnthropicMessagesProtocol, ModelCatalogRecord)
@@ -360,9 +452,9 @@ S7::method(
     "AnthropicMessagesModel",
     record,
     api = "anthropic-messages",
-    compatibility = quote(rho_anthropic_messages_compatibility(
-      supports_tool_references = FALSE
-    ))
+    compatibility = rho_anthropic_catalog_compatibility_expression(
+      record@provider_capabilities
+    )
   )
 }
 
@@ -401,6 +493,7 @@ rho_catalog_record_with_provider <- function(record, provider) {
     max_tokens = record@max_tokens,
     pricing = record@pricing,
     headers = record@headers,
+    provider_capabilities = record@provider_capabilities,
     source = record@source
   )
 }
@@ -412,7 +505,10 @@ rho_catalog_active_binding <- function(factory, label) {
   cached <- NULL
   function(value) {
     if (!missing(value)) {
-      rho_abort("Model catalog binding `%s` is read-only", label)
+      rho.async::rho_signal_contract_violation(
+        "Model catalog binding `%s` is read-only",
+        label
+      )
     }
     if (!forced) {
       cached <<- factory()

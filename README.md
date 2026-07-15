@@ -145,9 +145,9 @@ Ollama, and the deterministic faux provider therefore share one typed
 provider surface without a package per API. The [Pi parity
 ledger](docs/pi-parity.md) distinguishes complete wire adapters from
 request translators whose normalized stream is not yet complete. OpenAI,
-OpenAI Codex, GitHub Copilot, and Z.ai have executable normalized-stream
-fixtures; the ledger records which external account runs are still
-required before publication.
+OpenAI Codex, GitHub Copilot, Z.ai, and Anthropic have executable
+normalized-stream fixtures; the ledger records which external account
+runs are still required before publication.
 
 Bioinformatics remains downstream: `rho.bio`, `rho.duckdb`, and
 `rho.bio.agent` consume the provider and agent substrate but do not
@@ -177,13 +177,15 @@ make purl-tests   # Rmd tests -> executable tinytest files
 make rdm          # rebuild package READMEs
 make test
 make check        # every package must report Status: OK
+make public-ready # complete publication gate
 ```
 
 The [Pi parity ledger](docs/pi-parity.md) records behavioral contracts
 and the fixtures that verify them. Public release and addition to the
 [sounkou-bioinfo R-universe](https://sounkou-bioinfo.r-universe.dev)
 follow green package checks, live provider checks, documentation, and
-secret scanning.
+secret scanning. The exact sequence is recorded in the [publishing
+guide](docs/releasing.md).
 
 ## License
 

@@ -1,7 +1,7 @@
 OllamaProvider <- S7::new_class(
   "OllamaProvider",
   properties = list(
-    base_url = S7::class_character,
+    base_url = rho_non_empty_string,
     http = rho.http::RhoHttpClient
   )
 )
@@ -13,45 +13,89 @@ rho_ollama_provider <- function(
   OllamaProvider(base_url = base_url, http = http)
 }
 
-rho_ollama_chat_request <- function(provider, model, context, stream = TRUE) {
-  messages <- lapply(context@messages, function(message) {
-    if (S7::S7_inherits(message, UserMessage)) {
-      list(role = "user", content = as.character(message@content))
-    } else if (S7::S7_inherits(message, AssistantMessage)) {
-      list(
-        role = "assistant",
-        content = paste(
-          vapply(
-            message@content,
-            function(content) {
-              if (S7::S7_inherits(content, TextContent)) content@text else ""
-            },
-            character(1)
-          ),
-          collapse = ""
-        )
-      )
-    } else {
-      NULL
-    }
-  })
-  messages <- Filter(Negate(is.null), messages)
-  if (nzchar(context@system_prompt)) {
-    messages <- c(list(list(role = "system", content = context@system_prompt)), messages)
-  }
-  request_body <- list(model = model@id, messages = messages, stream = isTRUE(stream))
+rho_ollama_model <- function(
+  id,
+  name = id,
+  base_url = "http://localhost:11434/v1",
+  context_window = 128000L,
+  max_tokens = 4096L,
+  reasoning = FALSE,
+  tools = TRUE
+) {
+  rho_new_model(
+    OpenAIChatCompletionsModel,
+    provider = "ollama",
+    id = id,
+    name = name,
+    api = "openai-chat-completions",
+    base_url = base_url,
+    context_window = context_window,
+    max_tokens = max_tokens,
+    reasoning = reasoning,
+    tools = tools,
+    pricing = rho_model_pricing()
+  )
+}
+
+rho_ollama_chat_request <- function(
+  provider,
+  model,
+  context,
+  stream = TRUE,
+  options = list()
+) {
+  request_options <- options
+  request_options$stream <- isTRUE(stream)
+  rho_build_provider_request(
+    provider,
+    model,
+    context,
+    options = request_options
+  )
+}
+
+S7::method(
+  rho_build_provider_request,
+  list(OllamaProvider, OpenAIChatCompletionsModel, Context)
+) <- function(provider, model, context, options = list(), ...) {
+  request_body <- rho_openai_chat_request_body(model, context, options = options)
+  request_body$stream <- options$stream %||% TRUE
   rho.http::rho_http_request(
-    "POST",
-    paste0(provider@base_url, "/api/chat"),
-    headers = list(`Content-Type` = "application/json"),
+    method = "POST",
+    url = paste0(sub("/+$", "", provider@base_url), "/v1/chat/completions"),
+    headers = list(
+      Accept = "text/event-stream",
+      `Content-Type` = "application/json"
+    ),
     body = request_body,
-    timeout_ms = 120000L,
-    response_headers = "content-type",
+    timeout_ms = as.integer(options$timeout_ms %||% 120000L),
+    response_headers = c("content-type", "retry-after"),
     convert = TRUE
   )
 }
 
 rho_ollama_chat_task <- function(provider, model, context, options = list()) {
-  request <- rho_ollama_chat_request(provider, model, context, stream = TRUE)
-  rho.http::rho_http_send(provider@http, request)
+  rho_complete(provider, model, context, options = options)
+}
+
+S7::method(
+  rho_stream,
+  list(OllamaProvider, OpenAIChatCompletionsModel, Context)
+) <- function(provider, model, context, options = list(), ...) {
+  request <- rho_ollama_chat_request(
+    provider,
+    model,
+    context,
+    stream = TRUE,
+    options = options
+  )
+  if (S7::S7_inherits(request, ProviderErrorValue)) {
+    return(rho_provider_error_stream(model, request))
+  }
+  stream <- rho.http::rho_sse_connect(provider@http, request)
+  decoder <- rho_openai_chat_decoder(model)
+  rho.async::rho_stream_flat_map(
+    stream,
+    function(event) rho_decode_provider_event(decoder, event)
+  )
 }

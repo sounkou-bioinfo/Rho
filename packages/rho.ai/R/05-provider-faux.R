@@ -49,6 +49,26 @@ S7::method(rho_faux_content_events, ToolCall) <- function(content, message, cont
   )
 }
 
+S7::method(
+  rho_faux_content_events,
+  WebSearchCallContent
+) <- function(content, message, content_index, ...) {
+  list(
+    rho_assistant_operation_start_event(message, content_index, content),
+    rho_assistant_operation_end_event(message, content_index, content)
+  )
+}
+
+S7::method(
+  rho_faux_content_events,
+  WebSearchResultContent
+) <- function(content, message, content_index, ...) {
+  list(
+    rho_assistant_operation_start_event(message, content_index, content),
+    rho_assistant_operation_end_event(message, content_index, content)
+  )
+}
+
 S7::method(rho_faux_content_events, S7::class_any) <- function(
   content,
   message,

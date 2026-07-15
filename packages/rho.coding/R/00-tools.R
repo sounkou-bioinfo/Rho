@@ -9,7 +9,10 @@ rho_tool_read <- function() {
         function() {
           path <- params$path
           if (!file.exists(path)) {
-            stop(sprintf("File not found: %s", path), call. = FALSE)
+            return(rho.ai::rho_tool_error_result(
+              content = list(rho.ai::rho_text(sprintf("File not found: %s", path))),
+              details = list(path = path, reason = "not_found")
+            ))
           }
           text <- paste(readLines(path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
           rho.ai::rho_tool_result(list(rho.ai::rho_text(text)), details = list(path = path))

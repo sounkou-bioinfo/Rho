@@ -12,11 +12,55 @@ rho_positive_integer <- S7::new_property(
   }
 )
 
+rho_http_headers <- S7::new_property(
+  S7::class_list,
+  default = list(),
+  validator = function(value) {
+    if (!length(value)) {
+      return()
+    }
+    header_names <- names(value)
+    if (is.null(header_names) || anyNA(header_names) || any(!nzchar(header_names))) {
+      return("must have non-empty names")
+    }
+    valid <- vapply(
+      value,
+      function(header) {
+        is.character(header) && length(header) == 1L && !is.na(header)
+      },
+      logical(1)
+    )
+    if (!all(valid)) {
+      "must contain one non-missing string for each header"
+    }
+  }
+)
+
+rho_http_body <- S7::new_property(
+  S7::class_any,
+  default = NULL,
+  validator = function(value) {
+    valid_text <- is.character(value) && length(value) == 1L && !is.na(value)
+    if (!is.null(value) && !is.raw(value) && !is.list(value) && !valid_text) {
+      "must be NULL, raw bytes, one non-missing string, or a list"
+    }
+  }
+)
+
+rho_scalar_logical <- S7::new_property(
+  S7::class_logical,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value)) {
+      "must be one non-missing logical value"
+    }
+  }
+)
+
 RhoHttpClient <- S7::new_class(
   "RhoHttpClient",
   properties = list(
-    headers = S7::class_list,
-    timeout_ms = S7::class_integer,
+    headers = rho_http_headers,
+    timeout_ms = rho_positive_integer,
     tls = S7::class_any,
     stream_buffer_size = rho_positive_integer
   )
@@ -36,11 +80,11 @@ RhoHttpRequest <- S7::new_class(
   properties = list(
     method = rho_non_empty_string,
     url = rho_non_empty_string,
-    headers = S7::class_list,
-    body = S7::class_any,
-    timeout_ms = S7::class_integer,
+    headers = rho_http_headers,
+    body = rho_http_body,
+    timeout_ms = rho_positive_integer,
     response_headers = S7::class_character,
-    convert = S7::class_logical
+    convert = rho_scalar_logical
   ),
   validator = function(self) {
     if (!toupper(self@method) %in% c("GET", "POST", "PUT", "PATCH", "DELETE", "HEAD")) {

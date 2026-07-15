@@ -54,7 +54,7 @@ S7::method(rho_stream_collect, RhoStream) <- function(stream, limit = Inf, timeo
 
 S7::method(rho_stream_map, RhoStream) <- function(stream, f, ...) {
   if (!is.function(f)) {
-    rho_abort("`f` must be a function")
+    rho_signal_contract_violation("`f` must be a function")
   }
   RhoMappedStream(
     state = rho_new_state(
@@ -68,7 +68,7 @@ S7::method(rho_stream_map, RhoStream) <- function(stream, f, ...) {
 
 S7::method(rho_stream_flat_map, RhoStream) <- function(stream, f, ...) {
   if (!is.function(f)) {
-    rho_abort("`f` must be a function")
+    rho_signal_contract_violation("`f` must be a function")
   }
   RhoFlatMappedStream(
     state = rho_new_state(
@@ -108,7 +108,7 @@ rho_flat_mapped_stream_next <- function(stream) {
       values <- list()
     }
     if (!is.list(values)) {
-      rho_abort("A flat-map function must return a list or NULL")
+      rho_signal_contract_violation("A flat-map function must return a list or NULL")
     }
     stream@state$buffer <- values
     rho_flat_mapped_stream_next(stream)
@@ -123,7 +123,7 @@ S7::method(rho_stream_next, RhoTaskStream) <- function(stream, timeout = NULL, .
   if (is.null(stream@state$source)) {
     return(rho_then(stream@state$task, function(source) {
       if (!rho_is_stream(source)) {
-        rho_abort("A task-backed stream must resolve to a RhoStream")
+        rho_signal_contract_violation("A task-backed stream must resolve to a RhoStream")
       }
       stream@state$source <- source
       rho_stream_next(source)

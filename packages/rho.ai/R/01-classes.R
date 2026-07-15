@@ -1,12 +1,17 @@
+Content <- S7::new_class("Content", abstract = TRUE)
+
 TextContent <- S7::new_class(
   "TextContent",
+  parent = Content,
   properties = list(
     text = S7::class_character,
-    signature = S7::new_property(S7::class_character, default = "")
+    signature = S7::new_property(S7::class_character, default = ""),
+    annotations = S7::new_property(S7::class_list, default = list())
   )
 )
 ThinkingContent <- S7::new_class(
   "ThinkingContent",
+  parent = Content,
   properties = list(
     text = S7::class_character,
     signature = S7::class_character,
@@ -15,20 +20,95 @@ ThinkingContent <- S7::new_class(
 )
 ImageContent <- S7::new_class(
   "ImageContent",
+  parent = Content,
   properties = list(data = S7::class_character, mime_type = S7::class_character)
 )
 ArtifactRefContent <- S7::new_class(
   "ArtifactRefContent",
+  parent = Content,
   properties = list(artifact_id = S7::class_character, media_type = S7::class_character)
 )
 
 ToolCall <- S7::new_class(
   "ToolCall",
+  parent = Content,
   properties = list(
     id = rho_non_empty_string,
     name = rho_non_empty_string,
     arguments = S7::class_list
   )
+)
+
+OperationStatus <- S7::new_class("OperationStatus", abstract = TRUE)
+OperationPending <- S7::new_class("OperationPending", parent = OperationStatus)
+OperationInProgress <- S7::new_class("OperationInProgress", parent = OperationStatus)
+OperationCompleted <- S7::new_class("OperationCompleted", parent = OperationStatus)
+OperationFailed <- S7::new_class("OperationFailed", parent = OperationStatus)
+
+WebSearchAction <- S7::new_class("WebSearchAction", abstract = TRUE)
+WebSearchActionUnspecified <- S7::new_class(
+  "WebSearchActionUnspecified",
+  parent = WebSearchAction
+)
+WebSearchSearchAction <- S7::new_class(
+  "WebSearchSearchAction",
+  parent = WebSearchAction,
+  properties = list(
+    queries = S7::class_character,
+    sources = S7::class_list
+  )
+)
+WebSearchOpenPageAction <- S7::new_class(
+  "WebSearchOpenPageAction",
+  parent = WebSearchAction,
+  properties = list(url = S7::class_character)
+)
+WebSearchFindInPageAction <- S7::new_class(
+  "WebSearchFindInPageAction",
+  parent = WebSearchAction,
+  properties = list(url = S7::class_character, pattern = S7::class_character)
+)
+WebSearchUnknownAction <- S7::new_class(
+  "WebSearchUnknownAction",
+  parent = WebSearchAction,
+  properties = list(payload = S7::class_list)
+)
+
+WebSearchResult <- S7::new_class(
+  "WebSearchResult",
+  properties = list(
+    url = S7::class_character,
+    title = S7::class_character,
+    age = S7::class_character,
+    encrypted_content = S7::class_character
+  )
+)
+
+WebSearchCallContent <- S7::new_class(
+  "WebSearchCallContent",
+  parent = Content,
+  properties = list(
+    id = rho_non_empty_string,
+    status = OperationStatus,
+    action = WebSearchAction
+  )
+)
+
+WebSearchResultContent <- S7::new_class(
+  "WebSearchResultContent",
+  parent = Content,
+  properties = list(
+    call_id = rho_non_empty_string,
+    results = S7::class_list,
+    error = S7::new_property(S7::class_any, default = NULL)
+  ),
+  validator = function(self) {
+    invalid <- Filter(
+      function(result) !S7::S7_inherits(result, WebSearchResult),
+      self@results
+    )
+    if (length(invalid)) "@results must contain only WebSearchResult values"
+  }
 )
 
 rho_nonnegative_double <- S7::new_property(
@@ -265,12 +345,166 @@ GitHubCopilotResponsesModel <- S7::new_class(
 OpenAIChatCompletionsModel <- S7::new_class("OpenAIChatCompletionsModel", parent = Model)
 AnthropicMessagesModel <- S7::new_class("AnthropicMessagesModel", parent = Model)
 
+RhoOperation <- S7::new_class("RhoOperation", abstract = TRUE)
+
+RhoWebSearchLocation <- S7::new_class(
+  "RhoWebSearchLocation",
+  abstract = TRUE
+)
+RhoWebSearchLocationUnspecified <- S7::new_class(
+  "RhoWebSearchLocationUnspecified",
+  parent = RhoWebSearchLocation
+)
+RhoApproximateLocation <- S7::new_class(
+  "RhoApproximateLocation",
+  parent = RhoWebSearchLocation,
+  properties = list(
+    country = rho_optional_string,
+    city = rho_optional_string,
+    region = rho_optional_string,
+    timezone = rho_optional_string
+  ),
+  validator = function(self) {
+    values <- c(self@country, self@city, self@region, self@timezone)
+    if (!any(nzchar(values))) {
+      return("at least one location field must be non-empty")
+    }
+    if (nzchar(self@country) && nchar(self@country) != 2L) {
+      "@country must be a two-letter ISO country code"
+    }
+  }
+)
+
+RhoWebSearchDomainPolicy <- S7::new_class(
+  "RhoWebSearchDomainPolicy",
+  abstract = TRUE
+)
+RhoWebSearchAllDomains <- S7::new_class(
+  "RhoWebSearchAllDomains",
+  parent = RhoWebSearchDomainPolicy
+)
+RhoWebSearchAllowedDomains <- S7::new_class(
+  "RhoWebSearchAllowedDomains",
+  parent = RhoWebSearchDomainPolicy,
+  properties = list(domains = rho_unique_non_empty_strings),
+  validator = function(self) {
+    if (!length(self@domains)) "@domains must contain at least one domain"
+  }
+)
+RhoWebSearchBlockedDomains <- S7::new_class(
+  "RhoWebSearchBlockedDomains",
+  parent = RhoWebSearchDomainPolicy,
+  properties = list(domains = rho_unique_non_empty_strings),
+  validator = function(self) {
+    if (!length(self@domains)) "@domains must contain at least one domain"
+  }
+)
+
+RhoWebSearchOperation <- S7::new_class(
+  "RhoWebSearchOperation",
+  parent = RhoOperation,
+  properties = list(
+    domains = RhoWebSearchDomainPolicy,
+    location = RhoWebSearchLocation
+  )
+)
+
+RhoWebSearchCapability <- S7::new_class(
+  "RhoWebSearchCapability",
+  abstract = TRUE
+)
+RhoWebSearchUnavailable <- S7::new_class(
+  "RhoWebSearchUnavailable",
+  parent = RhoWebSearchCapability,
+  properties = list(reason = rho_non_empty_string)
+)
+OpenAIWebSearchCapability <- S7::new_class(
+  "OpenAIWebSearchCapability",
+  parent = RhoWebSearchCapability,
+  abstract = TRUE
+)
+OpenAIWebSearchText <- S7::new_class(
+  "OpenAIWebSearchText",
+  parent = OpenAIWebSearchCapability
+)
+OpenAIWebSearchTextAndImage <- S7::new_class(
+  "OpenAIWebSearchTextAndImage",
+  parent = OpenAIWebSearchCapability
+)
+AnthropicWebSearchProtocol <- S7::new_class(
+  "AnthropicWebSearchProtocol",
+  parent = RhoWebSearchCapability,
+  abstract = TRUE
+)
+AnthropicWebSearch20250305 <- S7::new_class(
+  "AnthropicWebSearch20250305",
+  parent = AnthropicWebSearchProtocol
+)
+AnthropicWebSearch20260209 <- S7::new_class(
+  "AnthropicWebSearch20260209",
+  parent = AnthropicWebSearchProtocol
+)
+AnthropicWebSearch20260318 <- S7::new_class(
+  "AnthropicWebSearch20260318",
+  parent = AnthropicWebSearchProtocol
+)
+
+RhoOperationBinding <- S7::new_class(
+  "RhoOperationBinding",
+  abstract = TRUE,
+  properties = list(
+    operation = RhoOperation,
+    handler = S7::class_any,
+    reason = rho_non_empty_string
+  )
+)
+RhoProviderToolBinding <- S7::new_class(
+  "RhoProviderToolBinding",
+  parent = RhoOperationBinding,
+  abstract = TRUE
+)
+
+rho_operation_bindings <- S7::new_property(
+  S7::class_list,
+  default = list(),
+  validator = function(value) {
+    invalid <- Filter(
+      function(binding) !S7::S7_inherits(binding, RhoOperationBinding),
+      value
+    )
+    if (length(invalid)) "must contain only RhoOperationBinding values"
+  }
+)
+
+RhoOperationPlan <- S7::new_class(
+  "RhoOperationPlan",
+  properties = list(bindings = rho_operation_bindings)
+)
+
+rho_context_operations <- S7::new_property(
+  S7::class_list,
+  default = list(),
+  validator = function(value) {
+    invalid <- Filter(
+      function(operation) {
+        !S7::S7_inherits(operation, RhoOperation) &&
+          !S7::S7_inherits(operation, RhoOperationBinding)
+      },
+      value
+    )
+    if (length(invalid)) {
+      "must contain only RhoOperation or RhoOperationBinding values"
+    }
+  }
+)
+
 Context <- S7::new_class(
   "Context",
   properties = list(
     system_prompt = S7::class_character,
     messages = S7::class_list,
-    tools = S7::class_list
+    tools = S7::class_list,
+    operations = rho_context_operations
   )
 )
 
@@ -317,6 +551,15 @@ ProviderErrorValue <- S7::new_class(
 )
 
 AuthErrorValue <- S7::new_class("AuthErrorValue", parent = ProviderErrorValue)
+
+OperationUnsupported <- S7::new_class(
+  "OperationUnsupported",
+  parent = ProviderErrorValue,
+  properties = list(
+    operation = RhoOperation,
+    handler_class = rho_non_empty_string
+  )
+)
 
 AssistantEvent <- S7::new_class("AssistantEvent", abstract = TRUE)
 
@@ -385,6 +628,17 @@ AssistantToolCallEndEvent <- S7::new_class(
   properties = list(tool_call = ToolCall)
 )
 
+AssistantOperationStartEvent <- S7::new_class(
+  "AssistantOperationStartEvent",
+  parent = AssistantUpdateEvent,
+  properties = list(content = Content)
+)
+AssistantOperationEndEvent <- S7::new_class(
+  "AssistantOperationEndEvent",
+  parent = AssistantUpdateEvent,
+  properties = list(content = Content)
+)
+
 AssistantTerminalEvent <- S7::new_class(
   "AssistantTerminalEvent",
   parent = AssistantEvent,
@@ -407,19 +661,42 @@ ProviderOperationUnsupported <- S7::new_class(
   properties = list(operation = rho_non_empty_string)
 )
 
-RhoProviderOperation <- S7::new_class("RhoProviderOperation", abstract = TRUE)
+ProviderRequestSection <- S7::new_class(
+  "ProviderRequestSection",
+  abstract = TRUE
+)
+ProviderRequestPlan <- S7::new_class(
+  "ProviderRequestPlan",
+  abstract = TRUE
+)
+
+RhoProviderOperation <- S7::new_class(
+  "RhoProviderOperation",
+  parent = RhoOperation,
+  abstract = TRUE
+)
 RhoToolSearchOperation <- S7::new_class("RhoToolSearchOperation", parent = RhoProviderOperation)
 RhoToolReferencesOperation <- S7::new_class(
   "RhoToolReferencesOperation",
   parent = RhoProviderOperation
 )
+RhoCompactionOperation <- S7::new_class(
+  "RhoCompactionOperation",
+  parent = RhoProviderOperation
+)
 RhoNativeCompactionOperation <- S7::new_class(
   "RhoNativeCompactionOperation",
-  parent = RhoProviderOperation
+  parent = RhoCompactionOperation
 )
 RhoCacheRetentionOperation <- S7::new_class(
   "RhoCacheRetentionOperation",
   parent = RhoProviderOperation
+)
+
+RhoProviderCompactionBinding <- S7::new_class(
+  "RhoProviderCompactionBinding",
+  parent = RhoOperationBinding,
+  properties = list(model = Model)
 )
 
 RhoProviderSupport <- S7::new_class(
@@ -435,13 +712,73 @@ OpenAIResponsesCompatibility <- S7::new_class(
   "OpenAIResponsesCompatibility",
   properties = list(
     supports_tool_search = rho_scalar_logical,
-    supports_native_compaction = rho_scalar_logical
+    supports_native_compaction = rho_scalar_logical,
+    web_search = RhoWebSearchCapability
   )
+)
+
+AnthropicThinkingCapability <- S7::new_class(
+  "AnthropicThinkingCapability",
+  abstract = TRUE
+)
+AnthropicNoThinkingCapability <- S7::new_class(
+  "AnthropicNoThinkingCapability",
+  parent = AnthropicThinkingCapability
+)
+AnthropicBudgetThinkingCapability <- S7::new_class(
+  "AnthropicBudgetThinkingCapability",
+  parent = AnthropicThinkingCapability
+)
+AnthropicAdaptiveThinkingCapability <- S7::new_class(
+  "AnthropicAdaptiveThinkingCapability",
+  parent = AnthropicThinkingCapability
+)
+
+AnthropicTemperatureCapability <- S7::new_class(
+  "AnthropicTemperatureCapability",
+  abstract = TRUE
+)
+AnthropicTemperatureAccepted <- S7::new_class(
+  "AnthropicTemperatureAccepted",
+  parent = AnthropicTemperatureCapability
+)
+AnthropicTemperatureOmitted <- S7::new_class(
+  "AnthropicTemperatureOmitted",
+  parent = AnthropicTemperatureCapability
+)
+
+AnthropicCacheCapability <- S7::new_class(
+  "AnthropicCacheCapability",
+  properties = list(
+    long_retention = rho_scalar_logical,
+    tools = rho_scalar_logical
+  )
+)
+
+AnthropicToolInputCapability <- S7::new_class(
+  "AnthropicToolInputCapability",
+  abstract = TRUE
+)
+AnthropicEagerToolInput <- S7::new_class(
+  "AnthropicEagerToolInput",
+  parent = AnthropicToolInputCapability
+)
+AnthropicFineGrainedToolInput <- S7::new_class(
+  "AnthropicFineGrainedToolInput",
+  parent = AnthropicToolInputCapability
 )
 
 AnthropicMessagesCompatibility <- S7::new_class(
   "AnthropicMessagesCompatibility",
-  properties = list(supports_tool_references = rho_scalar_logical)
+  properties = list(
+    thinking = AnthropicThinkingCapability,
+    temperature = AnthropicTemperatureCapability,
+    cache = AnthropicCacheCapability,
+    tool_input = AnthropicToolInputCapability,
+    allow_empty_signature = rho_scalar_logical,
+    supports_tool_references = rho_scalar_logical,
+    web_search = RhoWebSearchCapability
+  )
 )
 
 rho_cache_expectation <- S7::new_property(

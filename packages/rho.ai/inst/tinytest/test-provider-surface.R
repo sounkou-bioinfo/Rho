@@ -14,6 +14,10 @@ expect_equal(
 )
 expect_equal(events[[5]]@message@content[[1]]@text, "faux: hi")
 
+message <- rho_complete(provider, model, context) |> rho_await()
+expect_true(S7::S7_inherits(message, AssistantMessage))
+expect_equal(message@content[[1L]]@text, "faux: hi")
+
 context <- rho_context("system", list(rho_user_message("hello")))
 test_auth <- rho_model_auth(api_key = "test")
 
@@ -32,9 +36,10 @@ expect_identical(openai@body$store, FALSE)
 expect_identical(openai@body$stream, TRUE)
 expect_true(S7::S7_inherits(openai_model, OpenAIResponsesModel))
 
+anthropic_provider <- rho_anthropic_provider()
 anthropic <- rho_anthropic_messages_request(
-  rho_anthropic_provider(),
-  rho_model("anthropic", "claude-test"),
+  anthropic_provider,
+  rho_anthropic_model("claude-fable-5"),
   context,
   options = list(auth = test_auth)
 )
@@ -44,25 +49,30 @@ expect_equal(anthropic@headers$`x-api-key`, "test")
 
 ollama <- rho_ollama_chat_request(
   rho_ollama_provider(),
-  rho_model("ollama", "llama3"),
+  rho_ollama_model("llama3"),
   context
 )
 expect_equal(ollama@method, "POST")
-expect_true(grepl("/api/chat$", ollama@url))
+expect_true(grepl("/v1/chat/completions$", ollama@url))
+expect_equal(ollama@body$model, "llama3")
+expect_identical(ollama@body$stream, TRUE)
+expect_true(S7::S7_inherits(rho_ollama_model("llama3"), OpenAIChatCompletionsModel))
 
 credential <- rho_openai_codex_credential(
   access_token = "test-access-token",
   account_id = "test-account",
   expires = Inf
 )
+expect_equal(credential@state$refresh, "")
 codex <- rho_openai_codex_provider()
 spark <- rho_openai_codex_model("gpt-5.3-codex-spark")
 resolved_auth <- rho_await(rho_auth_to_request(codex@auth@oauth, credential))
+long_session_id <- strrep("x", 67L)
 request <- rho_openai_codex_request(
   codex@implementation,
   spark,
   context,
-  options = list(auth = resolved_auth)
+  options = list(auth = resolved_auth, session_id = long_session_id)
 )
 
 expect_equal(request@url, "https://chatgpt.com/backend-api/codex/responses")
@@ -72,6 +82,9 @@ expect_identical(request@body$stream, TRUE)
 expect_equal(request@headers$`chatgpt-account-id`, "test-account")
 expect_equal(request@headers$`OpenAI-Beta`, "responses=experimental")
 expect_equal(request@headers$Accept, "text/event-stream")
+expect_equal(request@body$prompt_cache_key, strrep("x", 64L))
+expect_equal(request@headers$`session-id`, request@body$prompt_cache_key)
+expect_equal(request@headers$`x-client-request-id`, request@body$prompt_cache_key)
 expect_true(s7contract::implements(OpenAICodexOAuthAuth, OAuthAuth))
 expect_true(s7contract::implements(OpenAICodexApi, ProviderRequestTranslator))
 
@@ -148,8 +161,35 @@ expect_true(second_resolution@configured)
 expect_equal(first_resolution@auth@api_key, "fresh-access")
 expect_equal(refresh_count, 1L)
 
-pkce <- rho.ai:::rho_openai_codex_pkce()
-second_pkce <- rho.ai:::rho_openai_codex_pkce()
+stored <- rho_api_key_credential(
+  "fixture",
+  "first",
+  provider_env = list(revision = 0L)
+)
+store <- rho_memory_credential_store(list(fixture = stored))
+
+initial <- rho_credential_read(store, "fixture") |> rho_await()
+expect_identical(initial, stored)
+
+updates <- lapply(seq_len(2L), function(index) {
+  rho_credential_modify(store, "fixture", function(current) {
+    rho_api_key_credential(
+      "fixture",
+      paste0("key-", index),
+      provider_env = list(revision = current@provider_env$revision + 1L)
+    )
+  })
+})
+rho_all(updates) |> rho_await()
+
+modified <- rho_credential_read(store, "fixture") |> rho_await()
+expect_equal(modified@provider_env$revision, 2L)
+
+rho_credential_delete(store, "fixture") |> rho_await()
+expect_true(is.null(rho_credential_read(store, "fixture") |> rho_await()))
+
+pkce <- rho.ai:::rho_pkce()
+second_pkce <- rho.ai:::rho_pkce()
 
 expect_equal(nchar(pkce$verifier), 43L)
 expect_equal(nchar(pkce$challenge), 43L)

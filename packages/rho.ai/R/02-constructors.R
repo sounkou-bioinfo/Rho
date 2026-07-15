@@ -1,5 +1,9 @@
-rho_text <- function(text, signature = "") {
-  TextContent(text = as.character(text), signature = signature)
+rho_text <- function(text, signature = "", annotations = list()) {
+  TextContent(
+    text = as.character(text),
+    signature = signature,
+    annotations = annotations
+  )
 }
 rho_thinking <- function(text, signature = "", redacted = FALSE) {
   ThinkingContent(text = as.character(text), signature = signature, redacted = isTRUE(redacted))
@@ -107,6 +111,14 @@ rho_provider_error <- function(
     details = details
   )
 }
+rho_provider_error_stream <- function(model, error) {
+  partial <- rho_assistant_message(
+    provider = model@provider,
+    model = model@id,
+    stop_reason = "error"
+  )
+  rho.async::rho_list_stream(list(rho_assistant_error_event(error, partial)))
+}
 rho_auth_error <- function(message, code = "auth", retryable = FALSE, details = list()) {
   AuthErrorValue(
     kind = "auth",
@@ -114,6 +126,17 @@ rho_auth_error <- function(message, code = "auth", retryable = FALSE, details = 
     code = code,
     retryable = isTRUE(retryable),
     details = details
+  )
+}
+rho_operation_unsupported <- function(operation, handler, message, details = list()) {
+  OperationUnsupported(
+    kind = "operation_unsupported",
+    message = message,
+    code = "unsupported",
+    retryable = FALSE,
+    details = details,
+    operation = operation,
+    handler_class = rho_class_label(handler)
   )
 }
 rho_unsupported_provider_operation <- function(operation, message, details = list()) {
@@ -131,15 +154,37 @@ rho_provider_support_value <- function(supported, source, details = list()) {
 }
 rho_openai_responses_compatibility <- function(
   supports_tool_search = FALSE,
-  supports_native_compaction = FALSE
+  supports_native_compaction = FALSE,
+  web_search = RhoWebSearchUnavailable(
+    reason = "Hosted web search is not declared for this model and endpoint"
+  )
 ) {
   OpenAIResponsesCompatibility(
     supports_tool_search = isTRUE(supports_tool_search),
-    supports_native_compaction = isTRUE(supports_native_compaction)
+    supports_native_compaction = isTRUE(supports_native_compaction),
+    web_search = web_search
   )
 }
-rho_anthropic_messages_compatibility <- function(supports_tool_references = FALSE) {
-  AnthropicMessagesCompatibility(supports_tool_references = isTRUE(supports_tool_references))
+rho_anthropic_messages_compatibility <- function(
+  thinking = AnthropicBudgetThinkingCapability(),
+  temperature = AnthropicTemperatureAccepted(),
+  cache = AnthropicCacheCapability(long_retention = TRUE, tools = TRUE),
+  tool_input = AnthropicEagerToolInput(),
+  allow_empty_signature = FALSE,
+  supports_tool_references = FALSE,
+  web_search = RhoWebSearchUnavailable(
+    reason = "Hosted web search is not declared for this model and endpoint"
+  )
+) {
+  AnthropicMessagesCompatibility(
+    thinking = thinking,
+    temperature = temperature,
+    cache = cache,
+    tool_input = tool_input,
+    allow_empty_signature = isTRUE(allow_empty_signature),
+    supports_tool_references = isTRUE(supports_tool_references),
+    web_search = web_search
+  )
 }
 rho_tool_result <- function(
   content = list(),
@@ -238,6 +283,22 @@ rho_assistant_tool_call_end_event <- function(partial, content_index, tool_call)
   )
 }
 
+rho_assistant_operation_start_event <- function(partial, content_index, content) {
+  AssistantOperationStartEvent(
+    partial = partial,
+    content_index = as.integer(content_index),
+    content = content
+  )
+}
+
+rho_assistant_operation_end_event <- function(partial, content_index, content) {
+  AssistantOperationEndEvent(
+    partial = partial,
+    content_index = as.integer(content_index),
+    content = content
+  )
+}
+
 rho_assistant_done_event <- function(message, reason = message@stop_reason) {
   AssistantDoneEvent(message = message, reason = reason)
 }
@@ -246,8 +307,51 @@ rho_assistant_error_event <- function(error, message) {
   AssistantErrorEvent(message = message, reason = "error", error = error)
 }
 
-rho_context <- function(system_prompt = "", messages = list(), tools = list()) {
-  Context(system_prompt = system_prompt, messages = messages, tools = tools)
+rho_context <- function(
+  system_prompt = "",
+  messages = list(),
+  tools = list(),
+  operations = list()
+) {
+  Context(
+    system_prompt = system_prompt,
+    messages = messages,
+    tools = tools,
+    operations = operations
+  )
+}
+
+rho_approximate_location <- function(
+  country = "",
+  city = "",
+  region = "",
+  timezone = ""
+) {
+  RhoApproximateLocation(
+    country = country,
+    city = city,
+    region = region,
+    timezone = timezone
+  )
+}
+
+rho_web_search <- function(
+  domains = RhoWebSearchAllDomains(),
+  location = RhoWebSearchLocationUnspecified()
+) {
+  RhoWebSearchOperation(domains = domains, location = location)
+}
+
+rho_web_search_allowed_domains <- function(domains) {
+  RhoWebSearchAllowedDomains(domains = unique(domains))
+}
+
+rho_web_search_blocked_domains <- function(domains) {
+  RhoWebSearchBlockedDomains(domains = unique(domains))
+}
+
+rho_operation_plan <- function(bindings = list()) {
+  RhoOperationPlan(bindings = bindings)
 }
 rho_model_capabilities <- function(
   input = "text",
@@ -346,11 +450,14 @@ rho_new_model <- function(
     compatibility = compatibility
   )
   if (length(extra) && (is.null(names(extra)) || any(!nzchar(names(extra))))) {
-    rho_abort("`extra` must be a named list")
+    rho.async::rho_signal_contract_violation("`extra` must be a named list")
   }
   duplicated <- intersect(names(fields), names(extra))
   if (length(duplicated)) {
-    rho_abort("`extra` duplicates model field(s): %s", paste(duplicated, collapse = ", "))
+    rho.async::rho_signal_contract_violation(
+      "`extra` duplicates model field(s): %s",
+      paste(duplicated, collapse = ", ")
+    )
   }
   do.call(class, c(fields, extra))
 }
@@ -402,9 +509,6 @@ rho_tool_spec <- function(
   prepare_arguments = NULL,
   overlap = ToolMayOverlap()
 ) {
-  if (!is.function(execute)) {
-    rho_abort("`execute` must be a function")
-  }
   ToolSpec(
     name = name,
     label = label,

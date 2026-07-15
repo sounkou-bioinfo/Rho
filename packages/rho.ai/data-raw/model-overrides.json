@@ -1,5 +1,307 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "profile_overrides": [
+    {
+      "provider": "github-copilot",
+      "model": "claude-haiku-4.5",
+      "reason": "The Copilot endpoint does not support Anthropic eager tool-input streaming for this model; models.dev does not describe that endpoint behavior.",
+      "evidence": {
+        "kind": "upstream_endpoint_compatibility",
+        "reference": "https://github.com/earendil-works/pi/blob/dcfe36c79702ec240b146c45f167ab75ecddd205/packages/ai/scripts/generate-models.ts"
+      },
+      "values": {
+        "tool_input": "fine_grained"
+      }
+    },
+    {
+      "provider": "github-copilot",
+      "model": "claude-sonnet-4",
+      "reason": "The Copilot endpoint does not support Anthropic eager tool-input streaming for this model; models.dev does not describe that endpoint behavior.",
+      "evidence": {
+        "kind": "upstream_endpoint_compatibility",
+        "reference": "https://github.com/earendil-works/pi/blob/dcfe36c79702ec240b146c45f167ab75ecddd205/packages/ai/scripts/generate-models.ts"
+      },
+      "values": {
+        "tool_input": "fine_grained"
+      }
+    },
+    {
+      "provider": "github-copilot",
+      "model": "claude-sonnet-4.5",
+      "reason": "The Copilot endpoint does not support Anthropic eager tool-input streaming for this model; models.dev does not describe that endpoint behavior.",
+      "evidence": {
+        "kind": "upstream_endpoint_compatibility",
+        "reference": "https://github.com/earendil-works/pi/blob/dcfe36c79702ec240b146c45f167ab75ecddd205/packages/ai/scripts/generate-models.ts"
+      },
+      "values": {
+        "tool_input": "fine_grained"
+      }
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.2",
+      "reason": "models.dev does not expose provider-hosted tool modalities; the pinned OpenAI Codex catalog declares this model's web_search_tool_type.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/openai/codex/blob/be0e0d791a1b735de307f013037b091d24f57484/codex-rs/models-manager/models.json"
+      },
+      "values": {
+        "web_search": "text"
+      }
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.4",
+      "reason": "models.dev does not expose provider-hosted tool modalities; the pinned OpenAI Codex catalog declares this model's web_search_tool_type.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/openai/codex/blob/be0e0d791a1b735de307f013037b091d24f57484/codex-rs/models-manager/models.json"
+      },
+      "values": {
+        "web_search": "text_and_image"
+      }
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.4-mini",
+      "reason": "models.dev does not expose provider-hosted tool modalities; the pinned OpenAI Codex catalog declares this model's web_search_tool_type.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/openai/codex/blob/be0e0d791a1b735de307f013037b091d24f57484/codex-rs/models-manager/models.json"
+      },
+      "values": {
+        "web_search": "text_and_image"
+      }
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.5",
+      "reason": "models.dev does not expose provider-hosted tool modalities; the pinned OpenAI Codex catalog declares this model's web_search_tool_type.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/openai/codex/blob/be0e0d791a1b735de307f013037b091d24f57484/codex-rs/models-manager/models.json"
+      },
+      "values": {
+        "web_search": "text_and_image"
+      }
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-luna",
+      "reason": "models.dev does not expose provider-hosted tool modalities; the pinned OpenAI Codex catalog declares this model's web_search_tool_type.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/openai/codex/blob/be0e0d791a1b735de307f013037b091d24f57484/codex-rs/models-manager/models.json"
+      },
+      "values": {
+        "web_search": "text_and_image"
+      }
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "reason": "models.dev does not expose provider-hosted tool modalities; the pinned OpenAI Codex catalog declares this model's web_search_tool_type.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/openai/codex/blob/be0e0d791a1b735de307f013037b091d24f57484/codex-rs/models-manager/models.json"
+      },
+      "values": {
+        "web_search": "text_and_image"
+      }
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-terra",
+      "reason": "models.dev does not expose provider-hosted tool modalities; the pinned OpenAI Codex catalog declares this model's web_search_tool_type.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/openai/codex/blob/be0e0d791a1b735de307f013037b091d24f57484/codex-rs/models-manager/models.json"
+      },
+      "values": {
+        "web_search": "text_and_image"
+      }
+    },
+    {
+      "provider": "openai-codex",
+      "model": "gpt-5.4",
+      "reason": "The offline Codex catalog needs the provider-hosted web-search modality declared by the pinned upstream Codex catalog.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/openai/codex/blob/be0e0d791a1b735de307f013037b091d24f57484/codex-rs/models-manager/models.json"
+      },
+      "values": {
+        "web_search": "text_and_image"
+      }
+    },
+    {
+      "provider": "openai-codex",
+      "model": "gpt-5.4-mini",
+      "reason": "The offline Codex catalog needs the provider-hosted web-search modality declared by the pinned upstream Codex catalog.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/openai/codex/blob/be0e0d791a1b735de307f013037b091d24f57484/codex-rs/models-manager/models.json"
+      },
+      "values": {
+        "web_search": "text_and_image"
+      }
+    },
+    {
+      "provider": "openai-codex",
+      "model": "gpt-5.5",
+      "reason": "The offline Codex catalog needs the provider-hosted web-search modality declared by the pinned upstream Codex catalog.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/openai/codex/blob/be0e0d791a1b735de307f013037b091d24f57484/codex-rs/models-manager/models.json"
+      },
+      "values": {
+        "web_search": "text_and_image"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-fable-5",
+      "reason": "models.dev does not expose Anthropic server-tool protocols; the pinned official capability reference declares dynamic web-search support for this model.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/anthropics/skills/blob/9d2f1ae187231d8199c64b5b762e1bdf2244733d/skills/claude-api/shared/tool-use-concepts.md"
+      },
+      "values": {
+        "web_search": "dynamic"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-4-6",
+      "reason": "models.dev does not expose Anthropic server-tool protocols; the pinned official capability reference declares dynamic web-search support for this model.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/anthropics/skills/blob/9d2f1ae187231d8199c64b5b762e1bdf2244733d/skills/claude-api/SKILL.md"
+      },
+      "values": {
+        "web_search": "dynamic"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-4-7",
+      "reason": "models.dev does not expose Anthropic server-tool protocols; the pinned official capability reference declares dynamic web-search support for this model.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/anthropics/skills/blob/9d2f1ae187231d8199c64b5b762e1bdf2244733d/skills/claude-api/SKILL.md"
+      },
+      "values": {
+        "web_search": "dynamic"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-4-8",
+      "reason": "models.dev does not expose Anthropic server-tool protocols; the pinned official capability reference declares dynamic web-search support for this model.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/anthropics/skills/blob/9d2f1ae187231d8199c64b5b762e1bdf2244733d/skills/claude-api/SKILL.md"
+      },
+      "values": {
+        "web_search": "dynamic"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "reason": "models.dev does not expose Anthropic server-tool protocols; the pinned official capability reference declares dynamic web-search support for this model.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/anthropics/skills/blob/9d2f1ae187231d8199c64b5b762e1bdf2244733d/skills/claude-api/SKILL.md"
+      },
+      "values": {
+        "web_search": "dynamic"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5",
+      "reason": "models.dev does not expose Anthropic server-tool protocols; the pinned official capability reference declares dynamic web-search support for this model.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/anthropics/skills/blob/9d2f1ae187231d8199c64b5b762e1bdf2244733d/skills/claude-api/SKILL.md"
+      },
+      "values": {
+        "web_search": "dynamic"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5",
+      "reason": "models.dev does not expose Anthropic server-tool protocols; the pinned official capability reference directs older models to basic web search.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/anthropics/skills/blob/9d2f1ae187231d8199c64b5b762e1bdf2244733d/skills/claude-api/SKILL.md"
+      },
+      "values": {
+        "web_search": "basic"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "reason": "models.dev does not expose Anthropic server-tool protocols; the pinned official capability reference directs older models to basic web search.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/anthropics/skills/blob/9d2f1ae187231d8199c64b5b762e1bdf2244733d/skills/claude-api/SKILL.md"
+      },
+      "values": {
+        "web_search": "basic"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-4-5",
+      "reason": "models.dev does not expose Anthropic server-tool protocols; the pinned official capability reference directs older models to basic web search.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/anthropics/skills/blob/9d2f1ae187231d8199c64b5b762e1bdf2244733d/skills/claude-api/SKILL.md"
+      },
+      "values": {
+        "web_search": "basic"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-4-5-20251101",
+      "reason": "models.dev does not expose Anthropic server-tool protocols; the pinned official capability reference directs older models to basic web search.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/anthropics/skills/blob/9d2f1ae187231d8199c64b5b762e1bdf2244733d/skills/claude-api/SKILL.md"
+      },
+      "values": {
+        "web_search": "basic"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-5",
+      "reason": "models.dev does not expose Anthropic server-tool protocols; the pinned official capability reference directs older models to basic web search.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/anthropics/skills/blob/9d2f1ae187231d8199c64b5b762e1bdf2244733d/skills/claude-api/SKILL.md"
+      },
+      "values": {
+        "web_search": "basic"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-5-20250929",
+      "reason": "models.dev does not expose Anthropic server-tool protocols; the pinned official capability reference directs older models to basic web search.",
+      "evidence": {
+        "kind": "upstream_model_capability",
+        "reference": "https://github.com/anthropics/skills/blob/9d2f1ae187231d8199c64b5b762e1bdf2244733d/skills/claude-api/SKILL.md"
+      },
+      "values": {
+        "web_search": "basic"
+      }
+    }
+  ],
   "records": [
     {
       "provider": {
@@ -11,6 +313,11 @@
       "protocol": "openai_responses",
       "id": "gpt-5.3-codex-spark",
       "name": "GPT-5.3 Codex Spark",
+      "reason": "The ChatGPT OAuth Codex endpoint is not represented as a distinct provider in models.dev; Rho keeps an offline supported subset for catalog construction before login.",
+      "evidence": {
+        "kind": "upstream_codex_catalog",
+        "reference": "https://github.com/earendil-works/pi/blob/dcfe36c79702ec240b146c45f167ab75ecddd205/packages/ai/scripts/generate-models.ts"
+      },
       "input": ["text"],
       "reasoning": true,
       "thinking_level_map": {
@@ -40,6 +347,11 @@
       "protocol": "openai_responses",
       "id": "gpt-5.4",
       "name": "GPT-5.4",
+      "reason": "The ChatGPT OAuth Codex endpoint is not represented as a distinct provider in models.dev; Rho keeps an offline supported subset for catalog construction before login.",
+      "evidence": {
+        "kind": "upstream_codex_catalog",
+        "reference": "https://github.com/earendil-works/pi/blob/dcfe36c79702ec240b146c45f167ab75ecddd205/packages/ai/scripts/generate-models.ts"
+      },
       "input": ["text", "image"],
       "reasoning": true,
       "thinking_level_map": {
@@ -69,6 +381,11 @@
       "protocol": "openai_responses",
       "id": "gpt-5.4-mini",
       "name": "GPT-5.4 mini",
+      "reason": "The ChatGPT OAuth Codex endpoint is not represented as a distinct provider in models.dev; Rho keeps an offline supported subset for catalog construction before login.",
+      "evidence": {
+        "kind": "upstream_codex_catalog",
+        "reference": "https://github.com/earendil-works/pi/blob/dcfe36c79702ec240b146c45f167ab75ecddd205/packages/ai/scripts/generate-models.ts"
+      },
       "input": ["text", "image"],
       "reasoning": true,
       "thinking_level_map": {
@@ -98,6 +415,11 @@
       "protocol": "openai_responses",
       "id": "gpt-5.5",
       "name": "GPT-5.5",
+      "reason": "The ChatGPT OAuth Codex endpoint is not represented as a distinct provider in models.dev; Rho keeps an offline supported subset for catalog construction before login.",
+      "evidence": {
+        "kind": "upstream_codex_catalog",
+        "reference": "https://github.com/earendil-works/pi/blob/dcfe36c79702ec240b146c45f167ab75ecddd205/packages/ai/scripts/generate-models.ts"
+      },
       "input": ["text", "image"],
       "reasoning": true,
       "thinking_level_map": {

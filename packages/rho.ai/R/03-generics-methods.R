@@ -15,13 +15,15 @@ rho_validate_tool_args <- S7::new_generic(
 )
 rho_execute_tool <- S7::new_generic(
   "rho_execute_tool",
-  c("tool", "call"),
-  function(tool, call, ctx = NULL, signal = NULL, on_update = NULL, ...) S7::S7_dispatch()
+  c("tool", "call", "context"),
+  function(tool, call, context, signal = NULL, on_update = NULL, ...) {
+    S7::S7_dispatch()
+  }
 )
 rho_tool_overlap <- S7::new_generic(
   "rho_tool_overlap",
-  c("tool", "call"),
-  function(tool, call, ctx = NULL, ...) S7::S7_dispatch()
+  c("tool", "call", "context"),
+  function(tool, call, context, ...) S7::S7_dispatch()
 )
 rho_decode_provider_event <- S7::new_generic(
   "rho_decode_provider_event",
@@ -115,10 +117,45 @@ rho_resolve_model_auth <- S7::new_generic(
   "models",
   function(models, model, ...) S7::S7_dispatch()
 )
+rho_provider_models <- S7::new_generic(
+  "rho_provider_models",
+  c("provider", "credential"),
+  function(provider, credential, ...) S7::S7_dispatch()
+)
+rho_available_models <- S7::new_generic(
+  "rho_available_models",
+  "models",
+  function(models, provider_id, ...) S7::S7_dispatch()
+)
 rho_provider_support <- S7::new_generic(
   "rho_provider_support",
   c("provider", "model", "operation"),
   function(provider, model, operation, ...) S7::S7_dispatch()
+)
+rho_bind_operation <- S7::new_generic(
+  "rho_bind_operation",
+  c("handler", "model", "operation"),
+  function(handler, model, operation, context, ...) S7::S7_dispatch()
+)
+rho_bind_web_search <- S7::new_generic(
+  "rho_bind_web_search",
+  "capability",
+  function(capability, handler, model, operation, context, ...) S7::S7_dispatch()
+)
+rho_plan_operations <- S7::new_generic(
+  "rho_plan_operations",
+  c("handler", "model", "context"),
+  function(handler, model, context, ...) S7::S7_dispatch()
+)
+rho_execute_operation <- S7::new_generic(
+  "rho_execute_operation",
+  "binding",
+  function(binding, context, ...) S7::S7_dispatch()
+)
+rho_provider_dialect <- S7::new_generic(
+  "rho_provider_dialect",
+  c("provider", "model"),
+  function(provider, model, ...) S7::S7_dispatch()
 )
 rho_plan_tools <- S7::new_generic(
   "rho_plan_tools",
@@ -135,15 +172,30 @@ rho_openai_responses_body <- S7::new_generic(
   c("model", "context", "placement"),
   function(model, context, placement, options = list(), ...) S7::S7_dispatch()
 )
+rho_openai_chat_request_body <- S7::new_generic(
+  "rho_openai_chat_request_body",
+  c("model", "context"),
+  function(model, context, options = list(), ...) S7::S7_dispatch()
+)
 rho_openai_request_sections <- S7::new_generic(
   "rho_openai_request_sections",
   c("model", "context", "placement"),
   function(model, context, placement, options = list(), ...) S7::S7_dispatch()
 )
-rho_openai_request_fields <- S7::new_generic(
-  "rho_openai_request_fields",
+rho_openai_request_plan <- S7::new_generic(
+  "rho_openai_request_plan",
+  c("model", "context", "placement"),
+  function(model, context, placement, options = list(), ...) S7::S7_dispatch()
+)
+rho_request_fields <- S7::new_generic(
+  "rho_request_fields",
   "section",
   function(section, ...) S7::S7_dispatch()
+)
+rho_request_body <- S7::new_generic(
+  "rho_request_body",
+  "plan",
+  function(plan, ...) S7::S7_dispatch()
 )
 rho_openai_reasoning_section <- S7::new_generic(
   "rho_openai_reasoning_section",
@@ -219,6 +271,12 @@ S7::method(rho_assistant_event_type, AssistantToolCallDeltaEvent) <- function(ev
 S7::method(rho_assistant_event_type, AssistantToolCallEndEvent) <- function(event, ...) {
   "toolcall_end"
 }
+S7::method(rho_assistant_event_type, AssistantOperationStartEvent) <- function(event, ...) {
+  "operation_start"
+}
+S7::method(rho_assistant_event_type, AssistantOperationEndEvent) <- function(event, ...) {
+  "operation_end"
+}
 S7::method(rho_assistant_event_type, AssistantDoneEvent) <- function(event, ...) "done"
 S7::method(rho_assistant_event_type, AssistantErrorEvent) <- function(event, ...) "error"
 
@@ -238,11 +296,15 @@ S7::method(rho_complete, list(S7::class_any, Model, Context)) <- function(
         events
       )
       if (!length(terminal)) {
-        rho_abort("Provider stream ended without a terminal event")
+        return(rho_provider_error(
+          "Provider stream ended without a terminal event",
+          kind = "protocol",
+          code = "missing_terminal_event"
+        ))
       }
       event <- terminal[[length(terminal)]]
       if (S7::S7_inherits(event, AssistantErrorEvent)) {
-        rho_abort("%s", event@error@message)
+        return(event@error)
       }
       event@message
     },
@@ -252,33 +314,58 @@ S7::method(rho_complete, list(S7::class_any, Model, Context)) <- function(
 
 S7::method(rho_validate_tool_args, list(ToolSpec, S7::class_list)) <- function(tool, args, ...) {
   if (!is.null(tool@prepare_arguments)) {
-    args <- tool@prepare_arguments(args)
+    prepared <- tryCatch(tool@prepare_arguments(args), error = identity)
+    if (inherits(prepared, "error")) {
+      return(rho_tool_error_result(
+        content = list(rho_text(conditionMessage(prepared))),
+        details = list(
+          kind = "arguments",
+          tool_name = tool@name,
+          source = prepared
+        )
+      ))
+    }
+    args <- prepared
   }
   required <- tool@parameters$required %||% character()
   missing <- setdiff(required, names(args))
   if (length(missing)) {
-    rho_abort(
+    message <- sprintf(
       "Tool `%s` missing required parameter(s): %s",
       tool@name,
       paste(missing, collapse = ", ")
     )
+    return(rho_tool_error_result(
+      content = list(rho_text(message)),
+      details = list(
+        kind = "arguments",
+        tool_name = tool@name,
+        missing = missing
+      )
+    ))
   }
   args
 }
 
-S7::method(rho_execute_tool, list(ToolSpec, ToolCall)) <- function(
+S7::method(rho_execute_tool, list(ToolSpec, ToolCall, S7::class_any)) <- function(
   tool,
   call,
-  ctx = NULL,
+  context,
   signal = NULL,
   on_update = NULL,
   ...
 ) {
   args <- rho_validate_tool_args(tool, call@arguments)
-  out <- tool@execute(call@id, args, signal, on_update, ctx)
+  if (S7::S7_inherits(args, ToolErrorResult)) {
+    return(rho.async::rho_task(args))
+  }
+  out <- tool@execute(call@id, args, signal, on_update, context)
   rho.async::rho_as_task(out)
 }
 
-S7::method(rho_tool_overlap, list(ToolSpec, ToolCall)) <- function(tool, call, ctx = NULL, ...) {
+S7::method(
+  rho_tool_overlap,
+  list(ToolSpec, ToolCall, S7::class_any)
+) <- function(tool, call, context, ...) {
   tool@overlap
 }

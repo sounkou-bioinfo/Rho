@@ -147,6 +147,7 @@ rho_receive_assistant <- function(agent, context) {
       agent@state$current_stream <- stream
       on.exit(
         {
+          rho.async::rho_stream_close(stream)
           agent@state$current_stream <- NULL
         },
         add = TRUE
@@ -169,11 +170,18 @@ rho_receive_assistant <- function(agent, context) {
           error = function(error) error
         )
         if (inherits(item, "error")) {
-          error <- rho_agent_error(
-            conditionMessage(item),
-            "provider",
-            retryable = TRUE
-          )
+          if (isTRUE(agent@state$cancelled)) {
+            error <- rho_agent_error(
+              agent@state$cancel_reason %||% "Agent run was cancelled",
+              "aborted"
+            )
+          } else {
+            error <- rho_agent_error(
+              conditionMessage(item),
+              "provider",
+              retryable = TRUE
+            )
+          }
           coro::await(rho.async::rho_as_promise(rho_fail_assistant_turn(turn, error)))
           break
         }

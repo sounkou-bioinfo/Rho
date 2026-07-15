@@ -2,7 +2,7 @@ Package: rho.compute
 Type: Package
 Depends: R (>= 4.4.0)
 Title: Rho Mirai Compute Backend
-Version: 0.0.0.9000
+Version: 0.0.1.9000
 Authors@R:
     person(given = "Sounkou Mahamane", family = "Toure",
            email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
@@ -14,7 +14,7 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports:
-    S7, rho.async, mirai, promises
+    S7, rho.async (>= 0.0.1.9000), mirai, promises
 Suggests:
     tinytest, knitr
 URL: https://github.com/sounkou-bioinfo/Rho,

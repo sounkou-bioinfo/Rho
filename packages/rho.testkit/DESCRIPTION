@@ -2,7 +2,7 @@ Package: rho.testkit
 Type: Package
 Depends: R (>= 4.4.0)
 Title: Rho Test Kit
-Version: 0.0.0.9000
+Version: 0.0.1.9000
 Authors@R:
     person(given = "Sounkou Mahamane", family = "Toure",
            email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
@@ -13,7 +13,8 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports:
-    rho.async, rho.ai, rho.agent, tinytest
+    rho.async (>= 0.0.1.9000), rho.ai (>= 0.0.1.9000),
+    rho.agent (>= 0.0.1.9000), tinytest
 Suggests:
     knitr
 URL: https://github.com/sounkou-bioinfo/Rho,

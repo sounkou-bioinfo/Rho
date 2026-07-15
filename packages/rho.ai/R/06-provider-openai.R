@@ -99,6 +99,44 @@ S7::method(
 
 S7::method(
   rho_provider_support,
+  list(OpenAIApi, OpenAIResponsesModel, RhoWebSearchOperation)
+) <- function(provider, model, operation, ...) {
+  capability <- model@compatibility@web_search
+  rho_provider_support_value(
+    S7::S7_inherits(capability, OpenAIWebSearchCapability),
+    source = "openai-responses-model-profile",
+    details = list(model = model@id, capability = rho_class_label(capability))
+  )
+}
+
+S7::method(
+  rho_bind_operation,
+  list(OpenAIApi, OpenAIResponsesModel, RhoWebSearchOperation)
+) <- function(handler, model, operation, context, ...) {
+  rho_bind_web_search(
+    model@compatibility@web_search,
+    handler,
+    model,
+    operation,
+    context,
+    ...
+  )
+}
+
+S7::method(
+  rho_bind_web_search,
+  OpenAIWebSearchCapability
+) <- function(capability, handler, model, operation, context, ...) {
+  rho_openai_web_search_binding(
+    operation@domains,
+    handler,
+    model,
+    operation
+  )
+}
+
+S7::method(
+  rho_provider_support,
   list(OpenAIApi, OpenAIResponsesModel, RhoNativeCompactionOperation)
 ) <- function(provider, model, operation, ...) {
   compatibility <- model@compatibility
@@ -149,12 +187,26 @@ S7::method(
 ) <- function(provider, model, context, options = list(), ...) {
   auth <- options$auth
   if (!S7::S7_inherits(auth, RhoModelAuth) || !nzchar(auth@api_key)) {
-    rho_abort("OpenAI requests require explicit resolved auth in `options$auth`")
+    return(rho_provider_error(
+      "OpenAI requests require explicit resolved auth in `options$auth`",
+      kind = "auth",
+      code = "missing_request_auth"
+    ))
   }
   placement <- options$tool_placement %||% rho_plan_tools(provider, model, context)
   if (!S7::S7_inherits(placement, RhoToolPlacement)) {
-    rho_abort("`options$tool_placement` must inherit from RhoToolPlacement")
+    return(rho_provider_error(
+      "OpenAI `tool_placement` must inherit from RhoToolPlacement",
+      kind = "configuration",
+      code = "openai_tool_placement"
+    ))
   }
+  operation_plan <- options$operation_plan %||%
+    rho_plan_operations(provider, model, context)
+  if (S7::S7_inherits(operation_plan, ProviderErrorValue)) {
+    return(operation_plan)
+  }
+  options$operation_plan <- operation_plan
   base_url <- if (nzchar(auth@base_url)) auth@base_url else provider@base_url
   headers <- utils::modifyList(
     list(
@@ -187,6 +239,9 @@ S7::method(rho_stream, list(OpenAIApi, OpenAIResponsesModel, Context)) <- functi
   ...
 ) {
   request <- rho_openai_request(provider, model, context, options)
+  if (S7::S7_inherits(request, ProviderErrorValue)) {
+    return(rho_provider_error_stream(model, request))
+  }
   stream <- rho.http::rho_sse_connect(provider@http, request)
   decoder <- rho_openai_responses_decoder(model)
   rho.async::rho_stream_flat_map(

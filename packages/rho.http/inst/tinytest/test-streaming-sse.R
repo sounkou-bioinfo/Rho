@@ -68,3 +68,39 @@ expect_true(S7::S7_inherits(item, RhoStreamValue))
 expect_true(S7::S7_inherits(item@value, RhoHttpStatusError))
 expect_equal(item@value@status, 429L)
 expect_equal(server$close(), 0L)
+
+server_connection <- NULL
+server <- nanonext::http_server(
+  url = "http://127.0.0.1:0",
+  handlers = list(nanonext::handler_stream(
+    "/pending",
+    on_request = function(connection, request) {
+      server_connection <<- connection
+      connection$set_status(200L)
+      connection$set_header("Content-Type", "text/event-stream")
+      connection$send(nanonext::format_sse(data = "ready"))
+    }
+  ))
+)
+expect_equal(server$start(), 0L)
+
+events <- rho_sse_connect(
+  rho_http_client(timeout_ms = 2000L),
+  rho_http_request(
+    "GET",
+    paste0(server$url, "/pending"),
+    timeout_ms = 2000L
+  )
+)
+ready <- rho_await(rho_stream_next(events), timeout = 2000L)
+expect_equal(ready@value@data, "ready")
+
+pending <- rho_stream_next(events)
+rho_stream_close(events)
+cancelled <- rho_await(pending, timeout = 2000L)
+
+expect_true(S7::S7_inherits(cancelled, RhoStreamValue))
+expect_true(S7::S7_inherits(cancelled@value, RhoHttpTransportError))
+expect_equal(server_connection$close(), 0L)
+later::run_now(timeoutSecs = 0)
+expect_equal(server$close(), 0L)

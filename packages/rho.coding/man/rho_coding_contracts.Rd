@@ -21,6 +21,7 @@
 \alias{RhoREvaluator}
 \alias{RhoCurrentSessionREvaluator}
 \alias{RhoMiraiExpressionEvaluator}
+\alias{RhoREvaluationBinding}
 \alias{RhoREvaluationOutcome}
 \alias{RhoREvaluationSuccess}
 \alias{RhoREvaluationFailure}
@@ -30,6 +31,8 @@
 \alias{rho_shell_outcome}
 \alias{rho_shell_tool_result}
 \alias{rho_evaluate_r}
+\alias{rho_r_evaluation_binding}
+\alias{rho_r_evaluator_reason}
 \alias{rho_r_evaluation_outcome}
 \alias{rho_r_tool_result}
 \alias{rho_r_evaluator_overlap}

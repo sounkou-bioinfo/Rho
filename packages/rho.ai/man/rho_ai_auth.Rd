@@ -40,6 +40,8 @@
 \alias{rho_provider}
 \alias{rho_models}
 \alias{rho_models_provider}
+\alias{rho_provider_models}
+\alias{rho_available_models}
 \alias{rho_login_provider}
 \alias{rho_resolve_model_auth}
 \alias{rho_credential_read}
@@ -64,6 +66,10 @@
 \alias{GitHubCopilotDeviceAuthorization}
 \alias{GitHubCopilotCredential}
 \alias{GitHubCopilotModelAuth}
+\alias{GitHubCopilotLoginModelPolicy}
+\alias{GitHubCopilotDiscoverModels}
+\alias{GitHubCopilotEnableKnownModels}
+\alias{GitHubCopilotModelPolicyResult}
 \alias{GitHubCopilotOAuthAuth}
 \alias{GitHubCopilotApi}
 \alias{rho_github_copilot_client_identity}
@@ -74,6 +80,9 @@
 \alias{rho_github_copilot_provider}
 \alias{rho_github_copilot_model}
 \alias{rho_github_copilot_request}
+\alias{rho_github_copilot_discover_models_policy}
+\alias{rho_github_copilot_enable_known_models_policy}
+\alias{rho_prepare_github_copilot_models}
 \alias{rho_message_initiator}
 \alias{rho_has_image_input}
 \title{Explicit credentials, login effects, and provider catalog state}

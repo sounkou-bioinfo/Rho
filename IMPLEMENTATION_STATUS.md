@@ -6,8 +6,8 @@ rendering, Rmd-driven tinytest specs, and provider request builders. Package API
 documentation and namespaces are generated from roxygen2 tags. Air is the
 authoritative formatter; the local verified version is 0.10.0.
 
-All twelve source packages build from tarballs and report `Status: OK` under
-`R CMD check --no-manual` with R 4.6.0 on Linux. The check driver treats every
+All twelve source packages are versioned `0.0.1.9000`, build from tarballs, and
+report `Status: OK` under `R CMD check --no-manual` with R 4.6.0 on Linux. The check driver treats every
 NOTE, WARNING, or ERROR as a failed monorepo gate. This establishes package
 health; it does not claim provider or Pi behavioral parity.
 
@@ -19,13 +19,17 @@ execution in mirai workers, isolated R expression evaluation, and an opt-in
 stateful current-session R evaluator. Provider request builders require explicit
 resolved `RhoModelAuth`; they do not read API keys from process-global
 environment variables. JSON parsing and serialization use `yyjsonr` throughout.
+Semantic operations are planned separately from executable tools. OpenAI and
+Anthropic web search use typed, catalog-backed provider bindings, normalize
+provider activity as content, and reject unbound operations at request
+translation. R expression evaluators use the same binding protocol.
 
 Known boundaries that are deliberately explicit rather than faked:
 
 - `rho.ai::rho_faux_provider()` is the deterministic provider used by tests.
-- OpenAI Responses/Codex wire events have a typed decoder and the root README
-  exercises an agent with Spark. Anthropic and Ollama request surfaces still need
-  live streaming fixtures before their adapters can be called verified.
+- OpenAI Responses/Codex and Anthropic Messages have typed request and event
+  protocols with end-to-end agent fixtures. Ollama still needs normalized NDJSON
+  decoding. External-account checks remain recorded in the parity ledger.
 - `rho.http::rho_sse_connect()` opens the response with the pinned nanonext
   `ncurl_stream_aio()` fork and incrementally decodes arbitrary body chunks. The
   transport remains pinned until the primitive is available from an upstream
@@ -37,6 +41,8 @@ Known boundaries that are deliberately explicit rather than faked:
 - `RhoMiraiExpressionEvaluator` gives isolated worker evaluation.
   `RhoCurrentSessionREvaluator` preserves state only in the environment supplied
   by its caller and requires exclusive execution.
+- Session compaction is not implemented. `rho.ai` exposes the typed operation
+  and provider binding point; all broad methods still report unsupported.
 
 The repository stays private until the parity ledger, package checks, live
 provider checks, generated documentation, and secret scan pass. Public
