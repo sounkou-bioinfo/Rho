@@ -5,10 +5,10 @@ package `DESCRIPTION` must match it, and every dependency on another Rho
 package must require at least that version.
 
 `make public-ready` is the publication gate. It verifies version coherence,
-generated tests, the model catalog, formatting, the parity ledger, repository
-history and working tree, installed behavior, source tarballs, and package
-sites. A non-verified row in `docs/pi-parity.md` is a failure, not a release
-note.
+package and monorepo news, lifecycle badges, generated tests and READMEs, the
+model catalog, formatting, the parity ledger, repository history and working
+tree, installed behavior, source tarballs, and package sites. A non-verified
+row in `docs/pi-parity.md` is a failure, not a release note.
 
 The secret scan uses Gitleaks 8.30.1 over the complete Git history. The Linux
 x86-64 release archive has SHA-256 digest

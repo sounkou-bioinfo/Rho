@@ -1,6 +1,12 @@
 
 # rho.agent
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.agent`](https://sounkou-bioinfo.github.io/Rho/rho.agent/) is Rho’s
 provider-neutral, multi-turn agent loop. It turns provider streams into
 an ordered lifecycle, schedules typed tools, drains steering and
@@ -44,6 +50,12 @@ order; `ToolRequiresExclusiveExecution` makes stateful semantics
 explicit. Agent policy is an S7 protocol, so applications can override
 context transforms and before/after-tool decisions without replacing the
 loop.
+
+The session ledger is append-only. `rho_compact()` adds a semantic
+checkpoint while retaining the complete transcript, and
+`rho_build_agent_context()` projects the messages sent to a provider.
+Threshold compaction and one retry for a typed provider input-limit
+value use the same compactor and policy generics.
 
 Extensions build on this lifecycle in [`rho.ext`](../rho.ext/README.md).
 See the [`rho.agent`

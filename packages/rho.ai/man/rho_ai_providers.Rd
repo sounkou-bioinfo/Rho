@@ -49,6 +49,8 @@
 \alias{rho_complete}
 \alias{rho_provider_error}
 \alias{rho_provider_http_error}
+\alias{rho_provider_context_overflow}
+\alias{rho_provider_request_too_large}
 \alias{rho_unsupported_provider_operation}
 \alias{rho_provider_support_value}
 \alias{rho_provider_support}

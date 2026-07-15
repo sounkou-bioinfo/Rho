@@ -1,6 +1,12 @@
 
 # rho.compute
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.compute`](https://sounkou-bioinfo.github.io/Rho/rho.compute/)
 adapts mirai worker evaluation to [`rho.async`](../rho.async/README.md).
 Expressions and function calls are typed specifications; the agent sees

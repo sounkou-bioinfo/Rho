@@ -137,7 +137,35 @@ rho_anthropic_tool_reference_placement <- function(immediate, deferred) {
   )
 }
 
-S7::method(rho_provider_http_error, RhoHttpTransportError) <- function(error, ...) {
+rho_http_error_details <- function(error) {
+  list(
+    url = error@url,
+    status = error@status,
+    headers = error@headers,
+    body = error@body,
+    body_truncated = error@body_truncated
+  )
+}
+
+rho_http_error_document <- function(error) {
+  if (!length(error@body)) {
+    return(NULL)
+  }
+  document <- tryCatch(
+    yyjsonr::read_json_str(
+      rawToChar(error@body),
+      arr_of_objs_to_df = FALSE,
+      obj_of_arrs_to_df = FALSE
+    ),
+    error = function(error) NULL
+  )
+  if (is.list(document)) document else NULL
+}
+
+S7::method(
+  rho_provider_http_error,
+  list(Model, RhoHttpTransportError)
+) <- function(model, error, ...) {
   rho_provider_error(
     message = error@message,
     kind = "transport",
@@ -147,16 +175,27 @@ S7::method(rho_provider_http_error, RhoHttpTransportError) <- function(error, ..
   )
 }
 
-S7::method(rho_provider_http_error, RhoHttpStatusError) <- function(error, ...) {
+rho_http_status_retryable <- function(error) {
   status <- error@status
-  retryable <- status %in% c(408L, 409L, 425L, 429L) || status >= 500L
+  status %in% c(408L, 409L, 425L, 429L) || status >= 500L
+}
+
+rho_http_status_provider_error <- function(error) {
+  status <- error@status
   rho_provider_error(
     message = error@message,
     kind = "http_status",
     code = as.character(status),
-    retryable = retryable,
-    details = list(url = error@url, status = status, headers = error@headers)
+    retryable = rho_http_status_retryable(error),
+    details = rho_http_error_details(error)
   )
+}
+
+S7::method(
+  rho_provider_http_error,
+  list(Model, RhoHttpStatusError)
+) <- function(model, error, ...) {
+  rho_http_status_provider_error(error)
 }
 
 S7::method(

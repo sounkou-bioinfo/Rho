@@ -32,8 +32,8 @@ rho_decode_provider_event <- S7::new_generic(
 )
 rho_provider_http_error <- S7::new_generic(
   "rho_provider_http_error",
-  "error",
-  function(error, ...) S7::S7_dispatch()
+  c("model", "error"),
+  function(model, error, ...) S7::S7_dispatch()
 )
 rho_reduce_provider_event <- S7::new_generic(
   "rho_reduce_provider_event",
@@ -105,6 +105,11 @@ rho_auth_to_request <- S7::new_generic(
   "rho_auth_to_request",
   "auth",
   function(auth, credential, ...) S7::S7_dispatch()
+)
+rho_login_strategy <- S7::new_generic(
+  "rho_login_strategy",
+  c("method", "provider"),
+  function(method, provider, ...) S7::S7_dispatch()
 )
 rho_auth_prompt <- S7::new_generic("rho_auth_prompt", "io", function(io, prompt, ...) {
   S7::S7_dispatch()

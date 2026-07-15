@@ -100,10 +100,46 @@ io <- rho_login_io(prompt = function(prompt) {
   prompts[[length(prompts) + 1L]] <<- prompt
   "entered-key"
 })
-logged_in <- rho_auth_login(provider@auth@api_key, "zai", io) |> rho_await()
+models <- rho_models(list(provider))
+logged_in <- rho_login_provider(
+  models,
+  "zai",
+  io,
+  method = RhoApiKeyLogin()
+) |>
+  rho_await(timeout = 2000L)
 expect_true(S7::S7_inherits(logged_in, RhoApiKeyCredential))
 expect_true(S7::S7_inherits(prompts[[1L]], RhoSecretAuthPrompt))
 expect_equal(logged_in@provider, "zai")
+expect_true(S7::S7_inherits(
+  rho_credential_read(models@credentials, "zai") |> rho_await(timeout = 2000L),
+  RhoApiKeyCredential
+))
+
+device_prompts <- 0L
+device_events <- 0L
+models <- rho_models(list(provider))
+oauth_login <- rho_login_provider(
+  models,
+  "zai",
+  rho_login_io(
+    prompt = function(prompt) {
+      device_prompts <<- device_prompts + 1L
+      ""
+    },
+    notify = function(event) {
+      device_events <<- device_events + 1L
+      NULL
+    }
+  ),
+  method = RhoOAuthLogin()
+) |>
+  rho_await(timeout = 2000L)
+
+expect_true(S7::S7_inherits(oauth_login, AuthErrorValue))
+expect_equal(oauth_login@code, "login_method")
+expect_equal(device_prompts, 0L)
+expect_equal(device_events, 0L)
 
 received_body <- NULL
 received_headers <- NULL

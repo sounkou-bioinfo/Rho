@@ -1,6 +1,12 @@
 
 # rho.ext
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.ext`](https://sounkou-bioinfo.github.io/Rho/rho.ext/) is the open
 extension runtime for [Rho](../../README.md). Extensions register
 handlers, tools, commands, and providers through an explicit API object;
@@ -28,10 +34,9 @@ results[[1L]]
 #> [1] "COMPOSE ME"
 ```
 
-Plain handler values and tasks are normalized at the dispatch boundary.
-This lets an extension perform I/O, ask for permission, or consult
-policy without turning the agent loop into a synchronous callback
-system.
+The dispatcher normalizes plain handler values and tasks. This lets an
+extension perform I/O, ask for permission, or consult policy without
+turning the agent loop into a synchronous callback system.
 
 See the [`rho.ext`
 reference](https://sounkou-bioinfo.github.io/Rho/rho.ext/), the upstream

@@ -63,6 +63,7 @@ jobs:
       - name: Verify generated tests and style contract
         run: |
           make check-version
+          make check-publication
           make check-purled-tests
           make check-models
           make check-style

@@ -96,6 +96,10 @@ RhoFunctionOAuthAuth <- S7::new_class(
   )
 )
 
+RhoLoginMethod <- S7::new_class("RhoLoginMethod", abstract = TRUE)
+RhoApiKeyLogin <- S7::new_class("RhoApiKeyLogin", parent = RhoLoginMethod)
+RhoOAuthLogin <- S7::new_class("RhoOAuthLogin", parent = RhoLoginMethod)
+
 RhoProviderAuth <- S7::new_class(
   "RhoProviderAuth",
   properties = list(
@@ -208,6 +212,34 @@ RhoModels <- S7::new_class(
     auth_context = S7::class_list
   )
 )
+
+S7::method(
+  rho_login_strategy,
+  list(RhoApiKeyLogin, RhoProvider)
+) <- function(method, provider, ...) {
+  strategy <- provider@auth@api_key
+  if (is.null(strategy)) {
+    return(rho_auth_error(
+      sprintf("Provider %s does not support API-key login", provider@id),
+      "login_method"
+    ))
+  }
+  strategy
+}
+
+S7::method(
+  rho_login_strategy,
+  list(RhoOAuthLogin, RhoProvider)
+) <- function(method, provider, ...) {
+  strategy <- provider@auth@oauth
+  if (is.null(strategy)) {
+    return(rho_auth_error(
+      sprintf("Provider %s does not support OAuth login", provider@id),
+      "login_method"
+    ))
+  }
+  strategy
+}
 
 rho_api_key_credential <- function(provider, key, provider_env = list(), source = "explicit") {
   state <- new.env(parent = emptyenv())
@@ -389,8 +421,7 @@ S7::method(rho_available_models, RhoModels) <- function(models, provider_id, ...
   )
 }
 
-rho_login_provider <- function(models, provider_id, io, method = c("oauth", "api_key")) {
-  method <- match.arg(method)
+rho_login_provider <- function(models, provider_id, io, method = RhoOAuthLogin()) {
   provider <- rho_models_provider(models, provider_id)
   if (is.null(provider)) {
     return(rho.async::rho_task(rho_auth_error(
@@ -398,12 +429,9 @@ rho_login_provider <- function(models, provider_id, io, method = c("oauth", "api
       "provider"
     )))
   }
-  strategy <- if (identical(method, "oauth")) provider@auth@oauth else provider@auth@api_key
-  if (is.null(strategy)) {
-    return(rho.async::rho_task(rho_auth_error(
-      sprintf("Provider %s does not support %s login", provider_id, method),
-      "login_method"
-    )))
+  strategy <- rho_login_strategy(method, provider)
+  if (S7::S7_inherits(strategy, ProviderErrorValue)) {
+    return(rho.async::rho_task(strategy))
   }
   rho.async::rho_then(rho_auth_login(strategy, provider_id, io), function(credential) {
     if (S7::S7_inherits(credential, ProviderErrorValue)) {

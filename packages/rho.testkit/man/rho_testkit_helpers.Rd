@@ -8,7 +8,7 @@
 \alias{rho_test_agent}
 \title{Async tinytest helpers}
 \description{
-These helpers make the blocking test boundary explicit and require finite
+These helpers make waits explicit in tests and require finite
 timeouts for tasks and streams. \code{rho_test_agent()} constructs a deterministic
 faux-provider agent fixture.
 }

@@ -4,6 +4,8 @@
 <!-- badges: start -->
 
 [![R-CMD-check](https://github.com/sounkou-bioinfo/Rho/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sounkou-bioinfo/Rho/actions/workflows/R-CMD-check.yaml)
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
 **An asynchronous agent runtime for R, inspired by
@@ -21,7 +23,7 @@ or another agent keeps composing work.
 
 The deterministic provider is the executable specification for the same
 event protocol used by live providers. `rho_prompt()` returns before the
-result is collected; `rho_await()` marks the blocking boundary.
+result is collected; `rho_await()` is the explicit wait.
 
 ``` r
 library(rho.async)
@@ -107,10 +109,15 @@ codex_example <- data.frame(
   tool = tool_result@tool_name,
   result = result
 )
-codex_example
-#>                 model    status tool     result
-#> 1 gpt-5.3-codex-spark completed    r [1] 338350
+saveRDS(
+  codex_example,
+  file = "README_cache/codex-example.rds",
+  version = 3
+)
 ```
+
+    #>                 model    status tool     result
+    #> 1 gpt-5.3-codex-spark completed    r [1] 338350
 
 Rebuild this example by supplying the credential file explicitly:
 
@@ -124,30 +131,30 @@ Rho keeps transport, provider semantics, agent policy, and applications
 in separate installable packages. Each package has a focused README and
 reference site.
 
-| package           | role                                                                    | documentation                                                                                                  |
-|-------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
-| **rho.async**     | tasks, streams, cancellation, timeouts, and composition                 | [README](packages/rho.async/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.async/)         |
-| **rho.http**      | typed HTTP requests, nanonext transport, and SSE decoding               | [README](packages/rho.http/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.http/)           |
-| **rho.ai**        | messages, models, capabilities, credentials, providers, and tools       | [README](packages/rho.ai/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.ai/)               |
-| **rho.agent**     | multi-turn execution, tool scheduling, queues, cancellation, and events | [README](packages/rho.agent/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.agent/)         |
-| **rho.ext**       | asynchronous extension handlers and capability registration             | [README](packages/rho.ext/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.ext/)             |
-| **rho.compute**   | typed mirai expression and function-call tasks                          | [README](packages/rho.compute/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.compute/)     |
-| **rho.graphics**  | declared graphics devices and hashed artifacts                          | [README](packages/rho.graphics/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.graphics/)   |
-| **rho.coding**    | Bash, file, isolated-worker R, and explicit current-session R tools     | [README](packages/rho.coding/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.coding/)       |
-| **rho.bio**       | manifests, resolvers, receipts, and database-neutral SQL contracts      | [README](packages/rho.bio/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.bio/)             |
-| **rho.duckdb**    | DuckDB implementation of the asynchronous SQL contracts                 | [README](packages/rho.duckdb/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/)       |
-| **rho.bio.agent** | bioinformatics tools registered through the extension API               | [README](packages/rho.bio.agent/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/) |
-| **rho.testkit**   | bounded assertions for asynchronous tests                               | [README](packages/rho.testkit/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.testkit/)     |
+| package | role | documentation |
+|---|---|---|
+| **rho.async** | tasks, streams, cancellation, timeouts, and composition | [README](packages/rho.async/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.async/) |
+| **rho.http** | typed HTTP requests, nanonext transport, and SSE decoding | [README](packages/rho.http/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.http/) |
+| **rho.ai** | messages, models, capabilities, credentials, providers, and tools | [README](packages/rho.ai/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.ai/) |
+| **rho.agent** | multi-turn execution, session compaction, tool scheduling, queues, cancellation, and events | [README](packages/rho.agent/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.agent/) |
+| **rho.ext** | asynchronous extension handlers and capability registration | [README](packages/rho.ext/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.ext/) |
+| **rho.compute** | typed mirai expression and function-call tasks | [README](packages/rho.compute/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.compute/) |
+| **rho.graphics** | declared graphics devices and hashed artifacts | [README](packages/rho.graphics/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.graphics/) |
+| **rho.coding** | Bash, file, isolated-worker R, and explicit current-session R tools | [README](packages/rho.coding/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.coding/) |
+| **rho.bio** | manifests, resolvers, receipts, and database-neutral SQL contracts | [README](packages/rho.bio/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.bio/) |
+| **rho.duckdb** | DuckDB implementation of the asynchronous SQL contracts | [README](packages/rho.duckdb/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/) |
+| **rho.bio.agent** | bioinformatics tools registered through the extension API | [README](packages/rho.bio.agent/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/) |
+| **rho.testkit** | bounded assertions for asynchronous tests | [README](packages/rho.testkit/README.md) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.testkit/) |
 
-Provider implementations with no independent dependency or ABI boundary
-live in `rho.ai`. OpenAI Codex, GitHub Copilot, Z.ai, OpenAI, Anthropic,
-Ollama, and the deterministic faux provider therefore share one typed
-provider surface without a package per API. The [Pi parity
+Provider implementations with no independent dependency or ABI
+constraint live in `rho.ai`. OpenAI Codex, GitHub Copilot, Z.ai, OpenAI,
+Anthropic, Ollama, and the deterministic faux provider therefore share
+one typed provider surface without a package per API. The [Pi parity
 ledger](docs/pi-parity.md) distinguishes complete wire adapters from
 request translators whose normalized stream is not yet complete. OpenAI,
 OpenAI Codex, GitHub Copilot, Z.ai, and Anthropic have executable
-normalized-stream fixtures; the ledger records which external account
-runs are still required before publication.
+normalized-stream fixtures; the ledger records the executable and
+external-account evidence for each adapter.
 
 Bioinformatics remains downstream: `rho.bio`, `rho.duckdb`, and
 `rho.bio.agent` consume the provider and agent substrate but do not
@@ -155,8 +162,8 @@ define it.
 
 ## Install and develop
 
-Rho targets R 4.4 or newer. While the repository is private, install
-from a checkout:
+Rho targets R 4.4 or newer. Install the development monorepo from a
+checkout:
 
 ``` bash
 git clone git@github.com:sounkou-bioinfo/Rho.git
@@ -175,6 +182,7 @@ make format       # Air
 make rd           # roxygen2
 make purl-tests   # Rmd tests -> executable tinytest files
 make rdm          # rebuild package READMEs
+make check-publication
 make test
 make check        # every package must report Status: OK
 make public-ready # complete publication gate

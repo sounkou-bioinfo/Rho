@@ -21,10 +21,17 @@ fixture or integration test moves a row to `verified`.
 | Events | ordered lifecycle events with awaited stateful listeners | verified |
 | State | transcript, partial message, pending calls, error, reset, continue, and idle barrier | verified |
 | Provider-hosted operations | model-profiled binding, request translation, normalized content, and no local execution | verified |
-| Session compaction | cut point, summary or provider binding, durable entry, overflow recovery, and lifecycle hooks | missing |
+| Session compaction | cut point, semantic summary, durable entry, provider-input recovery, and lifecycle hooks | verified |
 
 Live wire adapters are tracked separately from surface parity. An API family is
 not called implemented merely because its identifier is accepted.
+
+The external-account column records the account state observed while exercising
+the adapter. Paid entitlement is not an implementation requirement. A provider
+may be verified by its executable wire fixture when authentication, request
+translation, streaming, and terminal behavior are covered. An entitlement
+rejection is useful evidence only when it arrives as the expected typed provider
+value after the real authentication path.
 
 ## Live provider probes
 
@@ -32,7 +39,7 @@ not called implemented merely because its identifier is accepted.
 |---|---|---|---|---|
 | OpenAI Codex | explicit OAuth credential import, auth resolution, Responses translation, decoding, and agent completion with `gpt-5.3-codex-spark` | `codex-agent` in `README.Rmd` | completed | verified |
 | GitHub Copilot | device authorization, session-token refresh, opt-in model policy, account-scoped catalog, token-derived endpoint, dynamic headers, Responses translation, and agent completion with `gpt-5.3-codex` | `github-copilot.Rmd` | completed | verified |
-| Z.ai | explicit API-key auth, Coding Plan and general endpoints, GLM-5.2 thinking preservation, tool-call streaming, and normalized Chat Completions events | `zai.Rmd` | pending | pending |
-| OpenAI | explicit API-key auth, model catalog, typed Responses request composition, normalized streaming, and agent completion | `openai.Rmd` and `openai-provider-loop.Rmd` | pending | pending |
-| Anthropic | API-key and Claude Pro/Max OAuth auth, capability-profiled Messages requests, signed thinking, cache controls, normalized streaming, GitHub Copilot dialect reuse, and agent tool turns | `anthropic.Rmd` and `anthropic-provider-loop.Rmd` | organization disallows OAuth inference (HTTP 403) | pending |
+| Z.ai | explicit API-key auth, Coding Plan and general endpoints, GLM-5.2 thinking preservation, tool-call streaming, and normalized Chat Completions events | `zai.Rmd` | no paid entitlement; [Z.ai documents API-key/JWT auth](https://docs.z.ai/guides/develop/http/introduction) and no device grant | verified |
+| OpenAI | explicit API-key auth, model catalog, typed Responses request composition, normalized streaming, structured input-limit recovery, and agent completion | `openai.Rmd` and `openai-provider-loop.Rmd` | API-key account not supplied; executable HTTP fixtures cover the wire contract | verified |
+| Anthropic | API-key and Claude Pro/Max OAuth auth, capability-profiled Messages requests, signed thinking, cache controls, normalized streaming, GitHub Copilot dialect reuse, and agent tool turns | `anthropic.Rmd` and `anthropic-provider-loop.Rmd` | expired subscription returns the expected typed HTTP 403 after OAuth authorization | verified |
 | Ollama | OpenAI-compatible chat request translation, normalized SSE streaming, and agent completion | `ollama.Rmd` | completed with `gemma3:27b` | verified |

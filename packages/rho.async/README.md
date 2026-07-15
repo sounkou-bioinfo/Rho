@@ -1,6 +1,12 @@
 
 # rho.async
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.async`](https://sounkou-bioinfo.github.io/Rho/rho.async/) is the
 small asynchronous contract at the base of [Rho](../../README.md). A
 `RhoTask` represents one eventual value; a `RhoStream` represents an
@@ -36,7 +42,7 @@ rho_stream_collect(stream, timeout = 1000)
 ```
 
 Composition stays asynchronous. `rho_await()` is deliberately
-conspicuous and is reserved for boundaries such as a CLI, a test, or an
+conspicuous and is reserved for a CLI top level, a test, or an
 interactive request for the finished value. Cancellation and timeout
 operations use the same task contract; adapters own the mechanics of
 stopping their underlying handle.

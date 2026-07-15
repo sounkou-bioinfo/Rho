@@ -1,6 +1,12 @@
 
 # rho.ai
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.ai`](https://sounkou-bioinfo.github.io/Rho/rho.ai/) defines the
 provider surface shared by the rest of [Rho](../../README.md): typed
 messages and content, model capabilities, tool contracts, credentials,

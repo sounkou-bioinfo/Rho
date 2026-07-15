@@ -551,6 +551,18 @@ ProviderErrorValue <- S7::new_class(
 )
 
 AuthErrorValue <- S7::new_class("AuthErrorValue", parent = ProviderErrorValue)
+ProviderInputLimitError <- S7::new_class(
+  "ProviderInputLimitError",
+  parent = ProviderErrorValue
+)
+ProviderContextOverflowError <- S7::new_class(
+  "ProviderContextOverflowError",
+  parent = ProviderInputLimitError
+)
+ProviderRequestTooLargeError <- S7::new_class(
+  "ProviderRequestTooLargeError",
+  parent = ProviderInputLimitError
+)
 
 OperationUnsupported <- S7::new_class(
   "OperationUnsupported",

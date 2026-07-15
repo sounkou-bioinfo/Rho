@@ -6,8 +6,8 @@ optional interactive or storage implementations. A graphics window, terminal
 renderer, or credential cipher must not become an implicit event loop.
 
 Several packages by [Mike Cheng](https://github.com/coolbutuseless) provide useful
-implementations and, equally importantly, sharp examples of where these
-boundaries lie.
+implementations and, equally importantly, sharp examples of how those
+responsibilities should be separated.
 
 ## Component decisions
 

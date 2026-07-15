@@ -18,6 +18,9 @@
 \alias{ToolResult}
 \alias{ToolErrorResult}
 \alias{Tool}
+\alias{ProviderInputLimitError}
+\alias{ProviderContextOverflowError}
+\alias{ProviderRequestTooLargeError}
 \alias{rho_text}
 \alias{rho_thinking}
 \alias{rho_user_message}

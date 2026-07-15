@@ -325,14 +325,42 @@ rho_openai_response_incomplete <- function(payload) {
   OpenAIResponseIncomplete(response = payload$response %||% list())
 }
 
+rho_openai_input_limit_error_factories <- list(
+  context_length_exceeded = function(message, code, details) {
+    rho_provider_context_overflow(message, code, details)
+  },
+  model_context_window_exceeded = function(message, code, details) {
+    rho_provider_context_overflow(message, code, details)
+  }
+)
+
+rho_openai_api_error_value <- function(
+  message,
+  code,
+  details,
+  kind = "api",
+  retryable = FALSE
+) {
+  factory <- rho_openai_input_limit_error_factories[[code]]
+  if (!is.null(factory)) {
+    return(factory(message, code, details))
+  }
+  rho_provider_error(
+    message = message,
+    kind = kind,
+    code = code,
+    retryable = retryable,
+    details = details
+  )
+}
+
 rho_openai_response_api_error <- function(payload) {
   nested <- payload$error %||% list()
   OpenAIResponseError(
-    error = rho_provider_error(
+    error = rho_openai_api_error_value(
       message = as.character(
         payload$message %||% nested$message %||% "OpenAI Codex request failed"
       ),
-      kind = "api",
       code = as.character(payload$code %||% nested$code %||% ""),
       details = payload
     )
@@ -343,12 +371,28 @@ rho_openai_response_failed <- function(payload) {
   response <- payload$response %||% list()
   nested <- response$error %||% list()
   OpenAIResponseError(
-    error = rho_provider_error(
+    error = rho_openai_api_error_value(
       message = as.character(nested$message %||% "OpenAI Codex response failed"),
-      kind = "api",
       code = as.character(nested$code %||% ""),
       details = payload
     )
+  )
+}
+
+S7::method(
+  rho_provider_http_error,
+  list(OpenAIResponsesModel, RhoHttpStatusError)
+) <- function(model, error, ...) {
+  document <- rho_http_error_document(error)
+  nested <- if (is.list(document$error)) document$error else NULL
+  if (is.null(nested)) {
+    return(rho_http_status_provider_error(error))
+  }
+  rho_openai_api_error_value(
+    message = as.character(nested$message %||% error@message),
+    code = as.character(nested$code %||% error@status),
+    details = rho_http_error_details(error),
+    retryable = rho_http_status_retryable(error)
   )
 }
 
@@ -530,7 +574,10 @@ S7::method(
   rho_decode_provider_event,
   list(OpenAIResponseDecoder, RhoHttpError)
 ) <- function(decoder, event, ...) {
-  rho_openai_error_events(decoder, rho_provider_http_error(event))
+  rho_openai_error_events(
+    decoder,
+    rho_provider_http_error(decoder@model, event)
+  )
 }
 
 S7::method(

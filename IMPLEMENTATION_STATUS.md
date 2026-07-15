@@ -14,22 +14,35 @@ health; it does not claim provider or Pi behavioral parity.
 Verified executable behavior now includes typed assistant events, repeated agent
 turns, awaited listeners, steering/follow-up machinery, cancellation, typed
 per-tool overlap requirements, concurrent task joining with source-order
-results, real parallel mirai workers, cross-platform Bash resolution, shell
-execution in mirai workers, isolated R expression evaluation, and an opt-in
-stateful current-session R evaluator. Provider request builders require explicit
+results, real parallel mirai workers, cross-platform resolution of an actual
+Bash executable, shell execution in mirai workers, isolated R expression
+evaluation, and an opt-in stateful current-session R evaluator. Provider request
+builders require explicit
 resolved `RhoModelAuth`; they do not read API keys from process-global
 environment variables. JSON parsing and serialization use `yyjsonr` throughout.
 Semantic operations are planned separately from executable tools. OpenAI and
 Anthropic web search use typed, catalog-backed provider bindings, normalize
 provider activity as content, and reject unbound operations at request
 translation. R expression evaluators use the same binding protocol.
+Agent sessions are append-only: provider context is projected from message,
+compaction, and exclusion entries. Compaction has manual and threshold triggers,
+open policy and compactor methods, typed successful skips and operational
+failures, lifecycle events, and one retry for typed provider input-limit values.
+The HTTP stream retains a configurable bounded body for non-success responses so
+provider adapters can classify structured wire errors without matching message
+text.
 
-Known boundaries that are deliberately explicit rather than faked:
+Known incomplete work, stated directly:
 
 - `rho.ai::rho_faux_provider()` is the deterministic provider used by tests.
 - OpenAI Responses/Codex and Anthropic Messages have typed request and event
   protocols with end-to-end agent fixtures. Ollama still needs normalized NDJSON
   decoding. External-account checks remain recorded in the parity ledger.
+- Z.ai authentication is explicitly API-key based. Its
+  [documented API surface](https://docs.z.ai/guides/develop/http/introduction)
+  offers API-key and JWT bearer authentication, not an OAuth device grant;
+  requesting OAuth therefore resolves to a typed unsupported login-method value
+  without prompting or issuing a network request.
 - `rho.http::rho_sse_connect()` opens the response with the pinned nanonext
   `ncurl_stream_aio()` fork and incrementally decodes arbitrary body chunks. The
   transport remains pinned until the primitive is available from an upstream
@@ -41,10 +54,6 @@ Known boundaries that are deliberately explicit rather than faked:
 - `RhoMiraiExpressionEvaluator` gives isolated worker evaluation.
   `RhoCurrentSessionREvaluator` preserves state only in the environment supplied
   by its caller and requires exclusive execution.
-- Session compaction is not implemented. `rho.ai` exposes the typed operation
-  and provider binding point; all broad methods still report unsupported.
 
-The repository stays private until the parity ledger, package checks, live
-provider checks, generated documentation, and secret scan pass. Public
-release is followed by registration in
-`sounkou-bioinfo/sounkou-bioinfo.r-universe.dev`.
+Publication requires the parity ledger, package checks, provider fixtures,
+generated documentation, and secret scan to pass from the release commit.

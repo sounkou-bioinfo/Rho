@@ -1,6 +1,12 @@
 
 # rho.coding
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.coding`](https://sounkou-bioinfo.github.io/Rho/rho.coding/)
 supplies coding tools with explicit execution semantics: file
 operations, Bash with a typed cross-platform resolution, isolated R
@@ -44,7 +50,8 @@ and requires exclusive scheduling. `RhoRExpression` is also a
 `RhoREvaluationBinding`. A remote NNG evaluator therefore adds evaluator
 methods rather than another agent execution path. Bash follows the same
 discipline: on Windows it resolves a real Bash implementation rather
-than translating model-generated Bash into another shell language.
+than translating model-generated Bash into another shell language, and
+on Unix it reports a typed unavailable value when Bash is absent.
 
 See the [`rho.coding`
 reference](https://sounkou-bioinfo.github.io/Rho/rho.coding/) and its

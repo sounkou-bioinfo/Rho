@@ -56,13 +56,19 @@ rho_scalar_logical <- S7::new_property(
   }
 )
 
+rho_raw_bytes <- S7::new_property(
+  S7::class_raw,
+  default = raw()
+)
+
 RhoHttpClient <- S7::new_class(
   "RhoHttpClient",
   properties = list(
     headers = rho_http_headers,
     timeout_ms = rho_positive_integer,
     tls = S7::class_any,
-    stream_buffer_size = rho_positive_integer
+    stream_buffer_size = rho_positive_integer,
+    max_error_body_bytes = rho_positive_integer
   )
 )
 
@@ -163,6 +169,16 @@ RhoHttpStatusError <- S7::new_class(
   parent = RhoHttpError,
   properties = list(
     status = S7::class_integer,
-    headers = S7::class_list
+    headers = S7::class_list,
+    body = rho_raw_bytes,
+    body_truncated = S7::new_property(S7::class_logical, default = FALSE)
+  )
+)
+
+RhoHttpErrorBody <- S7::new_class(
+  "RhoHttpErrorBody",
+  properties = list(
+    bytes = rho_raw_bytes,
+    truncated = rho_scalar_logical
   )
 )

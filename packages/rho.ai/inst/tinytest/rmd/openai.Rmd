@@ -364,3 +364,72 @@ expect_equal(received_body$reasoning$effort, "high")
 expect_identical(received_body$store, FALSE)
 expect_equal(server$close(), 0L)
 ```
+
+```{r structured-input-limit-error}
+input_limit_events <- rho_decode_provider_event(
+  rho_openai_responses_decoder(model),
+  rho.http::RhoHttpStatusError(
+    message = "HTTP stream returned status 400",
+    url = "https://example.test/responses",
+    status = 400L,
+    headers = list(`content-type` = "application/json"),
+    body = charToRaw(yyjsonr::write_json_str(list(error = list(
+      message = "Maximum context length exceeded",
+      type = "invalid_request_error",
+      param = "input",
+      code = "context_length_exceeded"
+    )), auto_unbox = TRUE))
+  )
+)
+input_limit <- input_limit_events[[length(input_limit_events)]]@error
+
+expect_true(S7::S7_inherits(input_limit, ProviderContextOverflowError))
+expect_true(S7::S7_inherits(input_limit, ProviderInputLimitError))
+expect_equal(input_limit@code, "context_length_exceeded")
+expect_equal(rawToChar(input_limit@details$body), rawToChar(charToRaw(
+  yyjsonr::write_json_str(list(error = list(
+    message = "Maximum context length exceeded",
+    type = "invalid_request_error",
+    param = "input",
+    code = "context_length_exceeded"
+  )), auto_unbox = TRUE)
+)))
+```
+
+```{r structured-retryable-http-errors}
+rate_limit_body <- charToRaw(yyjsonr::write_json_str(list(error = list(
+  message = "Rate limit exceeded",
+  type = "rate_limit_error",
+  code = "rate_limit_exceeded"
+)), auto_unbox = TRUE))
+
+responses_rate_limit <- rho_decode_provider_event(
+  rho_openai_responses_decoder(model),
+  rho.http::RhoHttpStatusError(
+    message = "HTTP stream returned status 429",
+    url = "https://example.test/responses",
+    status = 429L,
+    headers = list(`content-type` = "application/json"),
+    body = rate_limit_body
+  )
+)
+chat_server_error <- rho_decode_provider_event(
+  rho_openai_chat_decoder(rho_ollama_model("fixture")),
+  rho.http::RhoHttpStatusError(
+    message = "HTTP stream returned status 503",
+    url = "https://example.test/chat/completions",
+    status = 503L,
+    headers = list(`content-type` = "application/json"),
+    body = charToRaw(yyjsonr::write_json_str(list(error = list(
+      message = "Service unavailable",
+      type = "server_error",
+      code = "server_error"
+    )), auto_unbox = TRUE))
+  )
+)
+
+expect_true(responses_rate_limit[[2L]]@error@retryable)
+expect_equal(responses_rate_limit[[2L]]@error@code, "rate_limit_exceeded")
+expect_true(chat_server_error[[2L]]@error@retryable)
+expect_equal(chat_server_error[[2L]]@error@code, "server_error")
+```

@@ -1,6 +1,12 @@
 
 # rho.bio
 
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
 [`rho.bio`](https://sounkou-bioinfo.github.io/Rho/rho.bio/) is the
 typed, agent-independent substrate for declared bioinformatics
 resources. Manifests name resolvers and operations; resolution produces
