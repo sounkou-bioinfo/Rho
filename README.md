@@ -109,10 +109,15 @@ codex_example <- data.frame(
   tool = tool_result@tool_name,
   result = result
 )
-codex_example
-#>                 model    status tool     result
-#> 1 gpt-5.3-codex-spark completed    r [1] 338350
+saveRDS(
+  codex_example,
+  file = "README_cache/codex-example.rds",
+  version = 3
+)
 ```
+
+    #>                 model    status tool     result
+    #> 1 gpt-5.3-codex-spark completed    r [1] 338350
 
 Rebuild this example by supplying the credential file explicitly:
 

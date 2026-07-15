@@ -67,7 +67,7 @@ Live authentication is a value passed to the provider catalog. Rho does not
 search environment variables or process-global credential state. The importer
 accepts a Pi or Codex auth file only when its path is supplied by the caller.
 
-```{r codex-agent, cache = TRUE, cache.lazy = FALSE, cache.vars = "codex_example", cache.rebuild = isTRUE(getOption("rho.codex_readme_rebuild", FALSE))}
+```{r codex-agent, eval = isTRUE(getOption("rho.codex_readme_rebuild", FALSE)), results = "hide"}
 library(rho.coding)
 
 credential_path <- getOption("rho.openai_codex_credential")
@@ -110,7 +110,15 @@ codex_example <- data.frame(
   tool = tool_result@tool_name,
   result = result
 )
-codex_example
+saveRDS(
+  codex_example,
+  file = "README_cache/codex-example.rds",
+  version = 3
+)
+```
+
+```{r codex-result, echo = FALSE}
+readRDS("README_cache/codex-example.rds")
 ```
 
 Rebuild this example by supplying the credential file explicitly:
