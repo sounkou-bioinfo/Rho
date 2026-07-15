@@ -9,7 +9,6 @@
 \alias{RhoShellConfig}
 \alias{RhoArgumentShell}
 \alias{RhoBashShell}
-\alias{RhoPosixShell}
 \alias{RhoLegacyWslBashShell}
 \alias{RhoShellUnavailable}
 \alias{RhoShellBackend}

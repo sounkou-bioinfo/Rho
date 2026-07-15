@@ -34,10 +34,9 @@ results[[1L]]
 #> [1] "COMPOSE ME"
 ```
 
-Plain handler values and tasks are normalized at the dispatch boundary.
-This lets an extension perform I/O, ask for permission, or consult
-policy without turning the agent loop into a synchronous callback
-system.
+The dispatcher normalizes plain handler values and tasks. This lets an
+extension perform I/O, ask for permission, or consult policy without
+turning the agent loop into a synchronous callback system.
 
 See the [`rho.ext`
 reference](https://sounkou-bioinfo.github.io/Rho/rho.ext/), the upstream

@@ -10,7 +10,7 @@
 #'
 #' @name rho_coding_contracts
 #' @aliases RhoPlatform RhoUnixPlatform RhoWindowsPlatform RhoShellResolution
-#' @aliases RhoShellConfig RhoArgumentShell RhoBashShell RhoPosixShell
+#' @aliases RhoShellConfig RhoArgumentShell RhoBashShell
 #' @aliases RhoLegacyWslBashShell RhoShellUnavailable RhoShellBackend
 #' @aliases RhoMiraiShellBackend RhoShellOutcome RhoShellCompleted
 #' @aliases RhoShellFailure RhoRExpression RhoREvaluator
@@ -29,7 +29,6 @@
 #' @export RhoShellConfig
 #' @export RhoArgumentShell
 #' @export RhoBashShell
-#' @export RhoPosixShell
 #' @export RhoLegacyWslBashShell
 #' @export RhoShellUnavailable
 #' @export RhoShellBackend

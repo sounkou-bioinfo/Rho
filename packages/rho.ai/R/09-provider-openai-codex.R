@@ -714,7 +714,7 @@ S7::method(
     return(rho_full_tool_placement(
       context@tools,
       reason = sprintf(
-        "OpenAI tool search is not verified for %s; all active definitions are advertised at the request boundary",
+        "OpenAI tool search is not verified for %s; every request advertises all active definitions",
         model@id
       ),
       cache_expectation = if (length(rho_deferred_tool_names(context))) {

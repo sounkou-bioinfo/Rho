@@ -42,7 +42,7 @@ rho_stream_collect(stream, timeout = 1000)
 ```
 
 Composition stays asynchronous. `rho_await()` is deliberately
-conspicuous and is reserved for boundaries such as a CLI, a test, or an
+conspicuous and is reserved for a CLI top level, a test, or an
 interactive request for the finished value. Cancellation and timeout
 operations use the same task contract; adapters own the mechanics of
 stopping their underlying handle.

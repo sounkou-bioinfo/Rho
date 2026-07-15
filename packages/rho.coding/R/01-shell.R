@@ -11,7 +11,7 @@ RhoPlatform <- S7::new_class("RhoPlatform", abstract = TRUE)
 RhoUnixPlatform <- S7::new_class(
   "RhoUnixPlatform",
   parent = RhoPlatform,
-  properties = list(bash = S7::class_character, posix_shell = S7::class_character)
+  properties = list(bash = S7::class_character)
 )
 RhoWindowsPlatform <- S7::new_class(
   "RhoWindowsPlatform",
@@ -32,7 +32,6 @@ RhoArgumentShell <- S7::new_class(
   abstract = TRUE
 )
 RhoBashShell <- S7::new_class("RhoBashShell", parent = RhoArgumentShell)
-RhoPosixShell <- S7::new_class("RhoPosixShell", parent = RhoArgumentShell)
 RhoLegacyWslBashShell <- S7::new_class(
   "RhoLegacyWslBashShell",
   parent = RhoShellConfig
@@ -105,11 +104,7 @@ rho_current_platform <- function() {
     if (file.exists("/bin/bash")) "/bin/bash" else character(),
     unname(Sys.which("bash"))
   )
-  posix_shell <- unname(Sys.which("sh"))
-  RhoUnixPlatform(
-    bash = unique(bash[nzchar(bash)]),
-    posix_shell = posix_shell[nzchar(posix_shell)]
-  )
+  RhoUnixPlatform(bash = unique(bash[nzchar(bash)]))
 }
 
 rho_is_legacy_wsl_bash <- function(path) {
@@ -145,16 +140,9 @@ S7::method(rho_resolve_bash, RhoUnixPlatform) <- function(platform, shell_path =
   if (length(bash)) {
     return(rho_bash_shell(bash[[1L]], "Bash was available on this Unix platform"))
   }
-  posix_shell <- rho_existing_shell(platform@posix_shell)
-  if (length(posix_shell)) {
-    return(RhoPosixShell(
-      executable = posix_shell[[1L]],
-      reason = "Bash was unavailable; a POSIX shell was selected explicitly"
-    ))
-  }
   RhoShellUnavailable(
-    message = "Neither Bash nor a POSIX shell is available",
-    searched = c(platform@bash, platform@posix_shell)
+    message = "No Bash executable is available on this Unix platform",
+    searched = platform@bash
   )
 }
 

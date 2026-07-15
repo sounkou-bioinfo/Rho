@@ -34,6 +34,10 @@ expect_true(
     S7::S7_inherits(shell, RhoShellUnavailable)
 )
 
+unavailable_unix <- rho_resolve_bash(RhoUnixPlatform(bash = character()))
+expect_true(S7::S7_inherits(unavailable_unix, RhoShellUnavailable))
+expect_true(grepl("Bash", unavailable_unix@message, fixed = TRUE))
+
 fake_git_bash <- tempfile(fileext = "bash.exe")
 file.create(fake_git_bash)
 windows <- RhoWindowsPlatform(bash = fake_git_bash)

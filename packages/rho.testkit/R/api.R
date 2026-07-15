@@ -1,6 +1,6 @@
 #' Async tinytest helpers
 #'
-#' These helpers make the blocking test boundary explicit and require finite
+#' These helpers make waits explicit in tests and require finite
 #' timeouts for tasks and streams. `rho_test_agent()` constructs a deterministic
 #' faux-provider agent fixture.
 #'

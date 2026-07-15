@@ -8,7 +8,7 @@ Authors@R:
            email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
 Description: Defines an open extension runtime for Rho. Extension handlers and
     registered tools are validated as typed values and normalized to
-    asynchronous tasks at the dispatch boundary.
+    asynchronous tasks during dispatch.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

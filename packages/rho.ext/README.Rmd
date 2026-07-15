@@ -37,7 +37,7 @@ results <- rho_dispatch_event(
 results[[1L]]
 ```
 
-Plain handler values and tasks are normalized at the dispatch boundary. This
+The dispatcher normalizes plain handler values and tasks. This
 lets an extension perform I/O, ask for permission, or consult policy without
 turning the agent loop into a synchronous callback system.
 
