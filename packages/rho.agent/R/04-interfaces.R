@@ -23,6 +23,16 @@ AgentPolicy <- s7contract::new_interface(
       args = list(context = RhoCompletedToolContext),
       returns = rho.async::RhoTask
     ),
+    rho_before_compaction = s7contract::interface_requirement(
+      rho_before_compaction,
+      args = list(context = RhoBeforeCompactionContext),
+      returns = rho.async::RhoTask
+    ),
+    rho_after_compaction = s7contract::interface_requirement(
+      rho_after_compaction,
+      args = list(context = RhoAfterCompactionContext),
+      returns = rho.async::RhoTask
+    ),
     rho_prepare_next_turn = rho_prepare_next_turn
   )
 )

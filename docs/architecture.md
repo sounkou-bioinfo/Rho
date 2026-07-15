@@ -1,6 +1,6 @@
 # Architecture
 
-Rho is organized around acyclic package boundaries and async effects.
+Rho has an acyclic package graph and asynchronous effects.
 
 ```text
 rho.async -> rho.http -> rho.ai -> rho.agent -> rho.ext -> rho.coding
@@ -32,7 +32,7 @@ executing R bytecode in parallel. True R-process parallelism comes from the
 tool-selected mirai compute profile. Compute-profile size and placement remain
 deployment decisions.
 
-The worker boundary is represented by values rather than inferred from an R
+Worker selection is represented by values rather than inferred from an R
 expression. `RhoComputeExpressionSpec` carries quoted code plus explicitly named
 arguments. `RhoComputeCallSpec` carries a worker function plus explicitly named
 arguments. `rho_submit_compute()` dispatches on both the backend and the spec;
@@ -110,7 +110,7 @@ For dynamic tools, `ToolResultMessage@added_tool_names` is the portable transcri
 fact. `rho_plan_tools()` returns one of these successful plans:
 
 - `RhoFullToolPlacement`: advertise every active definition at the request
-  boundary and state whether that may replace the cached prefix.
+  request and state whether that may replace the cached prefix.
 - `RhoOpenAIToolSearchPlacement`: put newly activated definitions into completed
   client tool-search items at the recorded tool-result position.
 - `RhoAnthropicToolReferencePlacement`: defer definitions and expose references at
@@ -120,20 +120,20 @@ The complete-placement plan is not an error: all requested tools remain availabl
 Only the cache optimization differs. Provider support is queried through typed
 operation values and `rho_provider_support()` instead of a universal boolean map.
 
-## Compaction boundary
+## Session compaction
 
 Session compaction belongs to the agent harness. A provider-native compaction
 primitive is one possible binding of that semantic operation, not the owner of
 the policy.
 
-`rho.ai` currently defines `RhoCompactionOperation`, the provider-binding point,
-and typed unsupported defaults. It does not yet claim a working compactor.
-`rho.agent` still needs the session cut point, summary generation, durable entry,
-overflow recovery, and before/after protocol. Coding and bio packages may then
-specialize which facts survive. A provider-encrypted item is an input
-optimization, not a durable semantic summary.
+`rho.ai` defines `RhoCompactionOperation`, the provider-binding point, and typed
+unsupported defaults. `rho.agent` owns the append-only session, stable cut point,
+semantic summary, durable compaction entry, threshold trigger, provider-input
+recovery, and before/after policy methods. An application may provide another
+compactor or specialize the public generics without replacing the loop. A
+provider-encrypted item is an input optimization, not a durable semantic summary.
 
-## Authentication boundary
+## Authentication
 
 Credentials are effects supplied through an explicit `CredentialStore`; provider
 implementations do not read API keys from environment variables. Login and token
@@ -152,7 +152,7 @@ renderers, and desktop toolkits own their presentation lifecycle without taking
 over provider or agent scheduling.
 
 Candidate R-native presentation and secure-storage components, together with
-their package-boundary decisions, are recorded in
+their package responsibilities, are recorded in
 [R-native interaction and secure storage](r-native-runtime.md).
 
 ## Publication gate

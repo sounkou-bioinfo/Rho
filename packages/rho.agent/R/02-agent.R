@@ -22,6 +22,19 @@ rho_abort_agent <- S7::new_generic("rho_abort_agent", "agent", function(agent, r
 rho_wait_for_idle <- S7::new_generic("rho_wait_for_idle", "agent", function(agent, ...) {
   S7::S7_dispatch()
 })
+rho_compact <- S7::new_generic(
+  "rho_compact",
+  "agent",
+  function(
+    agent,
+    custom_instructions = "",
+    reason = RhoManualCompaction(),
+    will_retry = FALSE,
+    ...
+  ) {
+    S7::S7_dispatch()
+  }
+)
 rho_emit_agent_event <- S7::new_generic(
   "rho_emit_agent_event",
   "agent",
@@ -101,6 +114,84 @@ rho_completed_tool_context <- S7::new_generic(
   c("context", "result"),
   function(context, result, is_error = FALSE, ...) S7::S7_dispatch()
 )
+rho_append_session_entry <- S7::new_generic(
+  "rho_append_session_entry",
+  c("agent", "entry"),
+  function(agent, entry, ...) S7::S7_dispatch()
+)
+rho_build_agent_context <- S7::new_generic(
+  "rho_build_agent_context",
+  "agent",
+  function(agent, ...) S7::S7_dispatch()
+)
+rho_project_session_entry <- S7::new_generic(
+  "rho_project_session_entry",
+  c("entry", "agent"),
+  function(entry, agent, ...) S7::S7_dispatch()
+)
+rho_estimate_tokens <- S7::new_generic(
+  "rho_estimate_tokens",
+  "x",
+  function(x, ...) S7::S7_dispatch()
+)
+rho_context_usage <- S7::new_generic(
+  "rho_context_usage",
+  "messages",
+  function(messages, after = -Inf, ...) S7::S7_dispatch()
+)
+rho_should_compact <- S7::new_generic(
+  "rho_should_compact",
+  c("settings", "usage", "model"),
+  function(settings, usage, model, ...) S7::S7_dispatch()
+)
+rho_prepare_compaction <- S7::new_generic(
+  "rho_prepare_compaction",
+  c("agent", "settings"),
+  function(agent, settings, ...) S7::S7_dispatch()
+)
+rho_compact_preparation <- S7::new_generic(
+  "rho_compact_preparation",
+  c("compactor", "preparation"),
+  function(
+    compactor,
+    preparation,
+    agent,
+    custom_instructions = "",
+    ...
+  ) {
+    S7::S7_dispatch()
+  }
+)
+rho_before_compaction <- S7::new_generic(
+  "rho_before_compaction",
+  c("policy", "context"),
+  function(policy, context, ...) S7::S7_dispatch()
+)
+rho_after_compaction <- S7::new_generic(
+  "rho_after_compaction",
+  c("policy", "context"),
+  function(policy, context, ...) S7::S7_dispatch()
+)
+rho_compaction_cut_allowed <- S7::new_generic(
+  "rho_compaction_cut_allowed",
+  "entry",
+  function(entry, ...) S7::S7_dispatch()
+)
+rho_compaction_message_cut_allowed <- S7::new_generic(
+  "rho_compaction_message_cut_allowed",
+  "message",
+  function(message, ...) S7::S7_dispatch()
+)
+rho_compaction_text <- S7::new_generic(
+  "rho_compaction_text",
+  "x",
+  function(x, ...) S7::S7_dispatch()
+)
+rho_error_requests_compaction <- S7::new_generic(
+  "rho_error_requests_compaction",
+  c("error", "model"),
+  function(error, model, ...) S7::S7_dispatch()
+)
 
 rho_agent_error <- function(message, kind = "agent", retryable = FALSE, details = list()) {
   RhoAgentErrorValue(
@@ -130,6 +221,55 @@ rho_next_turn_decision <- function(
     context = context,
     model = model,
     stream_options = stream_options
+  )
+}
+
+rho_compaction_settings <- function(
+  enabled = TRUE,
+  reserve_tokens = 16384L,
+  keep_recent_tokens = 20000L
+) {
+  RhoCompactionSettings(
+    enabled = enabled,
+    reserve_tokens = reserve_tokens,
+    keep_recent_tokens = keep_recent_tokens
+  )
+}
+
+rho_before_compaction_decision <- function(cancel = FALSE, result = NULL) {
+  RhoBeforeCompactionDecision(cancel = cancel, result = result)
+}
+
+rho_compaction_result <- function(
+  summary,
+  first_kept_entry_id,
+  tokens_before,
+  details = list(),
+  source = RhoProvidedCompaction()
+) {
+  RhoCompactionResult(
+    summary = summary,
+    first_kept_entry_id = first_kept_entry_id,
+    tokens_before = as.double(tokens_before),
+    details = details,
+    source = source
+  )
+}
+
+rho_nothing_to_compact <- function(message, details = list()) {
+  RhoNothingToCompact(message = message, details = details)
+}
+
+rho_compaction_cancelled <- function(message, details = list()) {
+  RhoCompactionCancelled(message = message, details = details)
+}
+
+rho_compaction_error <- function(error_class, message, details = list()) {
+  error_class(
+    kind = "compaction",
+    message = message,
+    retryable = FALSE,
+    details = details
   )
 }
 
@@ -231,10 +371,14 @@ rho_agent <- function(
   steering_mode = RhoOneAtATimeQueue(),
   follow_up_mode = RhoOneAtATimeQueue(),
   policy = RhoDefaultAgentPolicy(),
+  compaction = rho_compaction_settings(),
+  compactor = RhoSummaryCompactor(),
   stream_options = list()
 ) {
   state <- rho_new_state(
     messages = list(),
+    entries = list(),
+    entry_sequence = 0L,
     tools = rho_tool_registry(tools),
     listeners = list(),
     steering_queue = list(),
@@ -261,12 +405,15 @@ rho_agent <- function(
       steering_mode = steering_mode,
       follow_up_mode = follow_up_mode,
       policy = policy,
+      compaction = compaction,
+      compactor = compactor,
       stream_options = stream_options
     )
   )
 }
 
 rho_state_messages <- function(agent) agent@state$messages
+rho_state_entries <- function(agent) agent@state$entries
 
 S7::method(
   rho_handle_agent_event,
@@ -369,6 +516,8 @@ S7::method(rho_reset, RhoAgent) <- function(agent, ...) {
     return(rho.async::rho_task(rho_agent_error("Cannot reset a running agent", "busy")))
   }
   agent@state$messages <- list()
+  agent@state$entries <- list()
+  agent@state$entry_sequence <- 0L
   agent@state$events <- list()
   agent@state$steering_queue <- list()
   agent@state$follow_up_queue <- list()

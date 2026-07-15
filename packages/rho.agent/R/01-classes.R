@@ -28,6 +28,235 @@ rho_nonnegative_integer <- S7::new_property(
   }
 )
 
+rho_positive_integer <- S7::new_property(
+  S7::class_integer,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value) || value <= 0L) {
+      "must be one positive integer"
+    }
+  }
+)
+
+rho_nonnegative_double <- S7::new_property(
+  S7::class_double,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value) || value < 0) {
+      "must be one non-negative number"
+    }
+  }
+)
+
+rho_scalar_double <- S7::new_property(
+  S7::class_double,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value)) {
+      "must be one non-missing number"
+    }
+  }
+)
+
+rho_scalar_logical <- S7::new_property(
+  S7::class_logical,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value)) {
+      "must be one non-missing logical value"
+    }
+  }
+)
+
+rho_optional_positive_integer <- S7::new_property(
+  S7::class_any,
+  default = NULL,
+  validator = function(value) {
+    if (
+      !is.null(value) &&
+        (!is.integer(value) || length(value) != 1L || is.na(value) || value <= 0L)
+    ) {
+      "must be NULL or one positive integer"
+    }
+  }
+)
+
+rho_non_empty_string <- S7::new_property(
+  S7::class_character,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value) || !nzchar(value)) {
+      "must be one non-empty string"
+    }
+  }
+)
+
+RhoCompactionReason <- S7::new_class("RhoCompactionReason", abstract = TRUE)
+RhoManualCompaction <- S7::new_class(
+  "RhoManualCompaction",
+  parent = RhoCompactionReason
+)
+RhoThresholdCompaction <- S7::new_class(
+  "RhoThresholdCompaction",
+  parent = RhoCompactionReason
+)
+RhoProviderInputLimitCompaction <- S7::new_class(
+  "RhoProviderInputLimitCompaction",
+  parent = RhoCompactionReason
+)
+
+RhoCompactionSource <- S7::new_class("RhoCompactionSource", abstract = TRUE)
+RhoGeneratedCompaction <- S7::new_class(
+  "RhoGeneratedCompaction",
+  parent = RhoCompactionSource
+)
+RhoProvidedCompaction <- S7::new_class(
+  "RhoProvidedCompaction",
+  parent = RhoCompactionSource
+)
+
+RhoCompactionOutcome <- S7::new_class("RhoCompactionOutcome", abstract = TRUE)
+RhoCompactionSkipped <- S7::new_class(
+  "RhoCompactionSkipped",
+  parent = RhoCompactionOutcome,
+  properties = list(
+    message = rho_non_empty_string,
+    details = S7::class_list
+  )
+)
+RhoNothingToCompact <- S7::new_class(
+  "RhoNothingToCompact",
+  parent = RhoCompactionSkipped
+)
+RhoCompactionCancelled <- S7::new_class(
+  "RhoCompactionCancelled",
+  parent = RhoCompactionSkipped
+)
+
+RhoCompactor <- S7::new_class("RhoCompactor", abstract = TRUE)
+RhoSummaryCompactor <- S7::new_class("RhoSummaryCompactor", parent = RhoCompactor)
+
+RhoCompactionSettings <- S7::new_class(
+  "RhoCompactionSettings",
+  properties = list(
+    enabled = rho_scalar_logical,
+    reserve_tokens = rho_positive_integer,
+    keep_recent_tokens = rho_positive_integer
+  )
+)
+
+RhoContextUsage <- S7::new_class(
+  "RhoContextUsage",
+  properties = list(
+    tokens = rho_nonnegative_double,
+    usage_tokens = rho_nonnegative_double,
+    trailing_tokens = rho_nonnegative_double,
+    last_usage_index = rho_optional_positive_integer
+  )
+)
+
+RhoSessionEntry <- S7::new_class(
+  "RhoSessionEntry",
+  abstract = TRUE,
+  properties = list(
+    id = rho_non_empty_string,
+    timestamp = rho_nonnegative_double
+  )
+)
+
+rho_session_message <- S7::new_property(
+  S7::class_any,
+  validator = function(value) {
+    if (
+      !S7::S7_inherits(value, rho.ai::UserMessage) &&
+        !S7::S7_inherits(value, rho.ai::AssistantMessage) &&
+        !S7::S7_inherits(value, rho.ai::ToolResultMessage)
+    ) {
+      "must be a UserMessage, AssistantMessage, or ToolResultMessage"
+    }
+  }
+)
+
+rho_session_messages <- S7::new_property(
+  S7::class_list,
+  validator = function(value) {
+    invalid <- Filter(
+      function(message) {
+        !S7::S7_inherits(message, rho.ai::UserMessage) &&
+          !S7::S7_inherits(message, rho.ai::AssistantMessage) &&
+          !S7::S7_inherits(message, rho.ai::ToolResultMessage)
+      },
+      value
+    )
+    if (length(invalid)) {
+      "must contain only UserMessage, AssistantMessage, or ToolResultMessage values"
+    }
+  }
+)
+
+RhoSessionMessageEntry <- S7::new_class(
+  "RhoSessionMessageEntry",
+  parent = RhoSessionEntry,
+  properties = list(message = rho_session_message)
+)
+
+RhoCompactionPreparation <- S7::new_class(
+  "RhoCompactionPreparation",
+  properties = list(
+    first_kept_entry_id = rho_non_empty_string,
+    messages = rho_session_messages,
+    turn_prefix = rho_session_messages,
+    split_turn = rho_scalar_logical,
+    tokens_before = rho_nonnegative_double,
+    previous_summary = S7::class_character,
+    settings = RhoCompactionSettings
+  )
+)
+
+RhoCompactionCheckpoint <- S7::new_class(
+  "RhoCompactionCheckpoint",
+  properties = list(
+    start = rho_positive_integer,
+    previous_summary = S7::class_character,
+    timestamp = rho_scalar_double
+  )
+)
+
+RhoCompactionCut <- S7::new_class(
+  "RhoCompactionCut",
+  properties = list(
+    first_kept = rho_positive_integer,
+    turn_start = rho_optional_positive_integer,
+    split_turn = rho_scalar_logical
+  )
+)
+
+RhoCompactionResult <- S7::new_class(
+  "RhoCompactionResult",
+  parent = RhoCompactionOutcome,
+  properties = list(
+    summary = rho_non_empty_string,
+    first_kept_entry_id = rho_non_empty_string,
+    tokens_before = rho_nonnegative_double,
+    details = S7::class_any,
+    source = RhoCompactionSource
+  )
+)
+
+RhoSessionCompactionEntry <- S7::new_class(
+  "RhoSessionCompactionEntry",
+  parent = RhoSessionEntry,
+  properties = list(
+    result = RhoCompactionResult,
+    reason = RhoCompactionReason,
+    will_retry = rho_scalar_logical
+  )
+)
+
+RhoSessionContextExclusionEntry <- S7::new_class(
+  "RhoSessionContextExclusionEntry",
+  parent = RhoSessionEntry,
+  properties = list(
+    target_entry_id = rho_non_empty_string,
+    reason = RhoCompactionReason
+  )
+)
+
 RhoAgentPolicy <- S7::new_class("RhoAgentPolicy", abstract = TRUE)
 RhoDefaultAgentPolicy <- S7::new_class("RhoDefaultAgentPolicy", parent = RhoAgentPolicy)
 
@@ -42,6 +271,8 @@ RhoAgentOptions <- S7::new_class(
     steering_mode = RhoQueueMode,
     follow_up_mode = RhoQueueMode,
     policy = RhoAgentPolicy,
+    compaction = RhoCompactionSettings,
+    compactor = RhoCompactor,
     stream_options = S7::class_list
   )
 )
@@ -52,6 +283,8 @@ RhoAgent <- S7::new_class(
   validator = function(self) {
     required <- c(
       "messages",
+      "entries",
+      "entry_sequence",
       "tools",
       "listeners",
       "steering_queue",
@@ -141,10 +374,24 @@ RhoAgentErrorValue <- S7::new_class(
   )
 )
 
+RhoCompactionErrorValue <- S7::new_class(
+  "RhoCompactionErrorValue",
+  parent = RhoAgentErrorValue
+)
+RhoCompactionFailure <- S7::new_class(
+  "RhoCompactionFailure",
+  parent = RhoCompactionErrorValue
+)
+RhoCompactionBusy <- S7::new_class(
+  "RhoCompactionBusy",
+  parent = RhoCompactionErrorValue
+)
+
 RhoAgentRunResult <- S7::new_class(
   "RhoAgentRunResult",
   properties = list(
     messages = S7::class_list,
+    entries = S7::class_list,
     tool_results = S7::class_list,
     events = S7::class_list,
     status = rho_agent_run_status,
@@ -177,7 +424,14 @@ RhoAssistantTurn <- S7::new_class(
   "RhoAssistantTurn",
   properties = list(state = S7::class_environment),
   validator = function(self) {
-    required <- c("agent", "message_index", "message", "terminal", "error")
+    required <- c(
+      "agent",
+      "message_index",
+      "entry_index",
+      "message",
+      "terminal",
+      "error"
+    )
     missing <- setdiff(required, ls(self@state, all.names = TRUE))
     if (length(missing)) sprintf("@state missing field(s): %s", paste(missing, collapse = ", "))
   }
@@ -185,12 +439,81 @@ RhoAssistantTurn <- S7::new_class(
 
 RhoAssistantResponse <- S7::new_class(
   "RhoAssistantResponse",
-  properties = list(message = rho.ai::AssistantMessage, error = S7::class_any)
+  properties = list(
+    message = rho.ai::AssistantMessage,
+    error = S7::class_any,
+    entry_id = rho_non_empty_string
+  )
 )
 
 RhoToolBatch <- S7::new_class(
   "RhoToolBatch",
   properties = list(messages = S7::class_list, terminate = S7::class_logical)
+)
+
+rho_optional_compaction_result <- S7::new_property(
+  S7::class_any,
+  default = NULL,
+  validator = function(value) {
+    if (!is.null(value) && !S7::S7_inherits(value, RhoCompactionResult)) {
+      "must be NULL or a RhoCompactionResult"
+    }
+  }
+)
+
+rho_optional_compaction_outcome <- S7::new_property(
+  S7::class_any,
+  default = NULL,
+  validator = function(value) {
+    if (!is.null(value) && !S7::S7_inherits(value, RhoCompactionOutcome)) {
+      "must be NULL or a RhoCompactionOutcome"
+    }
+  }
+)
+
+rho_optional_compaction_error <- S7::new_property(
+  S7::class_any,
+  default = NULL,
+  validator = function(value) {
+    if (!is.null(value) && !S7::S7_inherits(value, RhoCompactionErrorValue)) {
+      "must be NULL or a RhoCompactionErrorValue"
+    }
+  }
+)
+
+RhoBeforeCompactionContext <- S7::new_class(
+  "RhoBeforeCompactionContext",
+  properties = list(
+    agent = RhoAgent,
+    preparation = RhoCompactionPreparation,
+    reason = RhoCompactionReason,
+    will_retry = rho_scalar_logical,
+    custom_instructions = S7::class_character
+  )
+)
+
+RhoBeforeCompactionDecision <- S7::new_class(
+  "RhoBeforeCompactionDecision",
+  properties = list(
+    cancel = rho_scalar_logical,
+    result = rho_optional_compaction_result
+  ),
+  validator = function(self) {
+    if (self@cancel && !is.null(self@result)) {
+      "@result must be NULL when @cancel is TRUE"
+    }
+  }
+)
+
+RhoAfterCompactionContext <- S7::new_class(
+  "RhoAfterCompactionContext",
+  properties = list(
+    agent = RhoAgent,
+    entry = RhoSessionCompactionEntry,
+    result = RhoCompactionResult,
+    reason = RhoCompactionReason,
+    will_retry = rho_scalar_logical
+  )
 )
 
 RhoAgentEvent <- S7::new_class(
@@ -264,4 +587,23 @@ RhoQueueUpdateEvent <- S7::new_class(
   "RhoQueueUpdateEvent",
   parent = RhoAgentEvent,
   properties = list(queue = S7::class_character, size = rho_nonnegative_integer)
+)
+RhoCompactionStartEvent <- S7::new_class(
+  "RhoCompactionStartEvent",
+  parent = RhoAgentEvent,
+  properties = list(
+    reason = RhoCompactionReason,
+    will_retry = rho_scalar_logical,
+    preparation = RhoCompactionPreparation
+  )
+)
+RhoCompactionEndEvent <- S7::new_class(
+  "RhoCompactionEndEvent",
+  parent = RhoAgentEvent,
+  properties = list(
+    reason = RhoCompactionReason,
+    will_retry = rho_scalar_logical,
+    outcome = rho_optional_compaction_outcome,
+    error = rho_optional_compaction_error
+  )
 )

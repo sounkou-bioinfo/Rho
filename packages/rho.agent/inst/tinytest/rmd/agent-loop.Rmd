@@ -384,7 +384,7 @@ expect_equal(result@error@message, "fixture cancellation")
 expect_equal(agent@state$phase, "idle")
 ```
 
-```{r reset-and-idle-boundary}
+```{r reset-and-idle-state}
 state_agent <- rho_agent(rho_faux_provider(), rho_model("faux", "faux"))
 rho_prompt(state_agent, "state") |> rho_await()
 

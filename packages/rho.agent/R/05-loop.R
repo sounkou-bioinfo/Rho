@@ -14,6 +14,7 @@ rho_agent_run_result <- function(
   }
   RhoAgentRunResult(
     messages = agent@state$messages,
+    entries = agent@state$entries,
     tool_results = tool_results,
     events = events,
     status = status,
@@ -74,7 +75,9 @@ rho_append_agent_messages <- function(agent, messages) {
   rho.async::rho_coro_task(
     function() {
       for (message in messages) {
-        agent@state$messages[[length(agent@state$messages) + 1L]] <- message
+        coro::await(rho.async::rho_as_promise(
+          rho_record_agent_message(agent, message)
+        ))
         coro::await(rho.async::rho_as_promise(
           rho_emit_agent_event(agent, rho_message_start_event(message))
         ))
@@ -140,6 +143,7 @@ rho_run_agent_loop <- function(
       run_status <- "completed"
       run_error <- NULL
       turn <- 0L
+      input_limit_recovery_attempted <- FALSE
 
       coro::await(rho.async::rho_as_promise(
         rho_emit_agent_event(agent, rho_agent_start_event())
@@ -166,26 +170,57 @@ rho_run_agent_loop <- function(
           pending <- list()
         }
 
-        model_context <- rho.ai::rho_context(
-          agent@options@system_prompt,
-          agent@state$messages,
-          agent@state$tools,
-          agent@options@operations
-        )
+        model_context <- coro::await(rho.async::rho_as_promise(
+          rho_context_after_threshold_compaction(agent)
+        ))
+        if (S7::S7_inherits(model_context, RhoCompactionErrorValue)) {
+          run_status <- "error"
+          run_error <- model_context
+          break
+        }
         response <- coro::await(rho.async::rho_as_promise(
           rho_receive_assistant(agent, model_context)
         ))
         assistant <- response@message
         if (!is.null(response@error)) {
+          coro::await(rho.async::rho_as_promise(
+            rho_emit_agent_event(agent, rho_turn_end_event(turn, assistant, list()))
+          ))
+          compact_for_error <- rho_error_requests_compaction(
+            response@error,
+            agent@options@model
+          )
+          if (compact_for_error && !input_limit_recovery_attempted) {
+            input_limit_recovery_attempted <- TRUE
+            coro::await(rho.async::rho_as_promise(
+              rho_exclude_session_entry(
+                agent,
+                response@entry_id,
+                RhoProviderInputLimitCompaction()
+              )
+            ))
+            compacted <- coro::await(rho.async::rho_as_promise(
+              rho_run_compaction(
+                agent,
+                RhoProviderInputLimitCompaction(),
+                will_retry = TRUE
+              )
+            ))
+            if (S7::S7_inherits(compacted, RhoCompactionResult)) {
+              next
+            }
+            if (S7::S7_inherits(compacted, RhoCompactionErrorValue)) {
+              run_error <- compacted
+              run_status <- "error"
+              break
+            }
+          }
           if (identical(response@error@kind, "aborted")) {
             run_status <- "aborted"
           } else {
             run_status <- "error"
           }
           run_error <- response@error
-          coro::await(rho.async::rho_as_promise(
-            rho_emit_agent_event(agent, rho_turn_end_event(turn, assistant, list()))
-          ))
           break
         }
 
@@ -209,7 +244,11 @@ rho_run_agent_loop <- function(
           break
         }
 
-        agent@state$messages <- c(agent@state$messages, batch@messages)
+        for (message in batch@messages) {
+          coro::await(rho.async::rho_as_promise(
+            rho_record_agent_message(agent, message)
+          ))
+        }
         tool_results <- c(tool_results, batch@messages)
         coro::await(rho.async::rho_as_promise(
           rho_emit_agent_event(

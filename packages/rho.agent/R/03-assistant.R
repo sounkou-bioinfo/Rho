@@ -12,6 +12,7 @@ rho_assistant_turn <- function(agent) {
     state = rho_new_state(
       agent = agent,
       message_index = 0L,
+      entry_index = 0L,
       message = NULL,
       terminal = FALSE,
       error = NULL
@@ -23,12 +24,21 @@ rho_store_assistant_message <- function(turn, message) {
   agent <- turn@state$agent
   turn@state$message <- message
   if (turn@state$message_index == 0L) {
-    agent@state$messages[[length(agent@state$messages) + 1L]] <- message
-    turn@state$message_index <- length(agent@state$messages)
-    return(rho_emit_agent_event(agent, rho_message_start_event(message)))
+    return(rho.async::rho_then(
+      rho_record_agent_message(agent, message),
+      function(recorded) {
+        turn@state$message_index <- length(agent@state$messages)
+        turn@state$entry_index <- length(agent@state$entries)
+        rho_emit_agent_event(agent, rho_message_start_event(message))
+      }
+    ))
   }
-  agent@state$messages[[turn@state$message_index]] <- message
-  rho.async::rho_task(message)
+  rho_replace_agent_message(
+    agent,
+    turn@state$message_index,
+    turn@state$entry_index,
+    message
+  )
 }
 
 rho_end_assistant_turn <- function(turn, message, error = NULL) {
@@ -48,6 +58,14 @@ rho_fail_assistant_turn <- function(turn, error) {
     message@stop_reason <- stop_reason
   }
   rho_end_assistant_turn(turn, message, error)
+}
+
+rho_assistant_response <- function(turn, error = turn@state$error) {
+  RhoAssistantResponse(
+    message = turn@state$message,
+    error = error,
+    entry_id = turn@state$agent@state$entries[[turn@state$entry_index]]@id
+  )
 }
 
 S7::method(
@@ -113,7 +131,7 @@ rho_receive_assistant <- function(agent, context) {
       if (inherits(transformed, "error")) {
         error <- rho_agent_error(conditionMessage(transformed), "policy")
         coro::await(rho.async::rho_as_promise(rho_fail_assistant_turn(turn, error)))
-        return(RhoAssistantResponse(message = turn@state$message, error = error))
+        return(rho_assistant_response(turn, error))
       }
       if (!S7::S7_inherits(transformed, rho.ai::Context)) {
         error <- rho_agent_error(
@@ -121,7 +139,7 @@ rho_receive_assistant <- function(agent, context) {
           "policy"
         )
         coro::await(rho.async::rho_as_promise(rho_fail_assistant_turn(turn, error)))
-        return(RhoAssistantResponse(message = turn@state$message, error = error))
+        return(rho_assistant_response(turn, error))
       }
 
       stream <- tryCatch(
@@ -141,7 +159,7 @@ rho_receive_assistant <- function(agent, context) {
         }
         error <- rho_agent_error(message, "provider")
         coro::await(rho.async::rho_as_promise(rho_fail_assistant_turn(turn, error)))
-        return(RhoAssistantResponse(message = turn@state$message, error = error))
+        return(rho_assistant_response(turn, error))
       }
 
       agent@state$current_stream <- stream
@@ -221,10 +239,7 @@ rho_receive_assistant <- function(agent, context) {
         )
         coro::await(rho.async::rho_as_promise(rho_fail_assistant_turn(turn, error)))
       }
-      RhoAssistantResponse(
-        message = turn@state$message,
-        error = turn@state$error
-      )
+      rho_assistant_response(turn)
     },
     label = "assistant-response"
   )
