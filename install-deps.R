@@ -27,6 +27,7 @@ install.packages(
     "tinytest",
     "knitr",
     "rmarkdown",
+    "litedown",
     "pkgdown",
     "rdocdump",
     "roxygen2",

@@ -8,3 +8,5 @@
   translate structured input-limit responses without matching prose.
 - Adds reproducible package, documentation, model-catalog, parity, formatting,
   and repository-history checks for the initial development release.
+- Builds the repository landing page with litedown using a responsive article
+  layout and direct links to the source repository and package documentation.

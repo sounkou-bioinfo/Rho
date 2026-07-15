@@ -75,6 +75,7 @@ rdm-codex: install
 
 site: install
 	Rscript scripts/build-site.R
+	Rscript scripts/build-landing.R
 
 install:
 	Rscript scripts/install-all.R

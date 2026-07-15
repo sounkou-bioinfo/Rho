@@ -37,16 +37,10 @@ jobs:
       - name: Install the monorepo
         run: make install
 
-      - name: Render README and package sites
+      - name: Render README and sites
         run: |
           make rdm
           make site
-
-      - name: Build the landing page
-        run: |
-          pandoc README.md --standalone --from=gfm \
-            --metadata title="Rho" \
-            --output=_site/index.html
 
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
