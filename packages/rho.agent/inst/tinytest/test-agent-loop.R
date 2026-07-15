@@ -269,6 +269,14 @@ expect_true(all(vapply(
 )))
 expect_equal(result@context@state$count, 2L)
 
+other_agent <- rho_agent(rho_faux_provider(), rho_model("faux", "faux"))
+foreign_context <- rho_run_context(other_agent, NULL)
+expect_error(
+  rho_prompt(agent, "wrong context", context = foreign_context),
+  "different agent"
+)
+expect_equal(agent@state$phase, "idle")
+
 trace <- character()
 make_async_tool <- function(name, overlap = ToolMayOverlap()) {
   rho_fixture_tool(name, function(id, args, signal, on_update, ctx) {

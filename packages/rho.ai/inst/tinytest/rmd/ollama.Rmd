@@ -9,6 +9,18 @@ library(rho.async)
 library(rho.ai)
 ```
 
+```{r unsupported-provider-operation}
+unsupported <- rho_ollama_chat_request(
+  rho_ollama_provider(),
+  rho_ollama_model("fixture"),
+  rho_context(
+    messages = list(rho_user_message("search")),
+    operations = list(rho_web_search())
+  )
+)
+expect_true(S7::S7_inherits(unsupported, OperationUnsupported))
+```
+
 ```{r openai-compatible-stream}
 received_body <- NULL
 server <- nanonext::http_server(

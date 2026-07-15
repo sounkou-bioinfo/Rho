@@ -388,6 +388,20 @@ S7::method(
       code = "missing_request_auth"
     ))
   }
+  operation_plan <- rho_bound_operation_plan(
+    provider,
+    model,
+    context,
+    options
+  )
+  if (S7::S7_inherits(operation_plan, ProviderErrorValue)) {
+    return(operation_plan)
+  }
+  options$operation_plan <- operation_plan
+  body <- rho_zai_request_body(model, context, options)
+  if (S7::S7_inherits(body, ProviderErrorValue)) {
+    return(body)
+  }
   base_url <- if (nzchar(auth@base_url)) auth@base_url else provider@endpoint@base_url
   headers <- utils::modifyList(
     list(
@@ -402,7 +416,7 @@ S7::method(
     method = "POST",
     url = paste0(sub("/+$", "", base_url), "/chat/completions"),
     headers = headers,
-    body = rho_zai_request_body(model, context, options),
+    body = body,
     timeout_ms = as.integer(options$timeout_ms %||% 120000L),
     response_headers = c("content-type", "retry-after"),
     convert = TRUE

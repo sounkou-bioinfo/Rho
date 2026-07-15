@@ -201,12 +201,20 @@ S7::method(
       code = "openai_tool_placement"
     ))
   }
-  operation_plan <- options$operation_plan %||%
-    rho_plan_operations(provider, model, context)
+  operation_plan <- rho_bound_operation_plan(
+    provider,
+    model,
+    context,
+    options
+  )
   if (S7::S7_inherits(operation_plan, ProviderErrorValue)) {
     return(operation_plan)
   }
   options$operation_plan <- operation_plan
+  body <- rho_openai_responses_body(model, context, placement, options)
+  if (S7::S7_inherits(body, ProviderErrorValue)) {
+    return(body)
+  }
   base_url <- if (nzchar(auth@base_url)) auth@base_url else provider@base_url
   headers <- utils::modifyList(
     list(
@@ -224,7 +232,7 @@ S7::method(
     method = "POST",
     url = rho_openai_responses_url(base_url),
     headers = headers,
-    body = rho_openai_responses_body(model, context, placement, options),
+    body = body,
     timeout_ms = as.integer(options$timeout_ms %||% 120000L),
     response_headers = c("content-type", "retry-after", "retry-after-ms"),
     convert = TRUE

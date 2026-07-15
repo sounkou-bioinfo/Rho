@@ -41,6 +41,17 @@ expect_equal(request@headers$`Copilot-Integration-Id`, "vscode-chat")
 expect_equal(request@body$model, "gpt-5.3-codex")
 expect_true(s7contract::implements(GitHubCopilotOAuthAuth, OAuthAuth))
 expect_true(s7contract::implements(GitHubCopilotApi, ProviderRequestTranslator))
+
+unsupported_operation <- rho_github_copilot_request(
+  provider@implementation,
+  model,
+  rho_context(
+    messages = list(rho_user_message("search")),
+    operations = list(rho_web_search())
+  ),
+  options = list(auth = auth)
+)
+expect_true(S7::S7_inherits(unsupported_operation, OperationUnsupported))
 ```
 
 ```{r dynamic-headers}

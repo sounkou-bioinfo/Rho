@@ -4,6 +4,16 @@ library(tinytest)
 library(rho.async)
 library(rho.ai)
 
+unsupported <- rho_ollama_chat_request(
+  rho_ollama_provider(),
+  rho_ollama_model("fixture"),
+  rho_context(
+    messages = list(rho_user_message("search")),
+    operations = list(rho_web_search())
+  )
+)
+expect_true(S7::S7_inherits(unsupported, OperationUnsupported))
+
 received_body <- NULL
 server <- nanonext::http_server(
   "http://127.0.0.1:0",

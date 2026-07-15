@@ -128,10 +128,10 @@ rho_run_agent_loop <- function(
     )))
   }
 
+  run_context <- rho_run_context(agent, application)
   agent@state$phase <- "running"
   agent@state$cancelled <- FALSE
   agent@state$cancel_reason <- NULL
-  run_context <- rho_run_context(agent, application)
 
   rho.async::rho_coro_task(
     function() {

@@ -154,9 +154,38 @@ blocked_context <- rho_context(
   ))
 )
 blocked <- rho_plan_operations(provider, model, blocked_context)
+blocked_request <- rho_openai_request(
+  provider,
+  model,
+  blocked_context,
+  options = list(auth = rho_model_auth(api_key = "test"))
+)
+invalid_plan_request <- rho_openai_request(
+  provider,
+  model,
+  context,
+  options = list(
+    auth = rho_model_auth(api_key = "test"),
+    operation_plan = "invalid"
+  )
+)
+incomplete_plan_request <- rho_openai_request(
+  provider,
+  model,
+  search_context,
+  options = list(
+    auth = rho_model_auth(api_key = "test"),
+    operation_plan = rho_operation_plan()
+  )
+)
 expect_true(S7::S7_inherits(blocked, OperationUnsupported))
+expect_true(S7::S7_inherits(blocked_request, OperationUnsupported))
 expect_true(S7::S7_inherits(blocked@operation, RhoWebSearchOperation))
 expect_equal(blocked@handler_class, "OpenAIApi")
+expect_true(S7::S7_inherits(invalid_plan_request, ProviderErrorValue))
+expect_equal(invalid_plan_request@code, "operation_plan_type")
+expect_true(S7::S7_inherits(incomplete_plan_request, ProviderErrorValue))
+expect_equal(incomplete_plan_request@code, "operation_plan_incomplete")
 
 search_decoder <- rho_openai_responses_decoder(model)
 openai_event <- function(value) {

@@ -14,7 +14,7 @@ Queries return tasks, and declared read-only paths are checked before execution.
 
 ## An asynchronous query
 
-```{r query}
+```{r query, message = FALSE}
 library(rho.async)
 library(rho.bio)
 library(rho.duckdb)

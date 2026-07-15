@@ -667,8 +667,12 @@ rho_anthropic_build_request <- function(provider, model, context, options = list
       code = "anthropic_tool_placement"
     ))
   }
-  operation_plan <- options$operation_plan %||%
-    rho_plan_operations(provider, model, context)
+  operation_plan <- rho_bound_operation_plan(
+    provider,
+    model,
+    context,
+    options
+  )
   if (S7::S7_inherits(operation_plan, ProviderErrorValue)) {
     return(operation_plan)
   }

@@ -13,7 +13,6 @@ Description: Defines S7 protocols for models, messages, content, tools,
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Imports:
     S7, s7contract, rho.async (>= 0.0.1.9000),
     rho.http (>= 0.0.1.9000), yyjsonr, nanonext, digest, base64enc
@@ -22,3 +21,4 @@ Suggests:
 URL: https://github.com/sounkou-bioinfo/Rho,
     https://sounkou-bioinfo.github.io/Rho/rho.ai/
 BugReports: https://github.com/sounkou-bioinfo/Rho/issues
+Config/roxygen2/version: 8.0.0

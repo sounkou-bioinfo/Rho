@@ -36,6 +36,17 @@ expect_equal(request@body$model, "gpt-5.3-codex")
 expect_true(s7contract::implements(GitHubCopilotOAuthAuth, OAuthAuth))
 expect_true(s7contract::implements(GitHubCopilotApi, ProviderRequestTranslator))
 
+unsupported_operation <- rho_github_copilot_request(
+  provider@implementation,
+  model,
+  rho_context(
+    messages = list(rho_user_message("search")),
+    operations = list(rho_web_search())
+  ),
+  options = list(auth = auth)
+)
+expect_true(S7::S7_inherits(unsupported_operation, OperationUnsupported))
+
 image <- ImageContent(data = "base64", mime_type = "image/png")
 image_context <- rho_context(messages = list(
   rho_user_message(list(image)),

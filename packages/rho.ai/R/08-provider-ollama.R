@@ -58,7 +58,20 @@ S7::method(
   rho_build_provider_request,
   list(OllamaProvider, OpenAIChatCompletionsModel, Context)
 ) <- function(provider, model, context, options = list(), ...) {
+  operation_plan <- rho_bound_operation_plan(
+    provider,
+    model,
+    context,
+    options
+  )
+  if (S7::S7_inherits(operation_plan, ProviderErrorValue)) {
+    return(operation_plan)
+  }
+  options$operation_plan <- operation_plan
   request_body <- rho_openai_chat_request_body(model, context, options = options)
+  if (S7::S7_inherits(request_body, ProviderErrorValue)) {
+    return(request_body)
+  }
   request_body$stream <- options$stream %||% TRUE
   rho.http::rho_http_request(
     method = "POST",

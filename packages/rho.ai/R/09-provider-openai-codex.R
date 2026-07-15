@@ -750,14 +750,21 @@ S7::method(
     ))
   }
 
-  operation_plan <- options$operation_plan %||%
-    rho_plan_operations(provider, model, context)
+  operation_plan <- rho_bound_operation_plan(
+    provider,
+    model,
+    context,
+    options
+  )
   if (S7::S7_inherits(operation_plan, ProviderErrorValue)) {
     return(operation_plan)
   }
   options$operation_plan <- operation_plan
 
   request_body <- rho_openai_responses_body(model, context, placement, options)
+  if (S7::S7_inherits(request_body, ProviderErrorValue)) {
+    return(request_body)
+  }
 
   headers <- utils::modifyList(
     list(

@@ -10,6 +10,34 @@ rho_request_operation_plan <- function(context, options) {
   plan <- options$operation_plan
   if (!is.null(plan)) {
     if (S7::S7_inherits(plan, RhoOperationPlan)) {
+      planned <- lapply(plan@bindings, function(binding) binding@operation)
+      requested <- lapply(context@operations, function(operation) {
+        if (S7::S7_inherits(operation, RhoOperationBinding)) {
+          operation@operation
+        } else {
+          operation
+        }
+      })
+      unbound <- Filter(
+        function(operation) {
+          !any(vapply(
+            planned,
+            function(candidate) identical(candidate, operation),
+            logical(1)
+          ))
+        },
+        requested
+      )
+      if (length(unbound)) {
+        return(rho_provider_error(
+          "`operation_plan` must bind every operation in the request context",
+          kind = "configuration",
+          code = "operation_plan_incomplete",
+          details = list(
+            operations = vapply(unbound, rho_class_label, character(1))
+          )
+        ))
+      }
       return(plan)
     }
     return(rho_provider_error(
@@ -31,6 +59,13 @@ rho_request_operation_plan <- function(context, options) {
     ))
   }
   rho_operation_plan(context@operations)
+}
+
+rho_bound_operation_plan <- function(handler, model, context, options) {
+  if (is.null(options$operation_plan)) {
+    return(rho_plan_operations(handler, model, context))
+  }
+  rho_request_operation_plan(context, options)
 }
 
 rho_first_provider_error <- function(values) {
