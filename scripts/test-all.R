@@ -6,6 +6,7 @@ order <- c(
   "packages/rho.agent",
   "packages/rho.ext",
   "packages/rho.compute",
+  "packages/rho.http.httr2",
   "packages/rho.graphics",
   "packages/rho.coding",
   "packages/rho.bio",

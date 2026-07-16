@@ -383,6 +383,47 @@ rho_github_copilot_credential <- function(
   )
 }
 
+S7::method(rho_credential_encode, GitHubCopilotCredential) <- function(credential, ...) {
+  list(
+    kind = "oauth",
+    provider = credential@provider,
+    access = credential@state$access,
+    refresh = credential@state$refresh,
+    expires = credential@expires,
+    github_domain = credential@github_domain,
+    session_base_url = credential@session_base_url,
+    available_model_ids = credential@available_model_ids,
+    model_catalog_complete = credential@model_catalog_complete
+  )
+}
+
+S7::method(rho_credential_decode, GitHubCopilotOAuthAuth) <- function(
+  auth,
+  document,
+  provider_id,
+  source = "",
+  ...
+) {
+  tryCatch(
+    rho_github_copilot_credential(
+      session_token = document$access,
+      github_token = document$refresh,
+      expires = as.double(document$expires %||% NA_real_),
+      github_domain = document$github_domain %||% auth@github_domain,
+      session_base_url = document$session_base_url,
+      available_model_ids = unlist(
+        document$available_model_ids %||% character(),
+        use.names = FALSE
+      ),
+      model_catalog_complete = isTRUE(document$model_catalog_complete),
+      source = source
+    ),
+    error = function(error) {
+      rho_auth_error(conditionMessage(error), code = "credential_store_format")
+    }
+  )
+}
+
 rho_github_copilot_model_selectable <- function(value) {
   if (
     !is.list(value) ||
@@ -887,10 +928,10 @@ S7::method(
 }
 
 S7::method(
-  rho_stream,
-  list(GitHubCopilotAnthropicApi, AnthropicMessagesModel, Context)
-) <- function(provider, model, context, options = list(), ...) {
-  rho_anthropic_stream(provider, model, context, options)
+  rho_open_provider_transport,
+  list(SseTransport, GitHubCopilotAnthropicApi, AnthropicMessagesModel, Context)
+) <- function(transport, provider, model, context, options = list(), ...) {
+  rho_anthropic_sse_stream(provider, model, context, options)
 }
 
 rho_github_copilot_provider <- function(
@@ -1012,15 +1053,9 @@ S7::method(
 }
 
 S7::method(
-  rho_stream,
-  list(GitHubCopilotApi, GitHubCopilotResponsesModel, Context)
-) <- function(
-  provider,
-  model,
-  context,
-  options = list(),
-  ...
-) {
+  rho_open_provider_transport,
+  list(SseTransport, GitHubCopilotApi, GitHubCopilotResponsesModel, Context)
+) <- function(transport, provider, model, context, options = list(), ...) {
   request <- rho_github_copilot_request(provider, model, context, options)
   if (S7::S7_inherits(request, ProviderErrorValue)) {
     return(rho_provider_error_stream(model, request))

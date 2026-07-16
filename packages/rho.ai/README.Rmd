@@ -33,6 +33,33 @@ vapply(events, rho_assistant_event_type, character(1))
 events[[length(events)]]@message@content[[1L]]@text
 ```
 
+## Provider turns
+
+`rho_stream()` is the normalized surface, not an HTTP operation. A model records
+the turn transports it accepts, while a provider records the transports it
+implements. Selection returns a typed strategy and its reason before the
+provider opens an assistant-event stream.
+
+```{r transport}
+codex_provider <- rho_openai_codex_provider()@implementation
+codex_model <- rho_openai_codex_model("gpt-5.3-codex-spark")
+selection <- rho_select_provider_transport(
+  codex_provider,
+  codex_model,
+  AutomaticTransport()
+)
+
+rho_transport_id(selection@transport)
+selection@reason
+```
+
+SSE, WebSocket, cached WebSocket, and embedded execution are separate S7
+classes. Provider packages implement `rho_provider_transports()` and
+`rho_open_provider_transport()`; the broad `rho_stream()` method supplies the
+common selection behavior. An embedded model can therefore return normalized
+events directly, while a remote model can use HTTP, WebSocket, NNG, or another
+implementation without changing the agent.
+
 The faux provider is deterministic. OpenAI and OpenAI Codex reduce Responses
 events to the same protocol; Z.ai reduces Chat Completions events; Anthropic
 reduces Messages events. GitHub Copilot selects either the Responses or
@@ -109,6 +136,11 @@ c(
 Credentials are explicit `RhoCredential` values resolved by a
 `CredentialStore`. A request translator receives typed request auth; provider
 code does not discover secrets through environment variables.
+
+The memory store is process-scoped. The file store is selected with an explicit
+path and persists successful login and refresh results as owner-readable JSON.
+It uses the same `CredentialStore` methods, so provider auth code does not know
+which storage implementation owns the credential.
 
 GitHub Copilot uses device authorization and a short-lived session credential.
 Z.ai keeps its Coding Plan endpoint, preserved-thinking policy, and streamed

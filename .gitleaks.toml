@@ -1,0 +1,6 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Ignored external source checkouts are not repository content"
+paths = ['''^\.sync/''']

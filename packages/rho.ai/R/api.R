@@ -168,6 +168,7 @@ NULL
 #' @aliases ProviderRequestSectionProtocol
 #' @aliases rho_openai_request_sections
 #' @aliases rho_request_fields rho_openai_reasoning_section
+#' @aliases rho_openai_input_content
 #' @aliases rho_openai_standard_request_sections
 #' @export ThinkingRequest
 #' @export ThinkingUnspecified
@@ -181,6 +182,7 @@ NULL
 #' @export ProviderRequestSectionProtocol
 #' @export rho_openai_request_sections
 #' @export rho_request_fields
+#' @export rho_openai_input_content
 #' @export rho_openai_reasoning_section
 #' @export rho_openai_standard_request_sections
 NULL
@@ -494,12 +496,24 @@ NULL
 #' Provider-specific behavior is queried with typed operation values and S7
 #' dispatch, avoiding a lowest-common-denominator boolean map.
 #'
+#' Provider turns are independent of byte transport. [rho_stream()] always
+#' returns normalized assistant events whether an implementation uses SSE,
+#' WebSocket, an embedded model, or a remote evaluator. `ProviderTransport`
+#' values describe executable strategies. `AutomaticTransport` is a selection
+#' policy rather than a model capability. [rho_select_provider_transport()]
+#' records the selected strategy and reason; [rho_open_provider_transport()]
+#' is the provider-open execution point.
+#'
 #' @name rho_ai_providers
 #' @aliases Context Model OpenAIResponsesModel OpenAICodexResponsesModel
 #' @aliases GitHubCopilotResponsesModel OpenAIChatCompletionsModel
 #' @aliases AnthropicMessagesModel ModelCapabilities ModelLimits ModelPricingTier
 #' @aliases ModelPricing Provider ProviderCapabilityResolver
 #' @aliases ProviderRequestTranslator ProviderInputCompactor ProviderErrorValue
+#' @aliases ProviderInputUnsupported ModelInputAccepted
+#' @aliases ProviderTransportUnsupported ProviderTransportSelection
+#' @aliases ProviderTransport SseTransport WebSocketTransport
+#' @aliases CachedWebSocketTransport EmbeddedTransport AutomaticTransport
 #' @aliases ProviderOperationUnsupported RhoProviderOperation
 #' @aliases RhoToolSearchOperation RhoToolReferencesOperation
 #' @aliases RhoCacheRetentionOperation
@@ -512,7 +526,11 @@ NULL
 #' @aliases rho_thinking_levels rho_supported_thinking_levels
 #' @aliases rho_clamp_thinking_level rho_map_thinking_level
 #' @aliases rho_model_supports_input rho_model_supports_transport
+#' @aliases rho_transport_id rho_provider_transports
+#' @aliases rho_select_provider_transport rho_open_provider_transport
+#' @aliases rho_content_modalities rho_content_text rho_validate_model_input
 #' @aliases rho_stream rho_complete rho_provider_error rho_provider_http_error
+#' @aliases rho_provider_input_unsupported
 #' @aliases rho_provider_context_overflow rho_provider_request_too_large
 #' @aliases rho_unsupported_provider_operation rho_provider_support_value
 #' @aliases rho_provider_support rho_provider_dialect rho_plan_tools
@@ -542,6 +560,16 @@ NULL
 #' @export ProviderRequestTranslator
 #' @export ProviderInputCompactor
 #' @export ProviderErrorValue
+#' @export ProviderInputUnsupported
+#' @export ModelInputAccepted
+#' @export ProviderTransportUnsupported
+#' @export ProviderTransportSelection
+#' @export ProviderTransport
+#' @export SseTransport
+#' @export WebSocketTransport
+#' @export CachedWebSocketTransport
+#' @export EmbeddedTransport
+#' @export AutomaticTransport
 #' @export ProviderOperationUnsupported
 #' @export RhoProviderOperation
 #' @export RhoToolSearchOperation
@@ -568,10 +596,18 @@ NULL
 #' @export rho_clamp_thinking_level
 #' @export rho_map_thinking_level
 #' @export rho_model_supports_input
+#' @export rho_content_modalities
+#' @export rho_content_text
+#' @export rho_validate_model_input
 #' @export rho_model_supports_transport
+#' @export rho_transport_id
+#' @export rho_provider_transports
+#' @export rho_select_provider_transport
+#' @export rho_open_provider_transport
 #' @export rho_stream
 #' @export rho_complete
 #' @export rho_provider_error
+#' @export rho_provider_input_unsupported
 #' @export rho_provider_context_overflow
 #' @export rho_provider_request_too_large
 #' @export rho_provider_http_error
@@ -609,21 +645,31 @@ NULL
 #' async operations. `RhoModels` owns provider selection and serialized refresh
 #' gates instead of relying on process-global auth state.
 #'
+#' `rho_memory_credential_store()` keeps credentials for one R process.
+#' `rho_file_credential_store()` persists them as a versioned JSON document at
+#' an explicitly supplied path. File updates are serialized, replace the prior
+#' document, and use owner-only permissions where the platform supports them.
+#' The document is not encrypted. `rho_user_credential_path()` returns R's
+#' platform-specific user configuration path without creating it.
+#'
 #' @name rho_ai_auth
 #' @aliases CredentialStore OAuthAuth LoginIO RhoCredential RhoApiKeyCredential
 #' @aliases RhoOAuthCredential RhoModelAuth RhoAuthResolution RhoApiKeyAuth
 #' @aliases RhoOAuthAuth RhoFunctionOAuthAuth RhoProviderAuth RhoCredentialGate
 #' @aliases RhoLoginMethod RhoApiKeyLogin RhoOAuthLogin rho_login_strategy
-#' @aliases RhoMemoryCredentialStore RhoAuthPrompt RhoTextAuthPrompt
+#' @aliases RhoMemoryCredentialStore RhoFileCredentialStore
+#' @aliases RhoAuthPrompt RhoTextAuthPrompt
 #' @aliases RhoSecretAuthPrompt RhoManualCodeAuthPrompt RhoSelectAuthPrompt
 #' @aliases RhoAuthEvent RhoAuthUrlEvent RhoDeviceCodeEvent RhoAuthProgressEvent
 #' @aliases RhoFunctionLoginIO RhoProvider RhoModels AuthErrorValue
 #' @aliases rho_api_key_credential rho_model_auth rho_api_key_auth rho_oauth_auth
 #' @aliases rho_provider_auth rho_credential_gate rho_memory_credential_store
+#' @aliases rho_file_credential_store rho_user_credential_path
 #' @aliases rho_login_io rho_provider rho_models rho_models_provider
 #' @aliases rho_provider_models rho_available_models
 #' @aliases rho_login_provider rho_resolve_model_auth rho_credential_read
 #' @aliases rho_credential_modify rho_credential_delete rho_auth_login
+#' @aliases rho_credential_encode rho_credential_decode
 #' @aliases rho_auth_refresh rho_auth_to_request rho_auth_prompt rho_auth_notify
 #' @aliases rho_auth_error OpenAICodexApi OpenAICodexOAuthAuth
 #' @aliases rho_openai_codex_auth rho_openai_codex_credential
@@ -634,7 +680,7 @@ NULL
 #' @aliases GitHubCopilotCredential GitHubCopilotModelAuth
 #' @aliases GitHubCopilotLoginModelPolicy GitHubCopilotDiscoverModels
 #' @aliases GitHubCopilotEnableKnownModels GitHubCopilotModelPolicyResult
-#' @aliases GitHubCopilotOAuthAuth GitHubCopilotApi
+#' @aliases GitHubCopilotOAuthAuth GitHubCopilotApi GitHubCopilotAnthropicApi
 #' @aliases rho_github_copilot_client_identity rho_github_copilot_auth
 #' @aliases rho_github_copilot_credential rho_github_copilot_credential_from_github_token
 #' @aliases rho_load_github_copilot_credential rho_github_copilot_provider
@@ -660,6 +706,7 @@ NULL
 #' @export RhoProviderAuth
 #' @export RhoCredentialGate
 #' @export RhoMemoryCredentialStore
+#' @export RhoFileCredentialStore
 #' @export RhoAuthPrompt
 #' @export RhoTextAuthPrompt
 #' @export RhoSecretAuthPrompt
@@ -680,6 +727,8 @@ NULL
 #' @export rho_provider_auth
 #' @export rho_credential_gate
 #' @export rho_memory_credential_store
+#' @export rho_file_credential_store
+#' @export rho_user_credential_path
 #' @export rho_login_io
 #' @export rho_provider
 #' @export rho_models
@@ -691,6 +740,8 @@ NULL
 #' @export rho_credential_read
 #' @export rho_credential_modify
 #' @export rho_credential_delete
+#' @export rho_credential_encode
+#' @export rho_credential_decode
 #' @export rho_auth_login
 #' @export rho_auth_refresh
 #' @export rho_auth_to_request
@@ -717,6 +768,7 @@ NULL
 #' @export GitHubCopilotModelPolicyResult
 #' @export GitHubCopilotOAuthAuth
 #' @export GitHubCopilotApi
+#' @export GitHubCopilotAnthropicApi
 #' @export rho_github_copilot_client_identity
 #' @export rho_github_copilot_discover_models_policy
 #' @export rho_github_copilot_enable_known_models_policy

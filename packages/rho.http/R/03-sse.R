@@ -268,7 +268,7 @@ S7::method(rho_sse_connect, list(RhoHttpClient, RhoHttpRequest)) <- function(
     if (S7::S7_inherits(body, RhoHttpError)) {
       return(rho.async::rho_list_stream(list(body)))
     }
-    head <- body@state$head
+    head <- body@head
     if (is.na(head@status) || head@status < 200L || head@status >= 300L) {
       return(rho_http_status_error_stream(
         body,

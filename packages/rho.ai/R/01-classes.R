@@ -21,7 +21,12 @@ ThinkingContent <- S7::new_class(
 ImageContent <- S7::new_class(
   "ImageContent",
   parent = Content,
-  properties = list(data = S7::class_character, mime_type = S7::class_character)
+  properties = list(data = rho_non_empty_string, mime_type = rho_non_empty_string),
+  validator = function(self) {
+    if (!grepl("^image/[A-Za-z0-9.+-]+$", self@mime_type)) {
+      "@mime_type must be an image media type"
+    }
+  }
 )
 ArtifactRefContent <- S7::new_class(
   "ArtifactRefContent",
@@ -230,16 +235,61 @@ rho_input_modalities <- S7::new_property(
   }
 )
 
-rho_model_transports <- S7::new_property(
+ProviderTransport <- S7::new_class("ProviderTransport", abstract = TRUE)
+SseTransport <- S7::new_class("SseTransport", parent = ProviderTransport)
+WebSocketTransport <- S7::new_class(
+  "WebSocketTransport",
+  parent = ProviderTransport
+)
+CachedWebSocketTransport <- S7::new_class(
+  "CachedWebSocketTransport",
+  parent = WebSocketTransport
+)
+EmbeddedTransport <- S7::new_class(
+  "EmbeddedTransport",
+  parent = ProviderTransport
+)
+AutomaticTransport <- S7::new_class("AutomaticTransport")
+
+rho_model_transport_ids <- S7::new_property(
   S7::class_character,
   validator = function(value) {
-    invalid <- setdiff(value, c("sse", "websocket", "websocket-cached", "auto"))
+    invalid <- setdiff(value, c("sse", "websocket", "websocket-cached", "embedded"))
     if (!length(value) || length(invalid)) {
       "must contain one or more supported transports"
     } else if (anyDuplicated(value)) {
       "must not contain duplicates"
     }
   }
+)
+
+rho_model_transports <- S7::new_property(
+  S7::class_list,
+  validator = function(value) {
+    invalid <- Filter(
+      function(transport) !S7::S7_inherits(transport, ProviderTransport),
+      value
+    )
+    if (!length(value) || length(invalid)) {
+      return("must contain one or more ProviderTransport values")
+    }
+    transport_classes <- vapply(
+      value,
+      function(transport) S7::S7_class(transport)@name,
+      character(1)
+    )
+    if (anyDuplicated(transport_classes)) {
+      "must not contain duplicate transport classes"
+    }
+  }
+)
+
+ProviderTransportSelection <- S7::new_class(
+  "ProviderTransportSelection",
+  properties = list(
+    transport = ProviderTransport,
+    reason = rho_non_empty_string
+  )
 )
 
 rho_thinking_level_map <- S7::new_property(
@@ -548,6 +598,26 @@ ProviderErrorValue <- S7::new_class(
     retryable = S7::class_logical,
     details = S7::class_list
   )
+)
+
+ProviderInputUnsupported <- S7::new_class(
+  "ProviderInputUnsupported",
+  parent = ProviderErrorValue
+)
+ProviderTransportUnsupported <- S7::new_class(
+  "ProviderTransportUnsupported",
+  parent = ProviderErrorValue
+)
+ModelInputAccepted <- S7::new_class(
+  "ModelInputAccepted",
+  properties = list(
+    model = Model,
+    modalities = S7::class_character
+  ),
+  validator = function(self) {
+    invalid <- setdiff(self@modalities, c("text", "image"))
+    if (length(invalid)) "@modalities must contain only text and image"
+  }
 )
 
 AuthErrorValue <- S7::new_class("AuthErrorValue", parent = ProviderErrorValue)

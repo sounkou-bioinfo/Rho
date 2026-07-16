@@ -2,6 +2,7 @@
 .RData
 .Rproj.user
 .pi/
+.sync/
 *.tar.gz
 *.Rcheck
 .DS_Store

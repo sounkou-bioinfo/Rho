@@ -30,6 +30,7 @@ package_order <- c(
   "rho.agent",
   "rho.ext",
   "rho.compute",
+  "rho.http.httr2",
   "rho.graphics",
   "rho.coding",
   "rho.bio",

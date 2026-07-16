@@ -8,6 +8,14 @@ Its inputs have two different roles.
 Rho, together with the SHA-256 digest of the complete response from which it
 was produced.
 
+`github-copilot-models.json` is a sanitized projection of the authenticated
+GitHub Copilot `/models` response. For each model in the models.dev projection,
+it records only whether the model was observed, its declared vendor, and its
+`supported_endpoints`. It contains no credential, account identifier, policy,
+billing field, or response header. The compiler maps exact endpoint declarations
+to provider protocols and transports. It never infers a protocol from a model
+name or family name.
+
 `model-overrides.json` is curated. It contains only facts that cannot be
 derived from the selected models.dev fields:
 
@@ -25,14 +33,23 @@ to replace derivation. If a source field can express the fact, extend
 From the repository root:
 
 ```sh
-make update-models
+make update-models CREDENTIAL=/path/to/credentials.json
 make check-models
 ```
 
 `make update-models` downloads models.dev through nanonext, rewrites the
-selected snapshot, and compiles `R/sysdata.rda`. Review both the source
-snapshot and the compiled behavioral changes. The refresh must remain
-deterministic: a second `make models` must produce no diff.
+selected snapshot, resolves the explicitly supplied GitHub Copilot credential,
+captures the sanitized endpoint projection, and compiles `R/sysdata.rda`.
+`make update-copilot-models CREDENTIAL=/path/to/credentials.json` refreshes only
+the endpoint projection. Review both source snapshots and the compiled
+behavioral changes. The refresh must remain deterministic: a second
+`make models` must produce no diff.
+
+An active models.dev model that was not observed at the authenticated endpoint,
+or was observed without `supported_endpoints`, is not compiled as a Copilot
+model. A non-empty endpoint declaration unknown to the compiler is an error.
+This keeps absence and new protocol shapes visible instead of assigning them a
+plausible-looking API from their names.
 
 ## Adding curated data
 

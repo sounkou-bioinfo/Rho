@@ -194,6 +194,16 @@ S7::method(rho_auth_to_request, AnthropicApiKeyAuth) <- function(auth, credentia
   ))
 }
 
+S7::method(rho_credential_decode, AnthropicApiKeyAuth) <- function(
+  auth,
+  document,
+  provider_id,
+  source = "",
+  ...
+) {
+  rho_decode_api_key_credential(document, provider_id, source)
+}
+
 rho_anthropic_oauth_document <- function(response, operation) {
   if (is.na(response@status) || response@status < 200L || response@status >= 300L) {
     return(rho_auth_error(
@@ -380,6 +390,26 @@ S7::method(rho_auth_to_request, AnthropicOAuthAuth) <- function(auth, credential
     metadata = list(provider = credential@provider, source = credential@source),
     client_version = auth@client_version
   ))
+}
+
+S7::method(rho_credential_decode, AnthropicOAuthAuth) <- function(
+  auth,
+  document,
+  provider_id,
+  source = "",
+  ...
+) {
+  tryCatch(
+    rho_anthropic_oauth_credential(
+      access_token = document$access,
+      refresh_token = document$refresh %||% "",
+      expires = as.double(document$expires %||% NA_real_),
+      source = source
+    ),
+    error = function(error) {
+      rho_auth_error(conditionMessage(error), code = "credential_store_format")
+    }
+  )
 }
 
 rho_anthropic_credential_from_document <- function(document, source) {
@@ -699,17 +729,7 @@ rho_anthropic_build_request <- function(provider, model, context, options = list
   )
 }
 
-S7::method(rho_stream, list(AnthropicApi, AnthropicMessagesModel, Context)) <- function(
-  provider,
-  model,
-  context,
-  options = list(),
-  ...
-) {
-  rho_anthropic_stream(provider, model, context, options)
-}
-
-rho_anthropic_stream <- function(provider, model, context, options = list()) {
+rho_anthropic_sse_stream <- function(provider, model, context, options) {
   request <- rho_anthropic_messages_request(provider, model, context, options)
   if (S7::S7_inherits(request, ProviderErrorValue)) {
     return(rho_provider_error_stream(model, request))
@@ -724,4 +744,11 @@ rho_anthropic_stream <- function(provider, model, context, options = list()) {
     stream,
     function(event) rho_decode_provider_event(decoder, event)
   )
+}
+
+S7::method(
+  rho_open_provider_transport,
+  list(SseTransport, AnthropicApi, AnthropicMessagesModel, Context)
+) <- function(transport, provider, model, context, options = list(), ...) {
+  rho_anthropic_sse_stream(provider, model, context, options)
 }

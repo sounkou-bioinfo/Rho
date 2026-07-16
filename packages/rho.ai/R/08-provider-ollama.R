@@ -33,6 +33,7 @@ rho_ollama_model <- function(
     max_tokens = max_tokens,
     reasoning = reasoning,
     tools = tools,
+    transports = list(SseTransport()),
     pricing = rho_model_pricing()
   )
 }
@@ -92,9 +93,9 @@ rho_ollama_chat_task <- function(provider, model, context, options = list()) {
 }
 
 S7::method(
-  rho_stream,
-  list(OllamaProvider, OpenAIChatCompletionsModel, Context)
-) <- function(provider, model, context, options = list(), ...) {
+  rho_open_provider_transport,
+  list(SseTransport, OllamaProvider, OpenAIChatCompletionsModel, Context)
+) <- function(transport, provider, model, context, options = list(), ...) {
   request <- rho_ollama_chat_request(
     provider,
     model,

@@ -15,6 +15,7 @@
 \alias{rho_openai_request_sections}
 \alias{rho_request_fields}
 \alias{rho_openai_reasoning_section}
+\alias{rho_openai_input_content}
 \alias{rho_openai_standard_request_sections}
 \title{Typed OpenAI Responses request composition}
 \description{

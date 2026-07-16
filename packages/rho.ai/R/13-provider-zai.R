@@ -160,7 +160,7 @@ rho_openai_chat_message <- S7::new_generic(
 )
 
 S7::method(rho_openai_chat_message, UserMessage) <- function(message, ...) {
-  list(role = "user", content = rho_openai_content_text(message@content))
+  list(role = "user", content = rho_content_text(message@content))
 }
 
 S7::method(rho_openai_chat_message, AssistantMessage) <- function(message, ...) {
@@ -204,7 +204,7 @@ S7::method(rho_openai_chat_message, ToolResultMessage) <- function(message, ...)
   list(
     role = "tool",
     tool_call_id = message@tool_call_id,
-    content = rho_openai_content_text(message@content)
+    content = rho_content_text(message@content)
   )
 }
 
@@ -235,6 +235,10 @@ rho_openai_chat_tools <- function(tools) {
 }
 
 rho_openai_chat_core_request_body <- function(model, context, options) {
+  input_compatibility <- rho_validate_model_input(model, context)
+  if (S7::S7_inherits(input_compatibility, ProviderErrorValue)) {
+    return(input_compatibility)
+  }
   request <- list(
     model = model@id,
     messages = rho_openai_chat_messages(context),
@@ -270,6 +274,9 @@ S7::method(
   list(ZaiChatCompletionsModel, Context)
 ) <- function(model, context, options = list(), ...) {
   request <- rho_openai_chat_core_request_body(model, context, options)
+  if (S7::S7_inherits(request, ProviderErrorValue)) {
+    return(request)
+  }
   has_tools <- model@capabilities@tools && length(context@tools) > 0L
   request <- rho_apply_thinking_control(
     model@thinking_control,
@@ -316,6 +323,16 @@ S7::method(rho_auth_to_request, ZaiApiKeyAuth) <- function(auth, credential, ...
     api_key = credential@state$key,
     metadata = list(provider = credential@provider, source = credential@source)
   ))
+}
+
+S7::method(rho_credential_decode, ZaiApiKeyAuth) <- function(
+  auth,
+  document,
+  provider_id,
+  source = "",
+  ...
+) {
+  rho_decode_api_key_credential(document, provider_id, source)
 }
 
 rho_zai_catalog_provider <- function(endpoint, catalog) {
@@ -423,13 +440,10 @@ S7::method(
   )
 }
 
-S7::method(rho_stream, list(ZaiApi, ZaiChatCompletionsModel, Context)) <- function(
-  provider,
-  model,
-  context,
-  options = list(),
-  ...
-) {
+S7::method(
+  rho_open_provider_transport,
+  list(SseTransport, ZaiApi, ZaiChatCompletionsModel, Context)
+) <- function(transport, provider, model, context, options = list(), ...) {
   request <- rho_zai_request(provider, model, context, options)
   if (S7::S7_inherits(request, ProviderErrorValue)) {
     return(rho_provider_error_stream(model, request))

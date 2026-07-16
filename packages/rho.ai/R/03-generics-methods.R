@@ -70,10 +70,49 @@ rho_model_supports_input <- S7::new_generic(
   "model",
   function(model, input, ...) S7::S7_dispatch()
 )
+rho_content_modalities <- S7::new_generic(
+  "rho_content_modalities",
+  "x",
+  function(x, ...) S7::S7_dispatch()
+)
+rho_content_text <- S7::new_generic(
+  "rho_content_text",
+  "x",
+  function(x, ...) S7::S7_dispatch()
+)
+rho_validate_model_input <- S7::new_generic(
+  "rho_validate_model_input",
+  c("model", "context"),
+  function(model, context, ...) S7::S7_dispatch()
+)
 rho_model_supports_transport <- S7::new_generic(
   "rho_model_supports_transport",
-  "model",
+  c("model", "transport"),
   function(model, transport, ...) S7::S7_dispatch()
+)
+rho_transport_id <- S7::new_generic(
+  "rho_transport_id",
+  "transport",
+  function(transport, ...) S7::S7_dispatch()
+)
+rho_provider_transports <- S7::new_generic(
+  "rho_provider_transports",
+  c("provider", "model"),
+  function(provider, model, ...) S7::S7_dispatch()
+)
+rho_select_provider_transport <- S7::new_generic(
+  "rho_select_provider_transport",
+  c("provider", "model", "requested"),
+  function(provider, model, requested = AutomaticTransport(), ...) {
+    S7::S7_dispatch()
+  }
+)
+rho_open_provider_transport <- S7::new_generic(
+  "rho_open_provider_transport",
+  c("transport", "provider", "model", "context"),
+  function(transport, provider, model, context, options = list(), ...) {
+    S7::S7_dispatch()
+  }
 )
 rho_price_usage <- S7::new_generic(
   "rho_price_usage",
@@ -94,6 +133,16 @@ rho_credential_delete <- S7::new_generic(
   "rho_credential_delete",
   "store",
   function(store, provider_id, ...) S7::S7_dispatch()
+)
+rho_credential_encode <- S7::new_generic(
+  "rho_credential_encode",
+  "credential",
+  function(credential, ...) S7::S7_dispatch()
+)
+rho_credential_decode <- S7::new_generic(
+  "rho_credential_decode",
+  "auth",
+  function(auth, document, provider_id, source = "", ...) S7::S7_dispatch()
 )
 rho_auth_login <- S7::new_generic("rho_auth_login", "auth", function(auth, provider_id, io, ...) {
   S7::S7_dispatch()

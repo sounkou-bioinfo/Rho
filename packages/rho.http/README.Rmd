@@ -17,6 +17,17 @@ typed HTTP contract. Provider implementations build `RhoHttpRequest` values and
 receive tasks or SSE streams; request encoding, TLS, and connection handling
 remain in this package.
 
+`HttpClient` is the transport interface. A client implements complete requests
+and response-head opening; its body-stream class implements next and close.
+SSE decoding composes over those methods and never receives a transport handle.
+`rho_http_client()` selects the built-in nanonext implementation. Rho keeps that
+implementation pinned while
+[nanonext issue #329](https://github.com/r-lib/nanonext/issues/329) establishes
+an upstream incremental-response API.
+[`rho.http.httr2`](https://sounkou-bioinfo.github.io/Rho/rho.http.httr2/)
+implements the same interface with worker-owned httr2 connections; provider
+code and the SSE decoder are unchanged when that client is selected.
+
 ## TLS and SSE
 
 ```{r transport}

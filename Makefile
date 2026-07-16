@@ -1,7 +1,7 @@
 # Monorepo driver. Package installation and checks run in dependency order.
 # Each package also includes ../../tools/package.mk for focused work.
 
-.PHONY: all deps install purl-tests check-purled-tests models update-models check-models format check-format check-style check-version check-publication check-parity check-secrets public-ready test check rd rdm rdm-codex site clean tarball
+.PHONY: all deps install purl-tests check-purled-tests models update-models update-copilot-models check-models format check-format check-style check-version check-publication check-parity check-secrets public-ready test check rd rdm rdm-codex site clean tarball
 
 all: test
 
@@ -16,6 +16,11 @@ models:
 
 update-models:
 	Rscript packages/rho.ai/data-raw/update-models-dev.R
+	Rscript packages/rho.ai/data-raw/update-github-copilot-models.R --credential="$(CREDENTIAL)"
+	Rscript packages/rho.ai/data-raw/compile-model-catalog.R
+
+update-copilot-models:
+	Rscript packages/rho.ai/data-raw/update-github-copilot-models.R --credential="$(CREDENTIAL)"
 	Rscript packages/rho.ai/data-raw/compile-model-catalog.R
 
 check-models:

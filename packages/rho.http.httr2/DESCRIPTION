@@ -1,0 +1,29 @@
+Package: rho.http.httr2
+Type: Package
+Depends: R (>= 4.4.0)
+Title: Httr2 Worker Transport for Rho HTTP
+Version: 0.0.1.9000
+Authors@R:
+    person(given = "Sounkou Mahamane", family = "Toure",
+           email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
+Description: Implements the Rho HTTP client contract with httr2 connections
+    owned by mirai workers. Response heads and body chunks are relayed over NNG
+    so HTTP parsing remains in httr2 and the calling R event loop stays
+    responsive.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports:
+    S7, rho.async (>= 0.0.1.9000), rho.http (>= 0.0.1.9000),
+    rho.compute (>= 0.0.1.9000), nanonext, httr2, later
+Suggests:
+    tinytest, knitr, s7contract
+Remotes:
+    sounkou-bioinfo/Rho/packages/rho.async,
+    sounkou-bioinfo/Rho/packages/rho.http,
+    sounkou-bioinfo/Rho/packages/rho.compute,
+    sounkou-bioinfo/nanonext@ea905e4919162b9ed6c993953f1b4ee04c98b2e5
+URL: https://github.com/sounkou-bioinfo/Rho,
+    https://sounkou-bioinfo.github.io/Rho/rho.http.httr2/
+BugReports: https://github.com/sounkou-bioinfo/Rho/issues
+Config/roxygen2/version: 8.0.0

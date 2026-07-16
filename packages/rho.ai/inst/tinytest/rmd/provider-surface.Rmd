@@ -27,6 +27,43 @@ expect_true(S7::S7_inherits(message, AssistantMessage))
 expect_equal(message@content[[1L]]@text, "faux: hi")
 ```
 
+```{r embedded-provider-default}
+FixtureEmbeddedProvider <- S7::new_class("FixtureEmbeddedProvider")
+
+S7::method(
+  rho_provider_transports,
+  list(FixtureEmbeddedProvider, Model)
+) <- function(provider, model, ...) {
+  list(EmbeddedTransport())
+}
+
+S7::method(
+  rho_open_provider_transport,
+  list(EmbeddedTransport, FixtureEmbeddedProvider, Model, Context)
+) <- function(transport, provider, model, context, options = list(), ...) {
+  answer <- rho_assistant_message(
+    content = list(rho_text("in-process result")),
+    provider = model@provider,
+    model = model@id
+  )
+  rho_list_stream(list(rho_assistant_done_event(answer)))
+}
+
+embedded_provider <- FixtureEmbeddedProvider()
+embedded_model <- rho_model("fixture", "embedded")
+embedded_context <- rho_context(messages = list(rho_user_message("run")))
+embedded_events <- rho_stream(
+  embedded_provider,
+  embedded_model,
+  embedded_context
+) |>
+  rho_stream_collect(timeout = 1000L)
+
+expect_true(s7contract::implements(embedded_provider, Provider))
+expect_equal(length(embedded_events), 1L)
+expect_equal(embedded_events[[1L]]@message@content[[1L]]@text, "in-process result")
+```
+
 ```{r request-builders}
 context <- rho_context("system", list(rho_user_message("hello")))
 test_auth <- rho_model_auth(api_key = "test")
@@ -165,9 +202,13 @@ refresh_provider <- rho_provider(
   auth = rho_provider_auth(oauth = refresh_strategy),
   models = list(spark)
 )
+refresh_path <- tempfile("rho-refresh-credentials-", fileext = ".json")
+refresh_store <- rho_file_credential_store(refresh_path, list(refresh_provider))
+rho_credential_modify(refresh_store, "openai-codex", function(current) expired) |>
+  rho_await(timeout = 1000L)
 refresh_models <- rho_models(
   list(refresh_provider),
-  rho_memory_credential_store(list(`openai-codex` = expired))
+  refresh_store
 )
 
 first_resolution <- rho_resolve_model_auth(refresh_models, spark) |>
@@ -178,6 +219,13 @@ expect_true(first_resolution@configured)
 expect_true(second_resolution@configured)
 expect_equal(first_resolution@auth@api_key, "fresh-access")
 expect_equal(refresh_count, 1L)
+
+reopened_refresh <- rho_file_credential_store(refresh_path, list(refresh_provider))
+persisted_refresh <- rho_credential_read(reopened_refresh, "openai-codex") |>
+  rho_await(timeout = 1000L)
+expect_equal(persisted_refresh@state$access, "fresh-access")
+expect_equal(persisted_refresh@state$refresh, "rotated-refresh")
+unlink(refresh_path)
 ```
 
 ```{r credential-store-lifecycle}
@@ -209,6 +257,62 @@ rho_credential_delete(store, "fixture") |> rho_await(timeout = 1000L)
 expect_true(is.null(
   rho_credential_read(store, "fixture") |> rho_await(timeout = 1000L)
 ))
+```
+
+```{r file-credential-store-lifecycle}
+path <- tempfile("rho-credentials-", fileext = ".json")
+provider <- rho_provider(
+  id = "fixture",
+  implementation = rho_faux_provider(),
+  auth = rho_provider_auth(api_key = rho_api_key_auth(
+    name = "fixture",
+    login = function(provider_id, io) NULL,
+    to_request = function(credential) rho_model_auth(api_key = credential@state$key)
+  )),
+  models = list()
+)
+store <- rho_file_credential_store(path, list(provider))
+
+stored <- rho_credential_modify(store, "fixture", function(current) {
+  expect_true(is.null(current))
+  rho_api_key_credential(
+    "fixture",
+    "persistent-secret",
+    provider_env = list(revision = 1L)
+  )
+}) |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(stored, RhoApiKeyCredential))
+expect_true(file.exists(path))
+if (.Platform$OS.type == "unix") {
+  expect_equal(as.character(file.info(path)$mode), "600")
+}
+
+reopened <- rho_file_credential_store(path, list(provider))
+restored <- rho_credential_read(reopened, "fixture") |>
+  rho_await(timeout = 1000L)
+expect_equal(restored@state$key, "persistent-secret")
+expect_equal(restored@provider_env$revision, 1L)
+expect_equal(restored@source, normalizePath(path, winslash = "/"))
+
+rho_credential_delete(reopened, "fixture") |>
+  rho_await(timeout = 1000L)
+expect_true(is.null(
+  rho_credential_read(reopened, "fixture") |> rho_await(timeout = 1000L)
+))
+
+writeBin(charToRaw("{"), path)
+malformed <- rho_credential_read(reopened, "fixture") |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(malformed, AuthErrorValue))
+expect_equal(malformed@code, "credential_store_read")
+
+writeLines('"not a credential document"', path)
+wrong_shape <- rho_credential_read(reopened, "fixture") |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(wrong_shape, AuthErrorValue))
+expect_equal(wrong_shape@code, "credential_store_format")
+unlink(path)
 ```
 
 ```{r asynchronous-credential-updates-are-serialized}
@@ -284,7 +388,21 @@ expect_equal(rho_map_thinking_level(spark, "minimal"), "low")
 expect_equal(rho_clamp_thinking_level(spark, "max"), "xhigh")
 expect_true(rho_model_supports_input(spark, "text"))
 expect_false(rho_model_supports_input(spark, "image"))
-expect_true(rho_model_supports_transport(spark, "websocket"))
+expect_true(rho_model_supports_transport(spark, WebSocketTransport()))
+transport_provider <- rho_openai_codex_provider()@implementation
+automatic_transport <- rho_select_provider_transport(
+  transport_provider,
+  spark,
+  AutomaticTransport()
+)
+required_websocket <- rho_select_provider_transport(
+  transport_provider,
+  spark,
+  WebSocketTransport()
+)
+expect_true(S7::S7_inherits(automatic_transport, ProviderTransportSelection))
+expect_true(S7::S7_inherits(automatic_transport@transport, SseTransport))
+expect_true(S7::S7_inherits(required_websocket, ProviderTransportUnsupported))
 expect_equal(spark@pricing@cache_read, 0.175)
 expect_equal(spark@limits@context_window, 128000L)
 ```

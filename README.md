@@ -129,7 +129,8 @@ reference site.
 | package | role | documentation |
 |---|---|---|
 | **rho.async** | tasks, streams, cancellation, timeouts, and composition | [guide](https://sounkou-bioinfo.github.io/Rho/rho.async/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.async/reference/) |
-| **rho.http** | typed HTTP requests, nanonext transport, and SSE decoding | [guide](https://sounkou-bioinfo.github.io/Rho/rho.http/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.http/reference/) |
+| **rho.http** | transport-neutral HTTP requests, response bodies, and SSE decoding, with a nanonext client | [guide](https://sounkou-bioinfo.github.io/Rho/rho.http/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.http/reference/) |
+| **rho.http.httr2** | worker-owned httr2 implementation of the HTTP client contract | [guide](https://sounkou-bioinfo.github.io/Rho/rho.http.httr2/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.http.httr2/reference/) |
 | **rho.ai** | messages, models, capabilities, credentials, providers, and tools | [guide](https://sounkou-bioinfo.github.io/Rho/rho.ai/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.ai/reference/) |
 | **rho.agent** | multi-turn execution, session compaction, tool scheduling, queues, cancellation, and events | [guide](https://sounkou-bioinfo.github.io/Rho/rho.agent/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.agent/reference/) |
 | **rho.ext** | asynchronous extension handlers and capability registration | [guide](https://sounkou-bioinfo.github.io/Rho/rho.ext/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.ext/reference/) |

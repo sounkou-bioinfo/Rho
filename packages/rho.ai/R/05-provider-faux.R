@@ -101,13 +101,10 @@ rho_faux_message_events <- function(message) {
   )
 }
 
-S7::method(rho_stream, list(FauxProvider, Model, Context)) <- function(
-  provider,
-  model,
-  context,
-  options = list(),
-  ...
-) {
+S7::method(
+  rho_open_provider_transport,
+  list(EmbeddedTransport, FauxProvider, Model, Context)
+) <- function(transport, provider, model, context, options = list(), ...) {
   script <- provider@script
   if (!length(script)) {
     prompt <- context@messages[[length(context@messages)]]@content

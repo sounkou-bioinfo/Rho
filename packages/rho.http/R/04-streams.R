@@ -1,4 +1,4 @@
-rho_http_close_connection <- function(stream) {
+rho_nanonext_http_close <- function(stream) {
   if (!isTRUE(stream@state$closed)) {
     close(stream@state$connection)
     stream@state$closed <- TRUE
@@ -6,7 +6,7 @@ rho_http_close_connection <- function(stream) {
   invisible(TRUE)
 }
 
-S7::method(rho_stream_next, RhoHttpBodyStream) <- function(
+S7::method(rho_stream_next, RhoNanonextHttpBodyStream) <- function(
   stream,
   timeout = NULL,
   ...
@@ -15,7 +15,7 @@ S7::method(rho_stream_next, RhoHttpBodyStream) <- function(
     return(rho.async::rho_task(rho.async::rho_stream_end()))
   }
   if (isTRUE(stream@state$complete)) {
-    rho_http_close_connection(stream)
+    rho_nanonext_http_close(stream)
     return(rho.async::rho_task(rho.async::rho_stream_end()))
   }
 
@@ -25,16 +25,16 @@ S7::method(rho_stream_next, RhoHttpBodyStream) <- function(
   next_item <- rho.async::rho_then(receiving, function(result) {
     stream@state$complete <- isTRUE(result$complete)
     if (!length(result$data) && stream@state$complete) {
-      rho_http_close_connection(stream)
+      rho_nanonext_http_close(stream)
       return(rho.async::rho_stream_end())
     }
     rho.async::rho_stream_value(result$data)
   })
   handled <- rho.async::rho_catch(next_item, function(error) {
-    rho_http_close_connection(stream)
+    rho_nanonext_http_close(stream)
     rho.async::rho_stream_value(RhoHttpTransportError(
       message = sprintf("HTTP stream receive failed: %s", conditionMessage(error)),
-      url = stream@state$head@url,
+      url = stream@head@url,
       parent = error
     ))
   })
@@ -42,14 +42,14 @@ S7::method(rho_stream_next, RhoHttpBodyStream) <- function(
     rho.async::rho_as_promise(handled),
     cancel = function(reason) {
       rho.async::rho_cancel(handled, reason)
-      rho_http_close_connection(stream)
+      rho_nanonext_http_close(stream)
     },
     label = "http-stream-receive"
   )
 }
 
-S7::method(rho_stream_close, RhoHttpBodyStream) <- function(stream, ...) {
-  rho_http_close_connection(stream)
+S7::method(rho_stream_close, RhoNanonextHttpBodyStream) <- function(stream, ...) {
+  rho_nanonext_http_close(stream)
 }
 
 rho_sse_buffer_next <- function(stream) {

@@ -47,6 +47,54 @@ unsupported_operation <- rho_github_copilot_request(
 )
 expect_true(S7::S7_inherits(unsupported_operation, OperationUnsupported))
 
+anthropic_model <- rho_github_copilot_model("claude-fable-5")
+anthropic_provider <- rho_provider_dialect(
+  provider@implementation,
+  anthropic_model
+)
+selection <- rho_select_provider_transport(
+  anthropic_provider,
+  anthropic_model,
+  AutomaticTransport()
+)
+
+expect_true(S7::S7_inherits(anthropic_provider, GitHubCopilotAnthropicApi))
+expect_true(S7::S7_inherits(selection, ProviderTransportSelection))
+expect_true(S7::S7_inherits(selection@transport, SseTransport))
+
+missing_auth <- rho_stream(
+  anthropic_provider,
+  anthropic_model,
+  context
+) |>
+  rho_stream_collect(timeout = 1000L)
+expect_equal(length(missing_auth), 1L)
+expect_true(S7::S7_inherits(missing_auth[[1L]], AssistantErrorEvent))
+expect_equal(missing_auth[[1L]]@error@code, "missing_request_auth")
+
+mini <- rho_github_copilot_model("gpt-5-mini")
+image_context <- rho_context(messages = list(rho_user_message(list(
+  rho_text("What is shown?"),
+  ImageContent(data = "iVBORw0KGgo=", mime_type = "image/png")
+))))
+image_request <- rho_github_copilot_request(
+  provider@implementation,
+  mini,
+  image_context,
+  options = list(auth = auth)
+)
+
+expect_true(rho_model_supports_input(mini, "image"))
+expect_equal(image_request@headers$`Copilot-Vision-Request`, "true")
+expect_equal(image_request@body$input[[1L]]$content, list(
+  list(type = "input_text", text = "What is shown?"),
+  list(
+    type = "input_image",
+    detail = "auto",
+    image_url = "data:image/png;base64,iVBORw0KGgo="
+  )
+))
+
 image <- ImageContent(data = "base64", mime_type = "image/png")
 image_context <- rho_context(messages = list(
   rho_user_message(list(image)),
@@ -246,7 +294,21 @@ io <- rho_login_io(
     NULL
   }
 )
-logged_in <- rho_auth_login(strategy, "github-copilot", io) |>
+credential_path <- tempfile("rho-copilot-credentials-", fileext = ".json")
+login_provider <- rho_provider(
+  id = "github-copilot",
+  implementation = GitHubCopilotApi(
+    identity = strategy@identity,
+    http = strategy@http
+  ),
+  auth = rho_provider_auth(oauth = strategy),
+  models = list()
+)
+models <- rho_models(
+  list(login_provider),
+  rho_file_credential_store(credential_path, list(login_provider))
+)
+logged_in <- rho_login_provider(models, "github-copilot", io) |>
   rho_await(timeout = 5000L)
 
 expect_true(S7::S7_inherits(logged_in, GitHubCopilotCredential))
@@ -256,6 +318,16 @@ expect_equal(poll_count, 2L)
 expect_equal(length(notified), 1L)
 expect_true(S7::S7_inherits(notified[[1L]], RhoDeviceCodeEvent))
 expect_equal(notified[[1L]]@user_code, "ABCD-EFGH")
+
+reopened <- rho_file_credential_store(credential_path, list(login_provider))
+persisted <- rho_credential_read(reopened, "github-copilot") |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(persisted, GitHubCopilotCredential))
+expect_equal(persisted@state$refresh, "github-device-token")
+expect_equal(persisted@state$access, logged_in@state$access)
+expect_equal(persisted@available_model_ids, "gpt-5.3-codex")
+
+unlink(credential_path)
 expect_equal(server$close(), 0L)
 
 policy_requests <- character()

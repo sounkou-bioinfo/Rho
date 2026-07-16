@@ -1,0 +1,174 @@
+---
+title: "Httr2 worker transport"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tinytest)
+library(rho.async)
+library(rho.http)
+library(rho.http.httr2)
+```
+
+```{r complete-request}
+server <- nanonext::http_server(
+  "http://127.0.0.1:0",
+  handlers = list(nanonext::handler(
+    "/complete",
+    function(request) {
+      list(
+        status = 201L,
+        headers = c("Content-Type" = "text/plain"),
+        body = "created"
+      )
+    },
+    method = "POST"
+  ))
+)
+expect_equal(server$start(), 0L)
+
+client <- rho_httr2_http_client(timeout_ms = 5000L)
+expect_true(s7contract::implements(client, HttpClient))
+request <- rho_http_request(
+  "POST",
+  paste0(server$url, "/complete"),
+  body = list(value = 1L),
+  timeout_ms = 5000L
+)
+task <- rho_http_send(client, request)
+expect_true(S7::S7_inherits(task, RhoTask))
+response <- rho_await(task, timeout = 5000L)
+expect_true(S7::S7_inherits(response, RhoHttpResponse))
+expect_equal(response@status, 201L)
+expect_equal(response@data, "created")
+
+expect_true(rho_http_client_close(client))
+expect_equal(server$close(), 0L)
+```
+
+```{r delayed-response-head}
+server_connection <- NULL
+server <- nanonext::http_server(
+  "http://127.0.0.1:0",
+  handlers = list(nanonext::handler_stream(
+    "/delayed",
+    on_request = function(connection, request) {
+      server_connection <<- connection
+      later::later(function() {
+        connection$set_status(200L)
+        connection$set_header("Content-Type", "application/octet-stream")
+        connection$send(charToRaw("ready"))
+      }, delay = 0.05)
+    }
+  ))
+)
+expect_equal(server$start(), 0L)
+
+client <- rho_httr2_http_client(timeout_ms = 5000L)
+opening <- rho_http_open_stream(
+  client,
+  rho_http_request(
+    "GET",
+    paste0(server$url, "/delayed"),
+    timeout_ms = 5000L
+  )
+)
+expect_true(S7::S7_inherits(opening, RhoTask))
+expect_true(rho_pending(opening))
+
+body <- rho_await(opening, timeout = 5000L)
+expect_true(S7::S7_inherits(body, RhoHttr2HttpBodyStream))
+item <- rho_stream_next(body) |> rho_await(timeout = 5000L)
+expect_equal(rawToChar(item@value), "ready")
+
+expect_true(rho_stream_close(body))
+expect_equal(server_connection$close(), 0L)
+expect_true(rho_http_client_close(client))
+expect_equal(server$close(), 0L)
+```
+
+```{r incremental-sse}
+server_connection <- NULL
+server <- nanonext::http_server(
+  "http://127.0.0.1:0",
+  handlers = list(nanonext::handler_stream(
+    "/events",
+    on_request = function(connection, request) {
+      server_connection <<- connection
+      connection$set_status(200L)
+      connection$set_header("Content-Type", "text/event-stream")
+      connection$send(nanonext::format_sse(data = "first"))
+    }
+  ))
+)
+expect_equal(server$start(), 0L)
+
+client <- rho_httr2_http_client(
+  timeout_ms = 5000L,
+  stream_buffer_size = 65536L
+)
+events <- rho_sse_connect(
+  client,
+  rho_http_request(
+    "GET",
+    paste0(server$url, "/events"),
+    timeout_ms = 5000L
+  )
+)
+first <- rho_stream_next(events) |> rho_await(timeout = 5000L)
+expect_equal(first@value@data, "first")
+
+expect_equal(
+  server_connection$send(nanonext::format_sse(data = "second")),
+  0L
+)
+second <- rho_stream_next(events) |> rho_await(timeout = 5000L)
+expect_equal(second@value@data, "second")
+
+expect_equal(server_connection$close(), 0L)
+ending <- rho_stream_next(events) |> rho_await(timeout = 5000L)
+expect_true(S7::S7_inherits(ending, RhoStreamEnd))
+
+expect_true(rho_http_client_close(client))
+expect_equal(server$close(), 0L)
+```
+
+```{r receive-cancellation}
+server_connection <- NULL
+server <- nanonext::http_server(
+  "http://127.0.0.1:0",
+  handlers = list(nanonext::handler_stream(
+    "/pending",
+    on_request = function(connection, request) {
+      server_connection <<- connection
+      connection$set_status(200L)
+      connection$set_header("Content-Type", "text/event-stream")
+      connection$send(nanonext::format_sse(data = "ready"))
+    }
+  ))
+)
+expect_equal(server$start(), 0L)
+
+client <- rho_httr2_http_client(timeout_ms = 5000L)
+events <- rho_sse_connect(
+  client,
+  rho_http_request(
+    "GET",
+    paste0(server$url, "/pending"),
+    timeout_ms = 5000L
+  )
+)
+ready <- rho_stream_next(events) |> rho_await(timeout = 5000L)
+expect_equal(ready@value@data, "ready")
+
+pending <- rho_stream_next(events)
+expect_true(rho_cancel(pending, "test cancellation"))
+cancelled <- rho_await(pending, timeout = 5000L)
+expect_true(S7::S7_inherits(cancelled, RhoCancellation))
+
+ending <- rho_stream_next(events) |> rho_await(timeout = 5000L)
+expect_true(S7::S7_inherits(ending, RhoStreamEnd))
+expect_equal(server_connection$close(), 0L)
+expect_true(rho_http_client_close(client))
+expect_equal(server$close(), 0L)
+```

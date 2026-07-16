@@ -1,0 +1,233 @@
+{
+  "schema_version": 1,
+  "source": {
+    "url": "https://api.individual.githubcopilot.com/models",
+    "sha256": "73a37c01c389a62f6741f0709d8333f22355da27c61b51c55867196275e4319c"
+  },
+  "models_dev_sha256": "9ec03193613c4e8e7e50da8a6c8af60f21d36a20c006baac2f06868c0b5e0699",
+  "models": {
+    "claude-fable-5": {
+      "id": "claude-fable-5",
+      "observed": true,
+      "vendor": "Anthropic",
+      "supported_endpoints": [
+        "/v1/messages",
+        "/chat/completions"
+      ]
+    },
+    "claude-haiku-4.5": {
+      "id": "claude-haiku-4.5",
+      "observed": true,
+      "vendor": "Anthropic",
+      "supported_endpoints": [
+        "/chat/completions",
+        "/v1/messages"
+      ]
+    },
+    "claude-opus-4.5": {
+      "id": "claude-opus-4.5",
+      "observed": true,
+      "vendor": "Anthropic",
+      "supported_endpoints": [
+        "/chat/completions",
+        "/v1/messages"
+      ]
+    },
+    "claude-opus-4.6": {
+      "id": "claude-opus-4.6",
+      "observed": false,
+      "vendor": "",
+      "supported_endpoints": []
+    },
+    "claude-opus-4.7": {
+      "id": "claude-opus-4.7",
+      "observed": true,
+      "vendor": "Anthropic",
+      "supported_endpoints": [
+        "/v1/messages",
+        "/chat/completions"
+      ]
+    },
+    "claude-opus-4.8": {
+      "id": "claude-opus-4.8",
+      "observed": true,
+      "vendor": "Anthropic",
+      "supported_endpoints": [
+        "/v1/messages",
+        "/chat/completions"
+      ]
+    },
+    "claude-sonnet-4": {
+      "id": "claude-sonnet-4",
+      "observed": false,
+      "vendor": "",
+      "supported_endpoints": []
+    },
+    "claude-sonnet-4.5": {
+      "id": "claude-sonnet-4.5",
+      "observed": true,
+      "vendor": "Anthropic",
+      "supported_endpoints": [
+        "/chat/completions",
+        "/v1/messages"
+      ]
+    },
+    "claude-sonnet-4.6": {
+      "id": "claude-sonnet-4.6",
+      "observed": true,
+      "vendor": "Anthropic",
+      "supported_endpoints": [
+        "/chat/completions",
+        "/v1/messages"
+      ]
+    },
+    "claude-sonnet-5": {
+      "id": "claude-sonnet-5",
+      "observed": true,
+      "vendor": "Anthropic",
+      "supported_endpoints": [
+        "/v1/messages",
+        "/chat/completions"
+      ]
+    },
+    "gemini-2.5-pro": {
+      "id": "gemini-2.5-pro",
+      "observed": true,
+      "vendor": "Google",
+      "supported_endpoints": []
+    },
+    "gemini-3-flash-preview": {
+      "id": "gemini-3-flash-preview",
+      "observed": true,
+      "vendor": "Google",
+      "supported_endpoints": []
+    },
+    "gemini-3.1-pro-preview": {
+      "id": "gemini-3.1-pro-preview",
+      "observed": true,
+      "vendor": "Google",
+      "supported_endpoints": [
+        "/chat/completions"
+      ]
+    },
+    "gemini-3.5-flash": {
+      "id": "gemini-3.5-flash",
+      "observed": true,
+      "vendor": "Google",
+      "supported_endpoints": [
+        "/chat/completions"
+      ]
+    },
+    "gpt-4.1": {
+      "id": "gpt-4.1",
+      "observed": true,
+      "vendor": "Azure OpenAI",
+      "supported_endpoints": []
+    },
+    "gpt-5-mini": {
+      "id": "gpt-5-mini",
+      "observed": true,
+      "vendor": "Azure OpenAI",
+      "supported_endpoints": [
+        "/chat/completions",
+        "/responses",
+        "ws:/responses"
+      ]
+    },
+    "gpt-5.2": {
+      "id": "gpt-5.2",
+      "observed": false,
+      "vendor": "",
+      "supported_endpoints": []
+    },
+    "gpt-5.2-codex": {
+      "id": "gpt-5.2-codex",
+      "observed": false,
+      "vendor": "",
+      "supported_endpoints": []
+    },
+    "gpt-5.3-codex": {
+      "id": "gpt-5.3-codex",
+      "observed": true,
+      "vendor": "OpenAI",
+      "supported_endpoints": [
+        "/responses",
+        "ws:/responses"
+      ]
+    },
+    "gpt-5.4": {
+      "id": "gpt-5.4",
+      "observed": true,
+      "vendor": "OpenAI",
+      "supported_endpoints": [
+        "/responses",
+        "/chat/completions",
+        "ws:/responses"
+      ]
+    },
+    "gpt-5.4-mini": {
+      "id": "gpt-5.4-mini",
+      "observed": true,
+      "vendor": "OpenAI",
+      "supported_endpoints": [
+        "/responses",
+        "ws:/responses"
+      ]
+    },
+    "gpt-5.4-nano": {
+      "id": "gpt-5.4-nano",
+      "observed": false,
+      "vendor": "",
+      "supported_endpoints": []
+    },
+    "gpt-5.5": {
+      "id": "gpt-5.5",
+      "observed": true,
+      "vendor": "OpenAI",
+      "supported_endpoints": [
+        "/responses",
+        "ws:/responses"
+      ]
+    },
+    "gpt-5.6-luna": {
+      "id": "gpt-5.6-luna",
+      "observed": true,
+      "vendor": "OpenAI",
+      "supported_endpoints": [
+        "/responses",
+        "ws:/responses"
+      ]
+    },
+    "gpt-5.6-sol": {
+      "id": "gpt-5.6-sol",
+      "observed": false,
+      "vendor": "",
+      "supported_endpoints": []
+    },
+    "gpt-5.6-terra": {
+      "id": "gpt-5.6-terra",
+      "observed": true,
+      "vendor": "OpenAI",
+      "supported_endpoints": [
+        "/responses",
+        "ws:/responses"
+      ]
+    },
+    "kimi-k2.7-code": {
+      "id": "kimi-k2.7-code",
+      "observed": true,
+      "vendor": "Moonshot AI",
+      "supported_endpoints": [
+        "/chat/completions"
+      ]
+    },
+    "mai-code-1-flash-picker": {
+      "id": "mai-code-1-flash-picker",
+      "observed": true,
+      "vendor": "Microsoft",
+      "supported_endpoints": [
+        "/responses"
+      ]
+    }
+  }
+}

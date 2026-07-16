@@ -1575,6 +1575,10 @@ S7::method(
   rho_anthropic_request_sections,
   list(AnthropicMessagesModel, Context, RhoToolPlacement)
 ) <- function(model, context, placement, options = list(), ...) {
+  input_compatibility <- rho_validate_model_input(model, context)
+  if (S7::S7_inherits(input_compatibility, ProviderErrorValue)) {
+    return(list(input_compatibility))
+  }
   compatibility <- model@compatibility
   if (!S7::S7_inherits(compatibility, AnthropicMessagesCompatibility)) {
     return(list(rho_provider_error(

@@ -28,6 +28,72 @@ expect_true(S7::S7_inherits(
   GitHubCopilotResponsesModel
 ))
 
+mini <- rho_openai_model("gpt-5-mini")
+image <- ImageContent(
+  data = "iVBORw0KGgo=",
+  mime_type = "image/png"
+)
+image_context <- rho_context(messages = list(rho_user_message(list(
+  rho_text("Read the label."),
+  image
+))))
+image_placement <- rho_plan_tools(provider, mini, image_context)
+image_compatibility <- rho_validate_model_input(mini, image_context)
+image_body <- rho_openai_responses_body(
+  mini,
+  image_context,
+  image_placement
+)
+
+expect_true(S7::S7_inherits(image_compatibility, ModelInputAccepted))
+expect_identical(image_compatibility@model, mini)
+expect_equal(image_compatibility@modalities, c("text", "image"))
+expect_equal(image_body$input[[1L]]$content[[1L]], list(
+  type = "input_text",
+  text = "Read the label."
+))
+expect_equal(image_body$input[[1L]]$content[[2L]], list(
+  type = "input_image",
+  detail = "auto",
+  image_url = "data:image/png;base64,iVBORw0KGgo="
+))
+
+tool_image_context <- rho_context(messages = list(
+  rho_user_message("Render a plot."),
+  rho_assistant_message(
+    content = list(ToolCall(id = "call_1", name = "render", arguments = list())),
+    provider = "openai",
+    model = mini@id,
+    stop_reason = "toolUse"
+  ),
+  rho_tool_result_message(
+    tool_call_id = "call_1",
+    tool_name = "render",
+    content = list(rho_text("Rendered plot"), image)
+  )
+))
+tool_image_body <- rho_openai_responses_body(
+  mini,
+  tool_image_context,
+  rho_plan_tools(provider, mini, tool_image_context)
+)
+expect_equal(tool_image_body$input[[3L]]$type, "function_call_output")
+expect_equal(tool_image_body$input[[3L]]$output[[2L]]$type, "input_image")
+expect_equal(
+  tool_image_body$input[[3L]]$output[[2L]]$image_url,
+  "data:image/png;base64,iVBORw0KGgo="
+)
+
+unsupported_image <- rho_validate_model_input(spark, image_context)
+unsupported_body <- rho_openai_responses_body(
+  spark,
+  image_context,
+  rho_plan_tools(rho_openai_codex_provider(), spark, image_context)
+)
+expect_true(S7::S7_inherits(unsupported_image, ProviderInputUnsupported))
+expect_true(S7::S7_inherits(unsupported_body, ProviderInputUnsupported))
+expect_equal(unsupported_image@details$unsupported, "image")
+
 tool <- rho_tool_spec(
   name = "lookup",
   description = "Look up a value",

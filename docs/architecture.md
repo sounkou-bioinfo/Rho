@@ -5,6 +5,7 @@ Rho has an acyclic package graph and asynchronous effects.
 ```text
 rho.async -> rho.http -> rho.ai -> rho.agent -> rho.ext -> rho.coding
 rho.async -> rho.compute -> rho.graphics
+rho.http + rho.compute -> rho.http.httr2
 rho.async -> rho.bio -> rho.duckdb -> rho.bio.agent
 ```
 
@@ -68,6 +69,17 @@ Rho normalizes requests for behavior, not provider wire formats. Stable question
 are S7 generics with broad, explicit default methods. Provider/API classes add
 narrower methods only for verified behavior, and extension packages may add still
 narrower methods without editing the agent loop.
+
+HTTP implementation and provider-turn execution are separate protocols.
+`rho.http::HttpClient` owns complete HTTP requests and incremental response
+bodies; nanonext and the worker-owned httr2 adapter implement the same methods.
+`rho.ai::rho_stream()` owns the normalized assistant-event result. Its default
+method selects a typed `ProviderTransport` implemented by both the provider and
+model, then dispatches through `rho_open_provider_transport()`. SSE, WebSocket,
+cached WebSocket, and embedded execution are distinct values. An in-process model
+implements `EmbeddedTransport` directly and does not construct an HTTP request.
+The selection is a typed value with a reason, while an unavailable explicit
+choice resolves through `ProviderTransportUnsupported`.
 
 Provider token reports become `Usage` values before entering the agent. Input,
 cache-read, cache-write, and output counts are disjoint; reasoning and one-hour
@@ -140,8 +152,14 @@ implementations do not read API keys from environment variables. Login and token
 refresh are open auth generics. Resolution produces a typed `RhoModelAuth` value
 that is passed to request translation in `options$auth`. A provider implementation
 contains transport configuration, never ambient process credentials. Concurrent
-refresh is serialized by the credential-store gate and publishes the refreshed
+refresh is serialized by the credential-store queue and publishes the refreshed
 credential back to that store before another request resolves auth.
+
+The process-scoped memory store and durable file store implement the same
+protocol. The file store is opt-in through an explicit path, persists login and
+rotated refresh credentials, replaces its JSON document, and requests `0600`
+permissions. Its payload is not encrypted; an encrypted store can implement the
+same protocol without changing providers or the agent loop.
 
 ## Interactive safe points and presentation
 

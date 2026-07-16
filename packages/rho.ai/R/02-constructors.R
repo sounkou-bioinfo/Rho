@@ -111,6 +111,27 @@ rho_provider_error <- function(
     details = details
   )
 }
+rho_provider_input_unsupported <- function(model, requested) {
+  requested <- unique(as.character(requested))
+  unsupported <- setdiff(requested, model@capabilities@input)
+  ProviderInputUnsupported(
+    kind = "unsupported_input",
+    message = sprintf(
+      "%s does not accept %s input",
+      model@id,
+      paste(unsupported, collapse = " and ")
+    ),
+    code = "unsupported_input_modality",
+    retryable = FALSE,
+    details = list(
+      model = model@id,
+      provider = model@provider,
+      requested = requested,
+      supported = model@capabilities@input,
+      unsupported = unsupported
+    )
+  )
+}
 rho_provider_context_overflow <- function(
   message,
   code = "context_overflow",
@@ -385,7 +406,7 @@ rho_model_capabilities <- function(
   thinking_level_map = list(),
   tools = TRUE,
   parallel_tool_calls = TRUE,
-  transports = "sse"
+  transports = list(EmbeddedTransport())
 ) {
   ModelCapabilities(
     input = input,
@@ -450,7 +471,7 @@ rho_new_model <- function(
   thinking_level_map = list(),
   tools = TRUE,
   parallel_tool_calls = TRUE,
-  transports = "sse",
+  transports = list(EmbeddedTransport()),
   pricing = rho_model_pricing(),
   headers = list(),
   compatibility = list(),
@@ -501,7 +522,7 @@ rho_model <- function(
   thinking_level_map = list(),
   tools = TRUE,
   parallel_tool_calls = TRUE,
-  transports = "sse",
+  transports = list(EmbeddedTransport()),
   pricing = rho_model_pricing(),
   headers = list(),
   compatibility = list()

@@ -30,7 +30,10 @@ Before changing repository visibility:
 4. Run `make public-ready` from the commit that will become public.
 5. Require green R 4.4 and R-release checks for that commit.
 6. Confirm that the pinned nanonext streaming commit is public and available
-   to the R-universe build graph.
+   to the R-universe build graph. Track its upstream API in
+   [nanonext issue #329](https://github.com/r-lib/nanonext/issues/329); do not
+   remove the pin until an upstream release provides the semantics exercised by
+   `rho.http`.
 
 After those conditions hold, change `sounkou-bioinfo/Rho` to public, enable the
 pkgdown deployment workflow, and add the repository and its nanonext dependency

@@ -76,6 +76,16 @@ S7::method(rho_auth_to_request, OpenAIApiKeyAuth) <- function(auth, credential, 
   ))
 }
 
+S7::method(rho_credential_decode, OpenAIApiKeyAuth) <- function(
+  auth,
+  document,
+  provider_id,
+  source = "",
+  ...
+) {
+  rho_decode_api_key_credential(document, provider_id, source)
+}
+
 S7::method(
   rho_provider_headers,
   list(OpenAIApi, OpenAIResponsesModel, Context)
@@ -239,13 +249,10 @@ S7::method(
   )
 }
 
-S7::method(rho_stream, list(OpenAIApi, OpenAIResponsesModel, Context)) <- function(
-  provider,
-  model,
-  context,
-  options = list(),
-  ...
-) {
+S7::method(
+  rho_open_provider_transport,
+  list(SseTransport, OpenAIApi, OpenAIResponsesModel, Context)
+) <- function(transport, provider, model, context, options = list(), ...) {
   request <- rho_openai_request(provider, model, context, options)
   if (S7::S7_inherits(request, ProviderErrorValue)) {
     return(rho_provider_error_stream(model, request))

@@ -1,18 +1,5 @@
 #!/usr/bin/env Rscript
 
-rho_script_file <- function() {
-  argument <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
-  if (!length(argument)) {
-    stop("Cannot determine the update script location", call. = FALSE)
-  }
-  normalizePath(sub("^--file=", "", argument[[1L]]), mustWork = TRUE)
-}
-
-rho_output_argument <- function(default) {
-  argument <- grep("^--output=", commandArgs(trailingOnly = TRUE), value = TRUE)
-  if (!length(argument)) default else sub("^--output=", "", argument[[1L]])
-}
-
 rho_model_effort_levels <- function(model) {
   options <- model$reasoning_options %||% list()
   effort <- Filter(function(option) identical(option$type, "effort"), options)
@@ -75,9 +62,31 @@ rho_fetch_models_dev <- function(url) {
   response$data
 }
 
-script <- rho_script_file()
-package <- dirname(dirname(script))
-output <- rho_output_argument(file.path(dirname(script), "models-dev-selected.json"))
+file_argument <- grep(
+  "^--file=",
+  commandArgs(trailingOnly = FALSE),
+  value = TRUE
+)
+if (!length(file_argument)) {
+  stop("Cannot determine the updater script location", call. = FALSE)
+}
+script <- normalizePath(
+  sub("^--file=", "", file_argument[[1L]]),
+  mustWork = TRUE
+)
+data_raw <- dirname(script)
+parser <- optparse::OptionParser(
+  description = "Refresh the selected models.dev projection",
+  option_list = list(
+    optparse::make_option(
+      "--output",
+      type = "character",
+      default = file.path(data_raw, "models-dev-selected.json")
+    )
+  )
+)
+options <- optparse::parse_args(parser)
+output <- options$output
 source_url <- "https://models.dev/api.json"
 source_raw <- rho_fetch_models_dev(source_url)
 source <- yyjsonr::read_json_raw(

@@ -13,7 +13,8 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:
-    S7, rho.async (>= 0.0.1.9000), nanonext (>= 1.10.1.9000), yyjsonr
+    S7, s7contract, rho.async (>= 0.0.1.9000),
+    nanonext (>= 1.10.1.9000), yyjsonr
 Suggests:
     tinytest, knitr
 Remotes:

@@ -4,6 +4,92 @@ library(tinytest)
 library(rho.async)
 library(rho.http)
 
+FixtureHttpClient <- S7::new_class(
+  "FixtureHttpClient",
+  parent = RhoHttpClient,
+  properties = list(state = S7::class_environment)
+)
+FixtureHttpBodyStream <- S7::new_class(
+  "FixtureHttpBodyStream",
+  parent = RhoHttpBodyStream
+)
+
+S7::method(
+  rho_http_send,
+  list(FixtureHttpClient, RhoHttpRequest)
+) <- function(client, request, ...) {
+  rho_task(RhoHttpResponse(
+    status = client@state$status,
+    headers = list(`Content-Type` = "text/plain"),
+    data = charToRaw("fixture"),
+    url = request@url
+  ))
+}
+
+S7::method(
+  rho_http_open_stream,
+  list(FixtureHttpClient, RhoHttpRequest)
+) <- function(client, request, ...) {
+  state <- new.env(parent = emptyenv())
+  state$chunks <- client@state$chunks
+  state$closed <- FALSE
+  state$created_at <- Sys.time()
+  rho_task(FixtureHttpBodyStream(
+    head = RhoHttpResponseHead(
+      status = client@state$status,
+      headers = list(`Content-Type` = "text/event-stream"),
+      url = request@url
+    ),
+    state = state
+  ))
+}
+
+S7::method(rho_stream_next, FixtureHttpBodyStream) <- function(
+  stream,
+  timeout = NULL,
+  ...
+) {
+  if (stream@state$closed || !length(stream@state$chunks)) {
+    return(rho_task(rho_stream_end()))
+  }
+  chunk <- stream@state$chunks[[1L]]
+  stream@state$chunks <- stream@state$chunks[-1L]
+  rho_task(rho_stream_value(chunk))
+}
+
+S7::method(rho_stream_close, FixtureHttpBodyStream) <- function(stream, ...) {
+  stream@state$closed <- TRUE
+  invisible(TRUE)
+}
+
+fixture_state <- new.env(parent = emptyenv())
+fixture_state$status <- 200L
+fixture_state$chunks <- list(
+  charToRaw("data: first\n\n"),
+  charToRaw("data: second\n\n")
+)
+fixture_client <- FixtureHttpClient(
+  headers = list(),
+  timeout_ms = 1000L,
+  stream_buffer_size = 16L,
+  max_error_body_bytes = 1024L,
+  state = fixture_state
+)
+fixture_request <- rho_http_request("GET", "https://fixture.invalid/events")
+
+expect_true(s7contract::implements(fixture_client, HttpClient))
+fixture_response <- rho_http_send(fixture_client, fixture_request) |>
+  rho_await(timeout = 1000L)
+expect_equal(rawToChar(fixture_response@data), "fixture")
+
+fixture_events <- rho_sse_connect(fixture_client, fixture_request)
+first <- rho_stream_next(fixture_events) |> rho_await(timeout = 1000L)
+second <- rho_stream_next(fixture_events) |> rho_await(timeout = 1000L)
+ending <- rho_stream_next(fixture_events) |> rho_await(timeout = 1000L)
+expect_equal(first@value@data, "first")
+expect_equal(second@value@data, "second")
+expect_true(S7::S7_inherits(ending, RhoStreamEnd))
+
 server_connection <- NULL
 server <- nanonext::http_server(
   url = "http://127.0.0.1:0",

@@ -47,6 +47,11 @@ expect_true(S7::S7_inherits(model, GitHubCopilotResponsesModel))
 expect_equal(model@limits@context_window, 400000L)
 expect_equal(model@capabilities@input, c("text", "image"))
 expect_equal(model@capabilities@thinking_level_map$minimal, "low")
+expect_equal(
+  vapply(model@capabilities@transports, rho_transport_id, character(1)),
+  c("sse", "websocket")
+)
+expect_equal(record@source@id, "github-copilot")
 
 responses <- rho_catalog_models(
   catalog,
@@ -95,11 +100,14 @@ expect_identical(zai@thinking_control@preserve_previous, TRUE)
 expect_equal(zai@limits@context_window, 1000000L)
 expect_true(S7::S7_inherits(codex, OpenAIResponsesModel))
 expect_equal(codex@api, "openai-codex-responses")
-expect_equal(codex@capabilities@transports, c(
+expect_equal(vapply(
+  codex@capabilities@transports,
+  rho_transport_id,
+  character(1)
+), c(
   "sse",
   "websocket",
-  "websocket-cached",
-  "auto"
+  "websocket-cached"
 ))
 
 expect_equal(

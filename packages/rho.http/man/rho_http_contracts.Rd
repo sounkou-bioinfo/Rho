@@ -2,11 +2,15 @@
 % Please edit documentation in R/api.R
 \name{rho_http_contracts}
 \alias{rho_http_contracts}
+\alias{HttpClient}
 \alias{RhoHttpClient}
+\alias{RhoNanonextHttpClient}
 \alias{RhoHttpRequest}
+\alias{RhoHttpPayload}
 \alias{RhoHttpResponse}
 \alias{RhoHttpResponseHead}
 \alias{RhoHttpBodyStream}
+\alias{RhoNanonextHttpBodyStream}
 \alias{RhoSseEvent}
 \alias{RhoSseDecoder}
 \alias{RhoSseStream}
@@ -15,22 +19,28 @@
 \alias{RhoHttpStatusError}
 \alias{rho_http_client}
 \alias{rho_http_request}
+\alias{rho_http_payload}
 \alias{rho_http_send}
 \alias{rho_http_open_stream}
+\alias{rho_http_client_close}
 \alias{rho_sse_connect}
 \alias{rho_sse_decoder}
 \alias{rho_sse_decode}
 \alias{rho_sse_parse}
 \title{Asynchronous HTTP and server-sent event contracts}
 \description{
-\code{RhoHttpRequest} is a typed request value. \code{\link[=rho_http_send]{rho_http_send()}} returns a task
-resolving to \code{RhoHttpResponse}; \code{\link[=rho_http_open_stream]{rho_http_open_stream()}} resolves to a
+\code{RhoHttpRequest} is a typed request value. \code{HttpClient} requires
+\code{\link[=rho_http_send]{rho_http_send()}} and \code{\link[=rho_http_open_stream]{rho_http_open_stream()}}. The latter resolves to a
 \code{RhoHttpBodyStream} after the response head arrives. \code{RhoSseDecoder}
 preserves protocol state across arbitrary byte chunks. \code{\link[=rho_sse_connect]{rho_sse_connect()}}
+is the default composition over any \code{RhoHttpClient} implementation and
 exposes decoded \code{RhoSseEvent} values through the common Rho stream protocol.
 }
 \details{
-TLS configuration is an explicit property of \code{RhoHttpClient} and is created
-in memory by \code{nanonext::tls_config()}; this package does not search the host
-filesystem for certificate bundles.
+\code{rho_http_client()} constructs the built-in \code{RhoNanonextHttpClient}. Its TLS
+configuration is created in memory by \code{nanonext::tls_config()}; this package
+does not search the host filesystem for certificate bundles. Another client
+subclasses \code{RhoHttpClient}, implements \code{HttpClient}, and returns its own
+\code{RhoHttpBodyStream} subclass with stream-next and close methods. Providers and
+SSE decoding do not depend on its connection handle.
 }

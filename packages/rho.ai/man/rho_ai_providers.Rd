@@ -18,6 +18,16 @@
 \alias{ProviderRequestTranslator}
 \alias{ProviderInputCompactor}
 \alias{ProviderErrorValue}
+\alias{ProviderInputUnsupported}
+\alias{ModelInputAccepted}
+\alias{ProviderTransportUnsupported}
+\alias{ProviderTransportSelection}
+\alias{ProviderTransport}
+\alias{SseTransport}
+\alias{WebSocketTransport}
+\alias{CachedWebSocketTransport}
+\alias{EmbeddedTransport}
+\alias{AutomaticTransport}
 \alias{ProviderOperationUnsupported}
 \alias{RhoProviderOperation}
 \alias{RhoToolSearchOperation}
@@ -45,10 +55,18 @@
 \alias{rho_map_thinking_level}
 \alias{rho_model_supports_input}
 \alias{rho_model_supports_transport}
+\alias{rho_transport_id}
+\alias{rho_provider_transports}
+\alias{rho_select_provider_transport}
+\alias{rho_open_provider_transport}
+\alias{rho_content_modalities}
+\alias{rho_content_text}
+\alias{rho_validate_model_input}
 \alias{rho_stream}
 \alias{rho_complete}
 \alias{rho_provider_error}
 \alias{rho_provider_http_error}
+\alias{rho_provider_input_unsupported}
 \alias{rho_provider_context_overflow}
 \alias{rho_provider_request_too_large}
 \alias{rho_unsupported_provider_operation}
@@ -79,4 +97,13 @@
 Shared model facts live in typed capability, limits, and pricing objects.
 Provider-specific behavior is queried with typed operation values and S7
 dispatch, avoiding a lowest-common-denominator boolean map.
+}
+\details{
+Provider turns are independent of byte transport. \code{\link[=rho_stream]{rho_stream()}} always
+returns normalized assistant events whether an implementation uses SSE,
+WebSocket, an embedded model, or a remote evaluator. \code{ProviderTransport}
+values describe executable strategies. \code{AutomaticTransport} is a selection
+policy rather than a model capability. \code{\link[=rho_select_provider_transport]{rho_select_provider_transport()}}
+records the selected strategy and reason; \code{\link[=rho_open_provider_transport]{rho_open_provider_transport()}}
+is the provider-open execution point.
 }

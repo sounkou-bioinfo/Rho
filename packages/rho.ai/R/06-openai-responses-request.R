@@ -52,6 +52,11 @@ rho_openai_content_input <- S7::new_generic(
   "content",
   function(content, ...) S7::S7_dispatch()
 )
+rho_openai_input_content <- S7::new_generic(
+  "rho_openai_input_content",
+  c("content", "model"),
+  function(content, model, ...) S7::S7_dispatch()
+)
 rho_openai_operation_status_value <- S7::new_generic(
   "rho_openai_operation_status_value",
   "status",
@@ -353,14 +358,22 @@ rho_openai_standard_request_sections <- function(
   reasoning_default = NULL,
   verbosity_default = NULL
 ) {
+  input_compatibility <- rho_validate_model_input(model, context)
+  if (S7::S7_inherits(input_compatibility, ProviderErrorValue)) {
+    return(list(input_compatibility))
+  }
   operations <- rho_request_operation_plan(context, options)
   if (S7::S7_inherits(operations, ProviderErrorValue)) {
     return(list(operations))
   }
+  input <- rho_openai_responses_input(context, placement, model)
+  if (S7::S7_inherits(input, ProviderErrorValue)) {
+    return(list(input))
+  }
   list(
     OpenAICoreRequestSection(
       model = model@id,
-      input = rho_openai_responses_input(context, placement)
+      input = input
     ),
     rho_openai_instruction_section(context@system_prompt, instruction_default),
     rho_openai_tool_section(
@@ -516,6 +529,142 @@ S7::method(rho_openai_tool_fields, OpenAIWebSearchBinding) <- function(
 
 S7::method(rho_openai_content_input, Content) <- function(content, ...) {
   list()
+}
+
+S7::method(
+  rho_openai_input_content,
+  list(S7::class_character, OpenAIResponsesModel)
+) <- function(content, model, ...) {
+  list(list(type = "input_text", text = paste(content, collapse = "")))
+}
+
+S7::method(
+  rho_openai_input_content,
+  list(TextContent, OpenAIResponsesModel)
+) <- function(content, model, ...) {
+  list(list(type = "input_text", text = content@text))
+}
+
+S7::method(
+  rho_openai_input_content,
+  list(ImageContent, OpenAIResponsesModel)
+) <- function(content, model, ...) {
+  if (!rho_model_supports_input(model, "image")) {
+    return(rho_provider_input_unsupported(model, "image"))
+  }
+  list(list(
+    type = "input_image",
+    detail = "auto",
+    image_url = sprintf("data:%s;base64,%s", content@mime_type, content@data)
+  ))
+}
+
+S7::method(
+  rho_openai_input_content,
+  list(S7::class_list, OpenAIResponsesModel)
+) <- function(content, model, ...) {
+  parts <- lapply(content, rho_openai_input_content, model = model)
+  error <- rho_first_provider_error(parts)
+  if (!is.null(error)) {
+    return(error)
+  }
+  unlist(parts, recursive = FALSE, use.names = FALSE)
+}
+
+S7::method(
+  rho_openai_input_content,
+  list(S7::class_any, OpenAIResponsesModel)
+) <- function(content, model, ...) {
+  rho_provider_error(
+    sprintf("OpenAI Responses cannot encode input content class %s", rho_class_label(content)),
+    kind = "protocol",
+    code = "unsupported_content",
+    details = list(content_class = rho_class_label(content), model = model@id)
+  )
+}
+
+rho_openai_responses_input <- function(context, placement, model) {
+  input <- list()
+  deferred <- placement@deferred
+  deferred_names <- if (length(deferred)) {
+    vapply(deferred, function(tool) tool@name, character(1))
+  } else {
+    character()
+  }
+  loaded_names <- character()
+  for (message_index in seq_along(context@messages)) {
+    message <- context@messages[[message_index]]
+    if (S7::S7_inherits(message, UserMessage)) {
+      content <- rho_openai_input_content(message@content, model)
+      if (S7::S7_inherits(content, ProviderErrorValue)) {
+        return(content)
+      }
+      input[[length(input) + 1L]] <- list(
+        role = "user",
+        content = content
+      )
+    } else if (S7::S7_inherits(message, AssistantMessage)) {
+      text <- rho_content_text(message@content)
+      if (nzchar(text)) {
+        input[[length(input) + 1L]] <- list(
+          role = "assistant",
+          content = list(list(type = "output_text", text = text))
+        )
+      }
+      content_items <- unlist(
+        lapply(message@content, rho_openai_content_input),
+        recursive = FALSE,
+        use.names = FALSE
+      )
+      input <- c(input, content_items)
+    } else if (S7::S7_inherits(message, ToolResultMessage)) {
+      output_content <- rho_openai_input_content(message@content, model)
+      if (S7::S7_inherits(output_content, ProviderErrorValue)) {
+        return(output_content)
+      }
+      has_image <- "image" %in% rho_content_modalities(message@content)
+      input[[length(input) + 1L]] <- list(
+        type = "function_call_output",
+        call_id = message@tool_call_id,
+        output = if (has_image) output_content else rho_content_text(message@content)
+      )
+      names_to_load <- intersect(
+        message@added_tool_names,
+        setdiff(deferred_names, loaded_names)
+      )
+      if (length(names_to_load)) {
+        loaded_names <- c(loaded_names, names_to_load)
+        loaded_tools <- deferred[deferred_names %in% names_to_load]
+        search_call_id <- sprintf("rho_tool_load_%d", message_index)
+        input[[length(input) + 1L]] <- list(
+          type = "tool_search_call",
+          call_id = search_call_id,
+          execution = "client",
+          status = "completed",
+          arguments = list(
+            query = paste(names_to_load, collapse = " "),
+            limit = length(names_to_load)
+          )
+        )
+        input[[length(input) + 1L]] <- list(
+          type = "tool_search_output",
+          call_id = search_call_id,
+          execution = "client",
+          status = "completed",
+          tools = rho_openai_responses_tools(loaded_tools, defer_loading = TRUE)
+        )
+      }
+    }
+  }
+  input
+}
+
+rho_openai_responses_tools <- function(tools, defer_loading = FALSE) {
+  unname(lapply(
+    tools,
+    rho_openai_tool_fields,
+    defer_loading = defer_loading
+  ))
 }
 
 S7::method(rho_openai_content_input, ToolCall) <- function(content, ...) {

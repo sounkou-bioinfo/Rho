@@ -1,0 +1,39 @@
+---
+output: github_document
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+# rho.http.httr2
+
+<!-- badges: start -->
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
+[`rho.http.httr2`](https://sounkou-bioinfo.github.io/Rho/rho.http.httr2/)
+implements the [`rho.http`](https://sounkou-bioinfo.github.io/Rho/rho.http/)
+client interface with httr2 connections owned by compute workers.
+
+httr2 exposes a pull connection that parses response status, headers, transfer
+framing, and body bytes. Opening that connection waits for the response head,
+so the adapter does not run it on the calling R event loop. A worker owns the
+connection and relays typed head, chunk, completion, and error values over a
+private localhost NNG pair socket. The socket supplies backpressure, and closing
+or cancelling the Rho stream cancels the worker.
+
+```{r client}
+library(rho.http.httr2)
+
+client <- rho_httr2_http_client()
+S7::S7_inherits(client, rho.http::RhoHttpClient)
+s7contract::implements(client, rho.http::HttpClient)
+rho.http::rho_http_client_close(client)
+```
+
+Providers receive only the `HttpClient` contract. Selecting this adapter does
+not change request translation, SSE decoding, or normalized provider events.
+
+See the [`rho.http.httr2` reference](https://sounkou-bioinfo.github.io/Rho/rho.http.httr2/reference/)
+and the shared [`rho.http` contract](https://sounkou-bioinfo.github.io/Rho/rho.http/).

@@ -47,6 +47,17 @@ rho_http_body <- S7::new_property(
   }
 )
 
+rho_http_encoded_body <- S7::new_property(
+  S7::class_any,
+  default = NULL,
+  validator = function(value) {
+    valid_text <- is.character(value) && length(value) == 1L && !is.na(value)
+    if (!is.null(value) && !is.raw(value) && !valid_text) {
+      "must be NULL, raw bytes, or one non-missing string"
+    }
+  }
+)
+
 rho_scalar_logical <- S7::new_property(
   S7::class_logical,
   validator = function(value) {
@@ -63,13 +74,19 @@ rho_raw_bytes <- S7::new_property(
 
 RhoHttpClient <- S7::new_class(
   "RhoHttpClient",
+  abstract = TRUE,
   properties = list(
     headers = rho_http_headers,
     timeout_ms = rho_positive_integer,
-    tls = S7::class_any,
     stream_buffer_size = rho_positive_integer,
     max_error_body_bytes = rho_positive_integer
   )
+)
+
+RhoNanonextHttpClient <- S7::new_class(
+  "RhoNanonextHttpClient",
+  parent = RhoHttpClient,
+  properties = list(tls = S7::class_any)
 )
 
 RhoHttpResponseHead <- S7::new_class(
@@ -97,6 +114,19 @@ RhoHttpRequest <- S7::new_class(
       "@method must be GET, POST, PUT, PATCH, DELETE, or HEAD"
     }
   }
+)
+
+RhoHttpPayload <- S7::new_class(
+  "RhoHttpPayload",
+  properties = list(
+    method = rho_non_empty_string,
+    url = rho_non_empty_string,
+    headers = rho_http_headers,
+    data = rho_http_encoded_body,
+    timeout_ms = rho_positive_integer,
+    response_headers = S7::class_character,
+    convert = rho_scalar_logical
+  )
 )
 
 RhoHttpResponse <- S7::new_class(
@@ -141,7 +171,13 @@ RhoSseDecoder <- S7::new_class(
 
 RhoHttpBodyStream <- S7::new_class(
   "RhoHttpBodyStream",
-  parent = rho.async::RhoStream
+  parent = rho.async::RhoStream,
+  properties = list(head = RhoHttpResponseHead)
+)
+
+RhoNanonextHttpBodyStream <- S7::new_class(
+  "RhoNanonextHttpBodyStream",
+  parent = RhoHttpBodyStream
 )
 
 RhoSseStream <- S7::new_class(

@@ -6,7 +6,7 @@ rendering, Rmd-driven tinytest specs, and provider request builders. Package API
 documentation and namespaces are generated from roxygen2 tags. Air is the
 authoritative formatter; the local verified version is 0.10.0.
 
-All twelve source packages are versioned `0.0.1.9000`, build from tarballs, and
+All thirteen source packages are versioned `0.0.1.9000`, build from tarballs, and
 report `Status: OK` under `R CMD check --no-manual` with R 4.6.0 on Linux. The check driver treats every
 NOTE, WARNING, or ERROR as a failed monorepo gate. This establishes package
 health; it does not claim provider or Pi behavioral parity.
@@ -17,9 +17,11 @@ per-tool overlap requirements, concurrent task joining with source-order
 results, real parallel mirai workers, cross-platform resolution of an actual
 Bash executable, shell execution in mirai workers, isolated R expression
 evaluation, and an opt-in stateful current-session R evaluator. Provider request
-builders require explicit
-resolved `RhoModelAuth`; they do not read API keys from process-global
-environment variables. JSON parsing and serialization use `yyjsonr` throughout.
+builders require explicit resolved `RhoModelAuth`; they do not read API keys
+from process-global environment variables. Successful login and refresh values
+can be retained by the process-scoped memory store or an explicitly selected,
+owner-readable JSON store; both implement the same serialized credential
+protocol. JSON parsing and serialization use `yyjsonr` throughout.
 Semantic operations are planned separately from executable tools. OpenAI and
 Anthropic web search use typed, catalog-backed provider bindings, normalize
 provider activity as content, and reject unbound operations at request
@@ -54,8 +56,19 @@ Known incomplete work, stated directly:
   without prompting or issuing a network request.
 - `rho.http::rho_sse_connect()` opens the response with the pinned nanonext
   `ncurl_stream_aio()` fork and incrementally decodes arbitrary body chunks. The
-  transport remains pinned until the primitive is available from an upstream
-  nanonext release.
+  transport remains pinned while
+  [nanonext issue #329](https://github.com/r-lib/nanonext/issues/329) establishes
+  the upstream API; replacing the pin will require the same receive,
+  cancellation, completion, and close semantics.
+- `rho.http.httr2` implements the same complete-request and incremental-body
+  contract with worker-owned httr2 connections. Its fixtures verify response
+  heads, incremental SSE delivery, completion, and cancellation without making
+  provider code depend on httr2.
+- Provider turns select typed SSE, WebSocket, cached-WebSocket, or embedded
+  strategies before opening a normalized assistant-event stream. OpenAI Codex
+  currently implements SSE; its WebSocket strategies remain explicit model
+  capabilities and return `ProviderTransportUnsupported` until their executable
+  methods and fixtures are present.
 - `rho.duckdb` has a conservative read-only SQL guard; production hardening should add a parser-backed guard before enabling untrusted SQL.
 - The Bash tool currently returns complete combined output. Pi-equivalent
   incremental output updates, bounded tail retention, and persisted full-output

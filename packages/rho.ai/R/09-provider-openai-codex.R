@@ -553,100 +553,6 @@ rho_openai_codex_url <- function(base_url) {
   paste0(normalized, "/codex/responses")
 }
 
-rho_openai_content_text <- function(content) {
-  if (is.character(content)) {
-    return(paste(content, collapse = ""))
-  }
-  if (!is.list(content)) {
-    return(as.character(content))
-  }
-  paste(
-    vapply(
-      content,
-      function(part) {
-        if (S7::S7_inherits(part, TextContent)) part@text else ""
-      },
-      character(1)
-    ),
-    collapse = ""
-  )
-}
-
-rho_openai_responses_input <- function(context, placement) {
-  input <- list()
-  deferred <- placement@deferred
-  deferred_names <- if (length(deferred)) {
-    vapply(deferred, function(tool) tool@name, character(1))
-  } else {
-    character()
-  }
-  loaded_names <- character()
-  for (message_index in seq_along(context@messages)) {
-    message <- context@messages[[message_index]]
-    if (S7::S7_inherits(message, UserMessage)) {
-      input[[length(input) + 1L]] <- list(
-        role = "user",
-        content = list(list(
-          type = "input_text",
-          text = rho_openai_content_text(message@content)
-        ))
-      )
-    } else if (S7::S7_inherits(message, AssistantMessage)) {
-      text <- rho_openai_content_text(message@content)
-      if (nzchar(text)) {
-        input[[length(input) + 1L]] <- list(
-          role = "assistant",
-          content = list(list(type = "output_text", text = text))
-        )
-      }
-      content_items <- unlist(
-        lapply(message@content, rho_openai_content_input),
-        recursive = FALSE,
-        use.names = FALSE
-      )
-      input <- c(input, content_items)
-    } else if (S7::S7_inherits(message, ToolResultMessage)) {
-      input[[length(input) + 1L]] <- list(
-        type = "function_call_output",
-        call_id = message@tool_call_id,
-        output = rho_openai_content_text(message@content)
-      )
-      names_to_load <- intersect(message@added_tool_names, setdiff(deferred_names, loaded_names))
-      if (length(names_to_load)) {
-        loaded_names <- c(loaded_names, names_to_load)
-        loaded_tools <- deferred[deferred_names %in% names_to_load]
-        search_call_id <- sprintf("rho_tool_load_%d", message_index)
-        input[[length(input) + 1L]] <- list(
-          type = "tool_search_call",
-          call_id = search_call_id,
-          execution = "client",
-          status = "completed",
-          arguments = list(
-            query = paste(names_to_load, collapse = " "),
-            limit = length(names_to_load)
-          )
-        )
-        input[[length(input) + 1L]] <- list(
-          type = "tool_search_output",
-          call_id = search_call_id,
-          execution = "client",
-          status = "completed",
-          tools = rho_openai_responses_tools(loaded_tools, defer_loading = TRUE)
-        )
-      }
-    }
-  }
-  input
-}
-
-rho_openai_responses_tools <- function(tools, defer_loading = FALSE) {
-  unname(lapply(
-    tools,
-    rho_openai_tool_fields,
-    defer_loading = defer_loading
-  ))
-}
-
 rho_openai_codex_request <- function(provider, model, context, options = list()) {
   rho_build_provider_request(provider, model, context, options = options)
 }
@@ -800,15 +706,9 @@ S7::method(
 }
 
 S7::method(
-  rho_stream,
-  list(OpenAICodexApi, OpenAICodexResponsesModel, Context)
-) <- function(
-  provider,
-  model,
-  context,
-  options = list(),
-  ...
-) {
+  rho_open_provider_transport,
+  list(SseTransport, OpenAICodexApi, OpenAICodexResponsesModel, Context)
+) <- function(transport, provider, model, context, options = list(), ...) {
   request <- rho_openai_codex_request(provider, model, context, options)
   if (S7::S7_inherits(request, ProviderErrorValue)) {
     return(rho_provider_error_stream(model, request))

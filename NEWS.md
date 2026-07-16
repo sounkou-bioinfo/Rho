@@ -1,5 +1,11 @@
 # Rho 0.0.1.9000
 
+- Separates the HTTP client contract from its nanonext implementation and adds
+  a worker-owned httr2 adapter with incremental response delivery.
+- Selects provider turns through typed SSE, WebSocket, cached-WebSocket, and
+  embedded strategies while preserving one normalized assistant-event stream.
+- Compiles GitHub Copilot protocols from declared endpoint metadata instead of
+  model-name patterns.
 - Makes task composition cancellation-aware, adds `rho_race()`, gives task
   groups ownership of their children, and applies deadlines through derived
   streams.

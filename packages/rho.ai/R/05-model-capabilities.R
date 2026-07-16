@@ -64,6 +64,102 @@ S7::method(rho_model_supports_input, Model) <- function(model, input, ...) {
   input %in% model@capabilities@input
 }
 
-S7::method(rho_model_supports_transport, Model) <- function(model, transport, ...) {
-  transport %in% model@capabilities@transports
+S7::method(rho_content_modalities, S7::class_character) <- function(x, ...) {
+  if (length(x)) "text" else character()
+}
+
+S7::method(rho_content_modalities, TextContent) <- function(x, ...) "text"
+S7::method(rho_content_modalities, ThinkingContent) <- function(x, ...) "text"
+S7::method(rho_content_modalities, ImageContent) <- function(x, ...) "image"
+
+S7::method(rho_content_modalities, S7::class_list) <- function(x, ...) {
+  unique(unlist(lapply(x, rho_content_modalities), use.names = FALSE))
+}
+
+S7::method(rho_content_modalities, UserMessage) <- function(x, ...) {
+  rho_content_modalities(x@content)
+}
+
+S7::method(rho_content_modalities, ToolResultMessage) <- function(x, ...) {
+  rho_content_modalities(x@content)
+}
+
+S7::method(rho_content_modalities, AssistantMessage) <- function(x, ...) {
+  rho_content_modalities(x@content)
+}
+
+S7::method(rho_content_modalities, Context) <- function(x, ...) {
+  modalities <- rho_content_modalities(x@messages)
+  if (nzchar(x@system_prompt)) {
+    modalities <- c("text", modalities)
+  }
+  unique(modalities)
+}
+
+S7::method(rho_content_modalities, S7::class_any) <- function(x, ...) character()
+
+S7::method(rho_content_text, S7::class_character) <- function(x, ...) {
+  paste(x, collapse = "")
+}
+
+S7::method(rho_content_text, TextContent) <- function(x, ...) x@text
+
+S7::method(rho_content_text, S7::class_list) <- function(x, ...) {
+  paste(vapply(x, rho_content_text, character(1)), collapse = "")
+}
+
+S7::method(rho_content_text, S7::class_any) <- function(x, ...) ""
+
+S7::method(
+  rho_validate_model_input,
+  list(Model, Context)
+) <- function(model, context, ...) {
+  modalities <- rho_content_modalities(context)
+  unsupported <- setdiff(modalities, model@capabilities@input)
+  if (length(unsupported)) {
+    return(rho_provider_input_unsupported(model, modalities))
+  }
+  ModelInputAccepted(model = model, modalities = modalities)
+}
+
+S7::method(
+  rho_model_supports_transport,
+  list(Model, ProviderTransport)
+) <- function(model, transport, ...) {
+  transport_class <- S7::S7_class(transport)
+  any(vapply(
+    model@capabilities@transports,
+    function(candidate) identical(S7::S7_class(candidate), transport_class),
+    logical(1)
+  ))
+}
+
+S7::method(rho_transport_id, SseTransport) <- function(transport, ...) "sse"
+S7::method(rho_transport_id, WebSocketTransport) <- function(transport, ...) "websocket"
+S7::method(rho_transport_id, CachedWebSocketTransport) <- function(transport, ...) {
+  "websocket-cached"
+}
+S7::method(rho_transport_id, EmbeddedTransport) <- function(transport, ...) "embedded"
+S7::method(rho_transport_id, AutomaticTransport) <- function(transport, ...) "auto"
+
+rho_compile_model_transport <- function(id) {
+  transport <- switch(
+    id,
+    sse = SseTransport(),
+    websocket = WebSocketTransport(),
+    `websocket-cached` = CachedWebSocketTransport(),
+    embedded = EmbeddedTransport(),
+    NULL
+  )
+  if (is.null(transport)) {
+    rho.async::rho_signal_contract_violation(
+      "Unknown model transport id: %s",
+      id
+    )
+  }
+  transport
+}
+
+rho_compile_model_transports <- function(ids) {
+  lapply(ids, rho_compile_model_transport)
 }

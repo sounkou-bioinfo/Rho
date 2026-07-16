@@ -64,7 +64,7 @@ ModelCatalogRecord <- S7::new_class(
     thinking_level_map = rho_thinking_level_map,
     tools = rho_scalar_logical,
     parallel_tool_calls = rho_scalar_logical,
-    transports = rho_model_transports,
+    transports = rho_model_transport_ids,
     context_window = rho_positive_integer,
     max_tokens = rho_positive_integer,
     pricing = ModelPricing,
@@ -290,7 +290,10 @@ rho_catalog_model_call <- function(
     thinking_level_map = record@thinking_level_map,
     tools = record@tools,
     parallel_tool_calls = record@parallel_tool_calls,
-    transports = record@transports,
+    transports = as.call(list(
+      quote(rho_compile_model_transports),
+      record@transports
+    )),
     pricing = rho_catalog_model_pricing_expression(record@pricing),
     headers = record@headers,
     compatibility = compatibility,

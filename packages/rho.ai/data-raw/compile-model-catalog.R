@@ -1,19 +1,5 @@
 #!/usr/bin/env Rscript
 
-rho_script_file <- function() {
-  argument <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
-  if (!length(argument)) {
-    stop("Cannot determine the compiler script location", call. = FALSE)
-  }
-  normalizePath(sub("^--file=", "", argument[[1L]]), mustWork = TRUE)
-}
-
-rho_catalog_argument <- function(name, default) {
-  pattern <- sprintf("^--%s=", name)
-  argument <- grep(pattern, commandArgs(trailingOnly = TRUE), value = TRUE)
-  if (!length(argument)) default else sub(pattern, "", argument[[1L]])
-}
-
 rho_catalog_read <- function(path) {
   yyjsonr::read_json_file(
     path,
@@ -52,7 +38,7 @@ rho_catalog_supported_input <- function(model) {
   input
 }
 
-rho_catalog_thinking_map <- function(model, provider_kind) {
+rho_catalog_thinking_map <- function(model) {
   if (!isTRUE(model$reasoning)) {
     return(list())
   }
@@ -73,23 +59,11 @@ rho_catalog_thinking_map <- function(model, provider_kind) {
     provider_level
   })
   names(mapped) <- canonical
-  if (
-    identical(provider_kind, "github_copilot") &&
-      startsWith(model$id, "gpt-5") &&
-      is.null(mapped$minimal) &&
-      "low" %in% levels
-  ) {
+  if (is.null(mapped$minimal) && "low" %in% levels) {
     mapped$minimal <- "low"
   }
   if (is.null(mapped$xhigh) && "max" %in% levels) {
     mapped$xhigh <- "max"
-  }
-  if (
-    identical(provider_kind, "zai") &&
-      identical(model$id, "glm-5.2")
-  ) {
-    mapped <- as.list(stats::setNames(canonical, canonical))
-    mapped$off <- "none"
   }
   mapped
 }
@@ -99,6 +73,7 @@ rho_catalog_record <- function(
   provider,
   protocol,
   provider_capabilities = list(),
+  transports = "sse",
   source = "models.dev"
 ) {
   if (is.null(model$context_window) || is.null(model$max_tokens)) {
@@ -116,10 +91,10 @@ rho_catalog_record <- function(
     name = model$name,
     input = rho_catalog_supported_input(model),
     reasoning = isTRUE(model$reasoning),
-    thinking_level_map = rho_catalog_thinking_map(model, provider$kind),
+    thinking_level_map = rho_catalog_thinking_map(model),
     tools = TRUE,
     parallel_tool_calls = TRUE,
-    transports = "sse",
+    transports = transports,
     context_window = as.integer(model$context_window),
     max_tokens = as.integer(model$max_tokens),
     pricing = lapply(pricing[required_pricing], as.double),
@@ -188,31 +163,78 @@ rho_compile_anthropic_models <- function(provider) {
   })
 }
 
-rho_copilot_protocol <- function(model) {
-  routes <- list(
-    list(
-      matches = function(id) grepl("^claude-(haiku|sonnet|opus)-4([.\\-]|$)", id),
-      protocol = "anthropic_messages"
-    ),
-    list(
-      matches = function(id) startsWith(id, "gpt-5") || startsWith(id, "oswe"),
-      protocol = "openai_responses"
-    ),
-    list(matches = function(id) TRUE, protocol = "openai_chat_completions")
+rho_copilot_protocol <- function(descriptor) {
+  protocols <- c(
+    "/v1/messages" = "anthropic_messages",
+    "/responses" = "openai_responses",
+    "ws:/responses" = "openai_responses",
+    "/chat/completions" = "openai_chat_completions"
   )
-  route <- Filter(function(candidate) candidate$matches(model$id), routes)[[1L]]
-  route$protocol
+  declared <- unlist(descriptor$supported_endpoints, use.names = FALSE)
+  selected <- intersect(names(protocols), declared)
+  if (!length(selected)) {
+    stop(
+      sprintf(
+        "GitHub Copilot model %s declares no supported provider endpoint",
+        descriptor$id
+      ),
+      call. = FALSE
+    )
+  }
+  unname(protocols[[selected[[1L]]]])
 }
 
-rho_compile_copilot_models <- function(provider) {
+rho_copilot_transports <- function(descriptor, protocol) {
+  endpoints <- unlist(descriptor$supported_endpoints, use.names = FALSE)
+  http_endpoint <- switch(
+    protocol,
+    anthropic_messages = "/v1/messages",
+    openai_responses = "/responses",
+    openai_chat_completions = "/chat/completions"
+  )
+  transports <- character()
+  if (http_endpoint %in% endpoints) {
+    transports <- c(transports, "sse")
+  }
+  if (identical(protocol, "openai_responses") && "ws:/responses" %in% endpoints) {
+    transports <- c(transports, "websocket")
+  }
+  if (!length(transports)) {
+    stop(
+      sprintf(
+        "GitHub Copilot model %s has no transport for protocol %s",
+        descriptor$id,
+        protocol
+      ),
+      call. = FALSE
+    )
+  }
+  transports
+}
+
+rho_compile_copilot_models <- function(provider, endpoint_snapshot) {
   profile <- list(
     kind = "github_copilot",
     id = "github-copilot",
     name = "GitHub Copilot",
     base_url = "https://api.individual.githubcopilot.com"
   )
-  lapply(rho_catalog_active_tool_models(provider), function(model) {
-    protocol <- rho_copilot_protocol(model)
+  models <- rho_catalog_active_tool_models(provider)
+  records <- lapply(models, function(model) {
+    descriptor <- endpoint_snapshot$models[[model$id]]
+    if (is.null(descriptor)) {
+      stop(
+        sprintf("GitHub Copilot endpoint snapshot has no model %s", model$id),
+        call. = FALSE
+      )
+    }
+    if (!isTRUE(descriptor$observed)) {
+      return(NULL)
+    }
+    if (!length(descriptor$supported_endpoints)) {
+      return(NULL)
+    }
+    protocol <- rho_copilot_protocol(descriptor)
     capabilities <- if (identical(protocol, "anthropic_messages")) {
       rho_anthropic_provider_capabilities(model)
     } else {
@@ -222,9 +244,12 @@ rho_compile_copilot_models <- function(provider) {
       model,
       profile,
       protocol,
-      provider_capabilities = capabilities
+      provider_capabilities = capabilities,
+      transports = rho_copilot_transports(descriptor, protocol),
+      source = "github-copilot"
     )
   })
+  unname(Filter(Negate(is.null), records))
 }
 
 rho_compile_zai_models <- function(provider) {
@@ -260,13 +285,12 @@ rho_compile_zai_models <- function(provider) {
 
 rho_catalog_compilers <- list(
   anthropic = rho_compile_anthropic_models,
-  `github-copilot` = rho_compile_copilot_models,
   openai = rho_compile_openai_models,
   `zai-coding-plan` = rho_compile_zai_models
 )
 
-rho_compile_source_models <- function(snapshot) {
-  unlist(
+rho_compile_source_models <- function(snapshot, endpoint_snapshot) {
+  standard <- unlist(
     lapply(names(rho_catalog_compilers), function(provider_id) {
       provider <- snapshot$providers[[provider_id]]
       if (is.null(provider)) {
@@ -277,6 +301,11 @@ rho_compile_source_models <- function(snapshot) {
     recursive = FALSE,
     use.names = FALSE
   )
+  provider <- snapshot$providers[["github-copilot"]]
+  if (is.null(provider)) {
+    stop("Source snapshot is missing provider github-copilot", call. = FALSE)
+  }
+  c(standard, rho_compile_copilot_models(provider, endpoint_snapshot))
 }
 
 rho_catalog_normalize_override <- function(record) {
@@ -351,16 +380,31 @@ rho_catalog_apply_profile_overrides <- function(records, overrides) {
   })
 }
 
-rho_catalog_data <- function(snapshot, overrides, override_path) {
+rho_catalog_data <- function(
+  snapshot,
+  endpoint_snapshot,
+  overrides,
+  endpoint_snapshot_path,
+  override_path
+) {
   if (!identical(as.integer(snapshot$schema_version), 1L)) {
     stop("Unsupported models.dev snapshot schema", call. = FALSE)
+  }
+  if (!identical(as.integer(endpoint_snapshot$schema_version), 1L)) {
+    stop("Unsupported GitHub Copilot endpoint snapshot schema", call. = FALSE)
+  }
+  if (!identical(endpoint_snapshot$models_dev_sha256, snapshot$source$sha256)) {
+    stop(
+      "GitHub Copilot endpoint snapshot was not generated from this models.dev snapshot",
+      call. = FALSE
+    )
   }
   if (!identical(as.integer(overrides$schema_version), 2L)) {
     stop("Unsupported model override schema", call. = FALSE)
   }
   records <- rho_catalog_apply_profile_overrides(
     c(
-      rho_compile_source_models(snapshot),
+      rho_compile_source_models(snapshot, endpoint_snapshot),
       lapply(overrides$records, rho_catalog_normalize_override)
     ),
     overrides
@@ -389,6 +433,11 @@ rho_catalog_data <- function(snapshot, overrides, override_path) {
         sha256 = snapshot$source$sha256
       ),
       list(
+        id = "github-copilot",
+        location = endpoint_snapshot$source$url,
+        sha256 = digest::digest(file = endpoint_snapshot_path, algo = "sha256")
+      ),
+      list(
         id = "rho",
         location = "package:rho.ai/data-raw/model-overrides.json",
         sha256 = digest::digest(file = override_path, algo = "sha256")
@@ -413,22 +462,67 @@ rho_catalog_check <- function(path, expected) {
   message("Generated model catalog is current")
 }
 
-script <- rho_script_file()
+file_argument <- grep(
+  "^--file=",
+  commandArgs(trailingOnly = FALSE),
+  value = TRUE
+)
+if (!length(file_argument)) {
+  stop("Cannot determine the compiler script location", call. = FALSE)
+}
+script <- normalizePath(
+  sub("^--file=", "", file_argument[[1L]]),
+  mustWork = TRUE
+)
 data_raw <- dirname(script)
 package <- dirname(data_raw)
-snapshot_path <- rho_catalog_argument(
-  "snapshot",
-  file.path(data_raw, "models-dev-selected.json")
+parser <- optparse::OptionParser(
+  description = "Compile the typed rho.ai model catalog",
+  option_list = list(
+    optparse::make_option(
+      "--snapshot",
+      type = "character",
+      default = file.path(data_raw, "models-dev-selected.json")
+    ),
+    optparse::make_option(
+      "--overrides",
+      type = "character",
+      default = file.path(data_raw, "model-overrides.json")
+    ),
+    optparse::make_option(
+      "--github-copilot",
+      dest = "github_copilot",
+      type = "character",
+      default = file.path(data_raw, "github-copilot-models.json")
+    ),
+    optparse::make_option(
+      "--output",
+      type = "character",
+      default = file.path(package, "R", "sysdata.rda")
+    ),
+    optparse::make_option(
+      "--check",
+      action = "store_true",
+      default = FALSE
+    )
+  )
 )
-override_path <- rho_catalog_argument(
-  "overrides",
-  file.path(data_raw, "model-overrides.json")
-)
-output_path <- rho_catalog_argument("output", file.path(package, "R", "sysdata.rda"))
+options <- optparse::parse_args(parser)
+snapshot_path <- options$snapshot
+override_path <- options$overrides
+endpoint_snapshot_path <- options$github_copilot
+output_path <- options$output
 snapshot <- rho_catalog_read(snapshot_path)
+endpoint_snapshot <- rho_catalog_read(endpoint_snapshot_path)
 overrides <- rho_catalog_read(override_path)
-rho_model_catalog_data <- rho_catalog_data(snapshot, overrides, override_path)
-if ("--check" %in% commandArgs(trailingOnly = TRUE)) {
+rho_model_catalog_data <- rho_catalog_data(
+  snapshot,
+  endpoint_snapshot,
+  overrides,
+  endpoint_snapshot_path,
+  override_path
+)
+if (options$check) {
   rho_catalog_check(output_path, rho_model_catalog_data)
 } else {
   dir.create(dirname(output_path), recursive = TRUE, showWarnings = FALSE)

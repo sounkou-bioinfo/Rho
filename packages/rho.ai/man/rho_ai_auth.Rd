@@ -20,6 +20,7 @@
 \alias{RhoOAuthLogin}
 \alias{rho_login_strategy}
 \alias{RhoMemoryCredentialStore}
+\alias{RhoFileCredentialStore}
 \alias{RhoAuthPrompt}
 \alias{RhoTextAuthPrompt}
 \alias{RhoSecretAuthPrompt}
@@ -40,6 +41,8 @@
 \alias{rho_provider_auth}
 \alias{rho_credential_gate}
 \alias{rho_memory_credential_store}
+\alias{rho_file_credential_store}
+\alias{rho_user_credential_path}
 \alias{rho_login_io}
 \alias{rho_provider}
 \alias{rho_models}
@@ -52,6 +55,8 @@
 \alias{rho_credential_modify}
 \alias{rho_credential_delete}
 \alias{rho_auth_login}
+\alias{rho_credential_encode}
+\alias{rho_credential_decode}
 \alias{rho_auth_refresh}
 \alias{rho_auth_to_request}
 \alias{rho_auth_prompt}
@@ -76,6 +81,7 @@
 \alias{GitHubCopilotModelPolicyResult}
 \alias{GitHubCopilotOAuthAuth}
 \alias{GitHubCopilotApi}
+\alias{GitHubCopilotAnthropicApi}
 \alias{rho_github_copilot_client_identity}
 \alias{rho_github_copilot_auth}
 \alias{rho_github_copilot_credential}
@@ -95,4 +101,12 @@ Credentials are owned by a \code{CredentialStore}; login interaction is owned by
 a \code{LoginIO}. Reads, refreshes, writes, prompts, and notifications are explicit
 async operations. \code{RhoModels} owns provider selection and serialized refresh
 gates instead of relying on process-global auth state.
+}
+\details{
+\code{rho_memory_credential_store()} keeps credentials for one R process.
+\code{rho_file_credential_store()} persists them as a versioned JSON document at
+an explicitly supplied path. File updates are serialized, replace the prior
+document, and use owner-only permissions where the platform supports them.
+The document is not encrypted. \code{rho_user_credential_path()} returns R's
+platform-specific user configuration path without creating it.
 }
