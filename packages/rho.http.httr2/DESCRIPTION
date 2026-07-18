@@ -22,7 +22,7 @@ Remotes:
     sounkou-bioinfo/Rho/packages/rho.async,
     sounkou-bioinfo/Rho/packages/rho.http,
     sounkou-bioinfo/Rho/packages/rho.compute,
-    sounkou-bioinfo/nanonext@ea905e4919162b9ed6c993953f1b4ee04c98b2e5
+    sounkou-bioinfo/nanonext@cf24957d95ae7d48e1f0e06df75d1d02d197b56a
 URL: https://github.com/sounkou-bioinfo/Rho,
     https://sounkou-bioinfo.github.io/Rho/rho.http.httr2/
 BugReports: https://github.com/sounkou-bioinfo/Rho/issues

@@ -19,8 +19,9 @@ only behavior already supported by an executable fixture.
   selected without changing provider code.
 - `rho_http_open_execution()` records Aio, worker, or caller-process response
   opening as typed values. Both shipped implementations run the same installed
-  client contract for fixed and chunked bodies, one-byte reads, end-of-stream,
-  cancellation, timeout, bounded errors, and repeated close.
+  client contract for fixed, chunked, and connection-delimited bodies, one-byte
+  reads, end-of-stream, cancellation, timeout, truncated bodies, bounded
+  errors, and repeated close.
 - Typed operations separate a semantic request from its local, provider-hosted,
   extension, worker, or remote implementation.
 
@@ -46,11 +47,11 @@ only behavior already supported by an executable fixture.
 - Preserve `rho.http.httr2` as an independent implementation of the same HTTP
   client interface. It is also the executable alternative when opening a
   nanonext response remains synchronous.
-- Extend the shared HTTP client contract with a raw connection-ended response
-  fixture and malformed framing cases. The existing suite already covers a
-  response head before body completion, one-byte reads, fixed-length and
-  chunked bodies, repeated end-of-stream, cancellation, timeout, bounded error
-  bodies, and repeated close.
+- The shared HTTP client contract uses a raw local peer to distinguish a
+  connection-delimited body, which ends normally, from a premature close before
+  the declared `Content-Length`, which yields a typed transport error after
+  already received bytes. Add malformed chunk-framing fixtures when the
+  transport exposes the response head before its parser rejects the body.
 - Keep response opening explicit through `rho_http_open_execution()`. The
   nanonext fork declares cancellable Aio opening, httr2 declares worker opening,
   and an implementation without an asynchronous method receives the explicit

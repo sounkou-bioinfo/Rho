@@ -29,6 +29,110 @@ rho_http_contract_header <- function(headers, name) {
   if (is.na(position)) NULL else headers[[position]]
 }
 
+rho_http_contract_raw_peer <- function(head, body, body_delay_ms = 0L) {
+  candidates <- sample.int(20000L, 100L) + 30000L
+  listener <- NULL
+  port <- NULL
+  for (candidate in candidates) {
+    listener <- tryCatch(
+      serverSocket(candidate),
+      error = function(error) NULL
+    )
+    if (!is.null(listener)) {
+      port <- candidate
+      break
+    }
+  }
+  if (is.null(listener)) {
+    stop("Could not reserve a local TCP port for the HTTP contract test")
+  }
+
+  state <- new.env(parent = emptyenv())
+  state$listener <- listener
+  state$connection <- NULL
+  state$closed <- FALSE
+  state$head <- head
+  state$body <- body
+  state$body_delay_ms <- body_delay_ms
+  state$accept <- NULL
+  state$write_body <- NULL
+
+  state$write_body <- function() {
+    if (isTRUE(state$closed) || is.null(state$connection)) {
+      return(invisible(TRUE))
+    }
+    if (length(state$body)) {
+      writeBin(state$body, state$connection)
+      flush(state$connection)
+    }
+    close(state$connection)
+    state$connection <- NULL
+    state$closed <- TRUE
+    invisible(TRUE)
+  }
+
+  state$accept <- function() {
+    if (isTRUE(state$closed)) {
+      return(invisible(TRUE))
+    }
+    connection <- tryCatch(
+      socketAccept(
+        state$listener,
+        blocking = FALSE,
+        open = "a+b",
+        timeout = 1L
+      ),
+      error = function(error) NULL
+    )
+    if (is.null(connection)) {
+      later::later(state$accept, delay = 0.001)
+      return(invisible(TRUE))
+    }
+    state$connection <- connection
+    readBin(connection, "raw", n = 8192L)
+    writeBin(state$head, connection)
+    flush(connection)
+    later::later(state$write_body, delay = state$body_delay_ms / 1000)
+    invisible(TRUE)
+  }
+
+  later::later(state$accept, delay = 0)
+  list(
+    url = sprintf("http://127.0.0.1:%d", port),
+    state = state
+  )
+}
+
+rho_http_contract_raw_peer_close <- function(peer) {
+  state <- peer$state
+  state$closed <- TRUE
+  if (!is.null(state$connection)) {
+    try(close(state$connection), silent = TRUE)
+    state$connection <- NULL
+  }
+  try(close(state$listener), silent = TRUE)
+  invisible(TRUE)
+}
+
+rho_http_contract_read_until_terminal <- function(stream, timeout_ms) {
+  values <- list()
+  for (index in seq_len(100L)) {
+    item <- rho.async::rho_stream_next(stream) |>
+      rho.async::rho_await(timeout = timeout_ms)
+    if (S7::S7_inherits(item, rho.async::RhoStreamEnd)) {
+      return(list(values = values, terminal = item))
+    }
+    if (!S7::S7_inherits(item, rho.async::RhoStreamValue)) {
+      stop("HTTP body stream returned an invalid item")
+    }
+    values[[length(values) + 1L]] <- item@value
+    if (S7::S7_inherits(item@value, rho.http::RhoHttpError)) {
+      return(list(values = values, terminal = item@value))
+    }
+  }
+  stop("HTTP body stream did not reach a terminal value")
+}
+
 rho_http_contract_open_execution <- function(
   client_factory,
   expected_open_execution,
@@ -137,6 +241,92 @@ rho_http_contract_fixed_body <- function(client_factory, timeout_ms) {
     error = function(error) error
   )
   expect_true(is.null(close_error))
+}
+
+rho_http_contract_connection_delimited_body <- function(client_factory, timeout_ms) {
+  peer <- rho_http_contract_raw_peer(
+    head = charToRaw(paste0(
+      "HTTP/1.1 200 OK\r\n",
+      "Content-Type: application/octet-stream\r\n",
+      "Connection: close\r\n\r\n"
+    )),
+    body = charToRaw("close body")
+  )
+  client <- rho_http_contract_client(client_factory, timeout_ms)
+  stream <- NULL
+  on.exit(
+    {
+      rho_http_contract_raw_peer_close(peer)
+      rho_http_contract_close(client = client, stream = stream)
+    },
+    add = TRUE
+  )
+
+  stream <- rho.http::rho_http_open_stream(
+    client,
+    rho.http::rho_http_request(
+      "GET",
+      paste0(peer$url, "/close-delimited"),
+      timeout_ms = timeout_ms
+    )
+  ) |>
+    rho.async::rho_await(timeout = timeout_ms)
+  expect_true(S7::S7_inherits(stream, rho.http::RhoHttpBodyStream))
+  observed <- rho_http_contract_read_until_terminal(stream, timeout_ms)
+  expect_equal(rawToChar(do.call(c, observed$values)), "close body")
+  expect_true(S7::S7_inherits(observed$terminal, rho.async::RhoStreamEnd))
+  repeated_end <- rho.async::rho_stream_next(stream) |>
+    rho.async::rho_await(timeout = timeout_ms)
+  expect_true(S7::S7_inherits(repeated_end, rho.async::RhoStreamEnd))
+}
+
+rho_http_contract_truncated_content_length <- function(client_factory, timeout_ms) {
+  peer <- rho_http_contract_raw_peer(
+    head = charToRaw(paste0(
+      "HTTP/1.1 200 OK\r\n",
+      "Content-Type: application/octet-stream\r\n",
+      "Content-Length: 10\r\n",
+      "Connection: close\r\n\r\n"
+    )),
+    body = charToRaw("short"),
+    body_delay_ms = 500L
+  )
+  client <- rho_http_contract_client(client_factory, timeout_ms)
+  stream <- NULL
+  on.exit(
+    {
+      rho_http_contract_raw_peer_close(peer)
+      rho_http_contract_close(client = client, stream = stream)
+    },
+    add = TRUE
+  )
+
+  stream <- rho.http::rho_http_open_stream(
+    client,
+    rho.http::rho_http_request(
+      "GET",
+      paste0(peer$url, "/truncated-content-length"),
+      timeout_ms = timeout_ms
+    )
+  ) |>
+    rho.async::rho_await(timeout = timeout_ms)
+  expect_true(S7::S7_inherits(stream, rho.http::RhoHttpBodyStream))
+  observed <- rho_http_contract_read_until_terminal(stream, timeout_ms)
+  payload <- observed$values[
+    !vapply(
+      observed$values,
+      function(value) S7::S7_inherits(value, rho.http::RhoHttpError),
+      logical(1)
+    )
+  ]
+  expect_equal(rawToChar(do.call(c, payload)), "short")
+  expect_true(S7::S7_inherits(
+    observed$terminal,
+    rho.http::RhoHttpTransportError
+  ))
+  ending <- rho.async::rho_stream_next(stream) |>
+    rho.async::rho_await(timeout = timeout_ms)
+  expect_true(S7::S7_inherits(ending, rho.async::RhoStreamEnd))
 }
 
 rho_http_contract_incremental_sse <- function(client_factory, timeout_ms) {
@@ -400,6 +590,8 @@ rho_http_client_contract <- function(
   )
   rho_http_contract_complete_request(client_factory, timeout_ms)
   rho_http_contract_fixed_body(client_factory, timeout_ms)
+  rho_http_contract_connection_delimited_body(client_factory, timeout_ms)
+  rho_http_contract_truncated_content_length(client_factory, timeout_ms)
   rho_http_contract_incremental_sse(client_factory, timeout_ms)
   rho_http_contract_receive_cancellation(client_factory, timeout_ms)
   rho_http_contract_receive_timeout(client_factory, timeout_ms)

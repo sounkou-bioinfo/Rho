@@ -11,3 +11,5 @@
   body receive retain their separate task deadlines; a long-lived stream no
   longer inherits the response-head deadline as its total lifetime.
 - Preserves response-header names when removing the `httr2_headers` class.
+- Passes the shared raw-peer checks for close-delimited bodies and truncated
+  `Content-Length` responses.

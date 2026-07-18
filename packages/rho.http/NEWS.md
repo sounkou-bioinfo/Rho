@@ -15,3 +15,6 @@
   covering fixed and chunked bodies, one-byte reads, repeated end-of-stream,
   opening and receive cancellation, timeout, bounded error bodies, and repeated
   close.
+- Extends that contract with a raw HTTP peer: close-delimited bodies end
+  normally, while a connection ending before the declared `Content-Length`
+  yields a typed transport error without losing bytes already delivered.

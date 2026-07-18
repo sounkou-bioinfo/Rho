@@ -6,7 +6,7 @@ repos <- c(
 )
 repos <- repos[!duplicated(unname(repos))]
 
-nanonext_commit <- "ea905e4919162b9ed6c993953f1b4ee04c98b2e5"
+nanonext_commit <- "cf24957d95ae7d48e1f0e06df75d1d02d197b56a"
 nanonext_source <- sprintf(
   "https://github.com/sounkou-bioinfo/nanonext/archive/%s.tar.gz",
   nanonext_commit

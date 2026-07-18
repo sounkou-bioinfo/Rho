@@ -101,9 +101,9 @@ response head. A body-receive timeout is supplied separately to `recv_aio()`.
 ## 3. What the current fork proves
 
 The Rho fork added `ncurl_stream_aio()` and `ncurl_stream_recv()`
-([public R additions](https://github.com/sounkou-bioinfo/nanonext/blob/ea905e4919162b9ed6c993953f1b4ee04c98b2e5/R/ncurl.R#L283-L368)),
+([public R additions](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/R/ncurl.R#L283-L368)),
 plus `is_ncurl_stream()`
-([validator](https://github.com/sounkou-bioinfo/nanonext/blob/ea905e4919162b9ed6c993953f1b4ee04c98b2e5/R/utils.R#L191-L204)).
+([validator](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/R/utils.R#L191-L204)).
 It proves that nanonext can:
 
 - return a response head while the body remains open;
@@ -117,14 +117,20 @@ It proves that nanonext can:
 Its lifecycle tests cover an early SSE event, a later event, end-of-stream,
 repeated end-of-stream, opening cancellation, receive cancellation, concurrent
 receive rejection, and timeout
-([fork tests](https://github.com/sounkou-bioinfo/nanonext/blob/ea905e4919162b9ed6c993953f1b4ee04c98b2e5/tests/tests.R#L1444-L1571)).
+([fork tests](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/tests/tests.R#L1444-L1571)).
+
+For a response framed by connection close, the fork treats both NNG's ordinary
+closed value and its connection-shutdown value as end-of-body. It does not apply
+that rule to fixed-length or chunked responses: a peer closing those before
+their declared framing completes remains a transport error
+([receive completion](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L574-L674)).
 
 The fork's public shape is not the desired final shape. Its opening resolves to
 `list(status, headers, stream)`, and its special receive resolves to
 `list(data, complete)`
-([native result construction](https://github.com/sounkou-bioinfo/nanonext/blob/ea905e4919162b9ed6c993953f1b4ee04c98b2e5/src/ncurl.c#L1086-L1164)).
+([native result construction](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L1086-L1164)).
 The stream has only the `ncurlStream` class
-([object construction](https://github.com/sounkou-bioinfo/nanonext/blob/ea905e4919162b9ed6c993953f1b4ee04c98b2e5/src/ncurl.c#L1242-L1265)),
+([object construction](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L1242-L1265)),
 so ordinary `recv_aio()` does not recognize it. The maintainer's proposal removes
 those extra result shapes and body methods.
 
@@ -145,7 +151,7 @@ return the ordinary unsupported-operation value because the stream is read-only.
 
 The fork already has a nanonext-owned HTTP state object for fixed-length,
 chunked, connection-ended, and bodyless responses
-([state definitions](https://github.com/sounkou-bioinfo/nanonext/blob/ea905e4919162b9ed6c993953f1b4ee04c98b2e5/src/ncurl.c#L205-L253)).
+([state definitions](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L205-L253)).
 That state machine is the useful implementation core to adapt to the ordinary
 stream interface.
 
@@ -159,8 +165,8 @@ request, read a response head, read raw bytes, and close the connection
 ([public HTTP connection API](https://github.com/r-lib/nanonext/blob/2573ee2ebdc32388ce5c1a2e0c81a8fcedc91888/src/nng/include/nng/supplemental/http/http.h#L155-L177),
 [public client API](https://github.com/r-lib/nanonext/blob/2573ee2ebdc32388ce5c1a2e0c81a8fcedc91888/src/nng/include/nng/supplemental/http/http.h#L251-L269)).
 The fork uses those public calls for opening and reading
-([open sequence](https://github.com/sounkou-bioinfo/nanonext/blob/ea905e4919162b9ed6c993953f1b4ee04c98b2e5/src/ncurl.c#L524-L570),
-[body read](https://github.com/sounkou-bioinfo/nanonext/blob/ea905e4919162b9ed6c993953f1b4ee04c98b2e5/src/ncurl.c#L574-L674)).
+([open sequence](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L524-L570),
+[body read](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L574-L674)).
 
 Reading private source answers two important questions:
 
@@ -265,7 +271,7 @@ The upstream implementation should cover:
 
 Two details in the fork deserve explicit tests during the rewrite. It currently
 accepts `chunked` anywhere in `Transfer-Encoding`
-([body selection](https://github.com/sounkou-bioinfo/nanonext/blob/ea905e4919162b9ed6c993953f1b4ee04c98b2e5/src/ncurl.c#L352-L384)),
+([body selection](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L352-L384)),
 and it treats every `1xx` head as a bodyless completed response. Transfer coding
 order and interim response handling should be settled deliberately rather than
 inherited from the prototype.
