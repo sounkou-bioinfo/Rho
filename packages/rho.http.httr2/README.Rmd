@@ -29,6 +29,10 @@ library(rho.http.httr2)
 client <- rho_httr2_http_client()
 S7::S7_inherits(client, rho.http::RhoHttpClient)
 s7contract::implements(client, rho.http::HttpClient)
+S7::S7_inherits(
+  rho.http::rho_http_open_execution(client),
+  rho.http::RhoHttpWorkerOpen
+)
 rho.http::rho_http_client_close(client)
 ```
 

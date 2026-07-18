@@ -14,11 +14,15 @@ connection handling remain in this package.
 
 `HttpClient` is the transport interface. A client implements complete
 requests and response-head opening; its body-stream class implements
-next and close. SSE decoding composes over those methods and never
-receives a transport handle. `rho_http_client()` selects the built-in
-nanonext implementation. Rho keeps that implementation pinned while
-[nanonext issue \#329](https://github.com/r-lib/nanonext/issues/329)
-establishes an upstream incremental-response API.
+next and close. `rho_http_open_execution()` returns a typed value
+describing whether opening is performed by an Aio, a worker, or the
+calling R process. A client that does not declare asynchronous opening
+receives the conservative caller-process default. SSE decoding composes
+over those methods and never receives a transport handle.
+`rho_http_client()` selects the built-in nanonext implementation. Rho
+keeps that implementation pinned while [nanonext issue
+\#329](https://github.com/r-lib/nanonext/issues/329) establishes an
+upstream incremental-response API.
 [`rho.http.httr2`](https://sounkou-bioinfo.github.io/Rho/rho.http.httr2/)
 implements the same interface with worker-owned httr2 connections;
 provider code and the SSE decoder are unchanged when that client is
@@ -31,6 +35,9 @@ library(rho.http)
 
 client <- rho_http_client()
 inherits(client@tls, "tlsConfig")
+#> [1] TRUE
+opening <- rho_http_open_execution(client)
+S7::S7_inherits(opening, RhoHttpAioOpen)
 #> [1] TRUE
 
 events <- rho_sse_parse(paste0(

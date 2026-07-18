@@ -36,6 +36,30 @@ rho_http_headers <- S7::new_property(
   }
 )
 
+rho_http_response_headers <- S7::new_property(
+  S7::class_list,
+  default = list(),
+  validator = function(value) {
+    if (!length(value)) {
+      return()
+    }
+    header_names <- names(value)
+    if (is.null(header_names) || anyNA(header_names) || any(!nzchar(header_names))) {
+      return("must have non-empty names")
+    }
+    valid <- vapply(
+      value,
+      function(header) {
+        is.character(header) && length(header) >= 1L && !anyNA(header)
+      },
+      logical(1)
+    )
+    if (!all(valid)) {
+      "must contain one or more non-missing strings for each header"
+    }
+  }
+)
+
 rho_http_body <- S7::new_property(
   S7::class_any,
   default = NULL,
@@ -83,6 +107,33 @@ RhoHttpClient <- S7::new_class(
   )
 )
 
+RhoHttpOpenExecution <- S7::new_class(
+  "RhoHttpOpenExecution",
+  abstract = TRUE,
+  properties = list(reason = rho_non_empty_string)
+)
+
+RhoHttpCancellableOpen <- S7::new_class(
+  "RhoHttpCancellableOpen",
+  parent = RhoHttpOpenExecution,
+  abstract = TRUE
+)
+
+RhoHttpAioOpen <- S7::new_class(
+  "RhoHttpAioOpen",
+  parent = RhoHttpCancellableOpen
+)
+
+RhoHttpWorkerOpen <- S7::new_class(
+  "RhoHttpWorkerOpen",
+  parent = RhoHttpCancellableOpen
+)
+
+RhoHttpCallerOpen <- S7::new_class(
+  "RhoHttpCallerOpen",
+  parent = RhoHttpOpenExecution
+)
+
 RhoNanonextHttpClient <- S7::new_class(
   "RhoNanonextHttpClient",
   parent = RhoHttpClient,
@@ -93,7 +144,7 @@ RhoHttpResponseHead <- S7::new_class(
   "RhoHttpResponseHead",
   properties = list(
     status = S7::class_integer,
-    headers = S7::class_list,
+    headers = rho_http_response_headers,
     url = rho_non_empty_string
   )
 )
@@ -133,7 +184,7 @@ RhoHttpResponse <- S7::new_class(
   "RhoHttpResponse",
   properties = list(
     status = S7::class_integer,
-    headers = S7::class_list,
+    headers = rho_http_response_headers,
     data = S7::class_any,
     url = S7::class_character
   )
@@ -205,7 +256,7 @@ RhoHttpStatusError <- S7::new_class(
   parent = RhoHttpError,
   properties = list(
     status = S7::class_integer,
-    headers = S7::class_list,
+    headers = rho_http_response_headers,
     body = rho_raw_bytes,
     body_truncated = S7::new_property(S7::class_logical, default = FALSE)
   )

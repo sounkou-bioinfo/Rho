@@ -31,14 +31,16 @@ rho_httr2_request <- function(payload) {
   if (!is.null(payload@data)) {
     request <- httr2::req_body_raw(request, payload@data)
   }
-  request <- httr2::req_timeout(request, payload@timeout_ms / 1000)
   httr2::req_error(request, is_error = function(response) FALSE)
 }
 
+rho_httr2_complete_request <- function(payload) {
+  rho_httr2_request(payload) |>
+    httr2::req_timeout(payload@timeout_ms / 1000)
+}
+
 rho_httr2_response_headers <- function(response) {
-  headers <- as.list(httr2::resp_headers(response))
-  attributes(headers) <- NULL
-  headers
+  unclass(as.list(httr2::resp_headers(response)))
 }
 
 rho_httr2_response_head <- function(response) {
@@ -52,7 +54,7 @@ rho_httr2_response_head <- function(response) {
 rho_httr2_complete_worker <- function(payload) {
   tryCatch(
     {
-      response <- httr2::req_perform(rho_httr2_request(payload))
+      response <- httr2::req_perform(rho_httr2_complete_request(payload))
       data <- httr2::resp_body_raw(response)
       if (payload@convert) {
         data <- rawToChar(data)
@@ -144,6 +146,10 @@ rho_httr2_stream_worker <- function(address, token, payload, buffer_bytes) {
           if (!relayed) {
             return(RhoHttr2WorkerFailure(message = "Could not relay a response-body chunk"))
           }
+          if (httr2::resp_stream_is_complete(response)) {
+            break
+          }
+          next
         }
         if (httr2::resp_stream_is_complete(response)) {
           break

@@ -14,18 +14,32 @@
 #' `RhoHttpBodyStream` subclass with stream-next and close methods. Providers and
 #' SSE decoding do not depend on its connection handle.
 #'
+#' [rho_http_open_execution()] reports where response-head opening runs. The
+#' built-in client returns `RhoHttpAioOpen`; a worker-owned implementation may
+#' return `RhoHttpWorkerOpen`. The inherited `RhoHttpClient` method deliberately
+#' returns `RhoHttpCallerOpen` until a subclass declares asynchronous opening.
+#' The latter records that constructing the response stream may occupy the
+#' calling R process even though later body reads are asynchronous.
+#'
 #' @name rho_http_contracts
 #' @aliases HttpClient RhoHttpClient RhoNanonextHttpClient
+#' @aliases RhoHttpOpenExecution RhoHttpCancellableOpen RhoHttpAioOpen
+#' @aliases RhoHttpWorkerOpen RhoHttpCallerOpen
 #' @aliases RhoHttpRequest RhoHttpPayload RhoHttpResponse RhoHttpResponseHead
 #' @aliases RhoHttpBodyStream RhoNanonextHttpBodyStream
 #' @aliases RhoSseEvent RhoSseDecoder RhoSseStream
 #' @aliases RhoHttpError RhoHttpTransportError RhoHttpStatusError
 #' @aliases rho_http_client rho_http_request rho_http_payload rho_http_send
-#' @aliases rho_http_open_stream rho_http_client_close
+#' @aliases rho_http_open_execution rho_http_open_stream rho_http_client_close
 #' @aliases rho_sse_connect
 #' @aliases rho_sse_decoder rho_sse_decode rho_sse_parse
 #' @export RhoHttpClient
 #' @export RhoNanonextHttpClient
+#' @export RhoHttpOpenExecution
+#' @export RhoHttpCancellableOpen
+#' @export RhoHttpAioOpen
+#' @export RhoHttpWorkerOpen
+#' @export RhoHttpCallerOpen
 #' @export RhoHttpRequest
 #' @export RhoHttpPayload
 #' @export RhoHttpResponse
@@ -43,6 +57,7 @@
 #' @export rho_http_request
 #' @export rho_http_payload
 #' @export rho_http_send
+#' @export rho_http_open_execution
 #' @export rho_http_open_stream
 #' @export rho_http_client_close
 #' @export rho_sse_connect

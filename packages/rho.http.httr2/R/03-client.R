@@ -113,6 +113,15 @@ rho_httr2_compute_result <- function(result, url) {
   result
 }
 
+S7::method(rho_http_open_execution, RhoHttr2HttpClient) <- function(client, ...) {
+  rho.http::RhoHttpWorkerOpen(
+    reason = paste(
+      "httr2 opens the connection and response head in the selected",
+      "rho.compute worker"
+    )
+  )
+}
+
 S7::method(
   rho_http_send,
   list(RhoHttr2HttpClient, rho.http::RhoHttpRequest)
@@ -321,7 +330,7 @@ S7::method(
         payload = payload,
         buffer_bytes = client@stream_buffer_size
       ),
-      timeout_ms = payload@timeout_ms
+      timeout_ms = NULL
     )
   )
   rho_httr2_monitor_worker(operation)

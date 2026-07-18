@@ -67,6 +67,30 @@ rho_http_send <- S7::new_generic(
   function(client, request, ...) S7::S7_dispatch()
 )
 
+rho_http_open_execution <- S7::new_generic(
+  "rho_http_open_execution",
+  "client",
+  function(client, ...) S7::S7_dispatch()
+)
+
+S7::method(rho_http_open_execution, RhoHttpClient) <- function(client, ...) {
+  RhoHttpCallerOpen(
+    reason = paste(
+      "No method declares asynchronous response-head opening for",
+      class(client)[[1L]]
+    )
+  )
+}
+
+S7::method(rho_http_open_execution, RhoNanonextHttpClient) <- function(client, ...) {
+  RhoHttpAioOpen(
+    reason = paste(
+      "nanonext::ncurl_stream_aio() opens the connection and response head",
+      "through a cancellable Aio"
+    )
+  )
+}
+
 S7::method(rho_http_send, list(RhoNanonextHttpClient, RhoHttpRequest)) <- function(
   client,
   request,

@@ -17,6 +17,10 @@ only behavior already supported by an executable fixture.
 - HTTP clients dispatch through `rho_http_send()` and
   `rho_http_open_stream()`. The nanonext and httr2 implementations can be
   selected without changing provider code.
+- `rho_http_open_execution()` records Aio, worker, or caller-process response
+  opening as typed values. Both shipped implementations run the same installed
+  client contract for fixed and chunked bodies, one-byte reads, end-of-stream,
+  cancellation, timeout, bounded errors, and repeated close.
 - Typed operations separate a semantic request from its local, provider-hosted,
   extension, worker, or remote implementation.
 
@@ -42,12 +46,15 @@ only behavior already supported by an executable fixture.
 - Preserve `rho.http.httr2` as an independent implementation of the same HTTP
   client interface. It is also the executable alternative when opening a
   nanonext response remains synchronous.
-- Run one shared transport fixture suite against each HTTP implementation:
-  response head before body completion, arbitrary chunk splits, fixed-length,
-  chunked and connection-ended bodies, clean end-of-stream, cancellation,
-  timeout, bounded error bodies, and idempotent close.
-- Record whether opening a response occupies the main R process as a typed
-  client capability. Returning a `RhoTask` must not conceal synchronous work.
+- Extend the shared HTTP client contract with a raw connection-ended response
+  fixture and malformed framing cases. The existing suite already covers a
+  response head before body completion, one-byte reads, fixed-length and
+  chunked bodies, repeated end-of-stream, cancellation, timeout, bounded error
+  bodies, and repeated close.
+- Keep response opening explicit through `rho_http_open_execution()`. The
+  nanonext fork declares cancellable Aio opening, httr2 declares worker opening,
+  and an implementation without an asynchronous method receives the explicit
+  caller-process default with its reason.
 - Implement the declared OpenAI Codex WebSocket strategies and feed their data
   into the same normalized assistant-event stream used by SSE.
 - Add an embedded-provider transport for an in-process model without routing it

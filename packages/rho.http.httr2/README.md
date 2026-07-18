@@ -28,6 +28,11 @@ S7::S7_inherits(client, rho.http::RhoHttpClient)
 #> [1] TRUE
 s7contract::implements(client, rho.http::HttpClient)
 #> [1] TRUE
+S7::S7_inherits(
+  rho.http::rho_http_open_execution(client),
+  rho.http::RhoHttpWorkerOpen
+)
+#> [1] TRUE
 rho.http::rho_http_client_close(client)
 ```
 

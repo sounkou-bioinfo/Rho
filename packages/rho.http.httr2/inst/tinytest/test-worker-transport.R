@@ -4,6 +4,26 @@ library(tinytest)
 library(rho.async)
 library(rho.http)
 library(rho.http.httr2)
+source(
+  system.file("contract", "http-client.R", package = "rho.http"),
+  local = TRUE
+)
+
+rho_http_client_contract(
+  client_factory = function(
+    timeout_ms,
+    stream_buffer_size,
+    max_error_body_bytes
+  ) {
+    rho_httr2_http_client(
+      timeout_ms = timeout_ms,
+      stream_buffer_size = stream_buffer_size,
+      max_error_body_bytes = max_error_body_bytes
+    )
+  },
+  expected_open_execution = RhoHttpWorkerOpen,
+  timeout_ms = 5000L
+)
 
 server <- nanonext::http_server(
   "http://127.0.0.1:0",

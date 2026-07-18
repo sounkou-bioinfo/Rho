@@ -5,6 +5,11 @@
 \alias{HttpClient}
 \alias{RhoHttpClient}
 \alias{RhoNanonextHttpClient}
+\alias{RhoHttpOpenExecution}
+\alias{RhoHttpCancellableOpen}
+\alias{RhoHttpAioOpen}
+\alias{RhoHttpWorkerOpen}
+\alias{RhoHttpCallerOpen}
 \alias{RhoHttpRequest}
 \alias{RhoHttpPayload}
 \alias{RhoHttpResponse}
@@ -21,6 +26,7 @@
 \alias{rho_http_request}
 \alias{rho_http_payload}
 \alias{rho_http_send}
+\alias{rho_http_open_execution}
 \alias{rho_http_open_stream}
 \alias{rho_http_client_close}
 \alias{rho_sse_connect}
@@ -43,4 +49,11 @@ does not search the host filesystem for certificate bundles. Another client
 subclasses \code{RhoHttpClient}, implements \code{HttpClient}, and returns its own
 \code{RhoHttpBodyStream} subclass with stream-next and close methods. Providers and
 SSE decoding do not depend on its connection handle.
+
+\code{\link[=rho_http_open_execution]{rho_http_open_execution()}} reports where response-head opening runs. The
+built-in client returns \code{RhoHttpAioOpen}; a worker-owned implementation may
+return \code{RhoHttpWorkerOpen}. The inherited \code{RhoHttpClient} method deliberately
+returns \code{RhoHttpCallerOpen} until a subclass declares asynchronous opening.
+The latter records that constructing the response stream may occupy the
+calling R process even though later body reads are asynchronous.
 }

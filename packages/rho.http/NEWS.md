@@ -9,3 +9,9 @@
   values so provider adapters can decode structured errors asynchronously.
 - Exercises cancellation from an SSE receive task through the nanonext HTTP
   stream and closes the connection with typed task semantics.
+- Adds `rho_http_open_execution()` and typed Aio, worker, and caller-process
+  values so a task cannot conceal where response-head opening runs.
+- Installs one HTTP client contract exercised by both built-in implementations,
+  covering fixed and chunked bodies, one-byte reads, repeated end-of-stream,
+  opening and receive cancellation, timeout, bounded error bodies, and repeated
+  close.

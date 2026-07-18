@@ -3,6 +3,10 @@
 library(tinytest)
 library(rho.async)
 library(rho.http)
+source(
+  system.file("contract", "http-client.R", package = "rho.http"),
+  local = TRUE
+)
 
 FixtureHttpClient <- S7::new_class(
   "FixtureHttpClient",
@@ -12,6 +16,21 @@ FixtureHttpClient <- S7::new_class(
 FixtureHttpBodyStream <- S7::new_class(
   "FixtureHttpBodyStream",
   parent = RhoHttpBodyStream
+)
+
+repeated_headers <- RhoHttpResponseHead(
+  status = 200L,
+  headers = list(`Set-Cookie` = c("a=1", "b=2")),
+  url = "https://fixture.invalid"
+)
+expect_equal(length(repeated_headers@headers$`Set-Cookie`), 2L)
+expect_error(
+  RhoHttpResponseHead(
+    status = 200L,
+    headers = list("text/plain"),
+    url = "https://fixture.invalid"
+  ),
+  pattern = "@headers"
 )
 
 S7::method(
@@ -78,6 +97,9 @@ fixture_client <- FixtureHttpClient(
 fixture_request <- rho_http_request("GET", "https://fixture.invalid/events")
 
 expect_true(s7contract::implements(fixture_client, HttpClient))
+fixture_open_execution <- rho_http_open_execution(fixture_client)
+expect_true(S7::S7_inherits(fixture_open_execution, RhoHttpCallerOpen))
+expect_true(grepl("FixtureHttpClient", fixture_open_execution@reason, fixed = TRUE))
 fixture_response <- rho_http_send(fixture_client, fixture_request) |>
   rho_await(timeout = 1000L)
 expect_equal(rawToChar(fixture_response@data), "fixture")
@@ -89,6 +111,22 @@ ending <- rho_stream_next(fixture_events) |> rho_await(timeout = 1000L)
 expect_equal(first@value@data, "first")
 expect_equal(second@value@data, "second")
 expect_true(S7::S7_inherits(ending, RhoStreamEnd))
+
+rho_http_client_contract(
+  client_factory = function(
+    timeout_ms,
+    stream_buffer_size,
+    max_error_body_bytes
+  ) {
+    rho_http_client(
+      timeout_ms = timeout_ms,
+      stream_buffer_size = stream_buffer_size,
+      max_error_body_bytes = max_error_body_bytes
+    )
+  },
+  expected_open_execution = RhoHttpAioOpen,
+  timeout_ms = 5000L
+)
 
 server_connection <- NULL
 server <- nanonext::http_server(

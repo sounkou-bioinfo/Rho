@@ -18,4 +18,7 @@ Complete requests also execute through the selected compute backend. Closing
 a body stream or client closes its NNG socket and cancels the owning compute
 task. The default compute backend is mirai; callers may supply another
 \code{RhoComputeBackend} that preserves the same call specification semantics.
+\code{\link[rho.http:rho_http_open_execution]{rho.http::rho_http_open_execution()}} returns \code{RhoHttpWorkerOpen} for this
+client because connection setup and receipt of the response head occur in
+that selected worker.
 }
