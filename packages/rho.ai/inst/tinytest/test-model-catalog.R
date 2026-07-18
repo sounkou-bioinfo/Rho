@@ -20,6 +20,7 @@ expect_true(all(vapply(
 expect_true(all(c(
   "anthropic",
   "github-copilot",
+  "kimi-coding",
   "openai",
   "openai-codex",
   "zai",
@@ -29,6 +30,27 @@ expect_true(all(c(
   function(record) record@provider@id,
   character(1)
 )))
+
+kimi_record <- Filter(
+  function(candidate) {
+    identical(candidate@provider@id, "kimi-coding") &&
+      identical(candidate@id, "k3")
+  },
+  catalog@records
+)[[1L]]
+
+expect_true(S7::S7_inherits(
+  kimi_record@provider,
+  KimiCodeModelCatalogProvider
+))
+expect_true(S7::S7_inherits(
+  kimi_record@protocol,
+  AnthropicMessagesProtocol
+))
+expect_true(S7::S7_inherits(
+  rho_compile_catalog_model(kimi_record)@compatibility@thinking,
+  AnthropicAdaptiveThinkingCapability
+))
 
 record <- Filter(
   function(candidate) {

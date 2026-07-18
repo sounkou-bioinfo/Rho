@@ -231,6 +231,11 @@ rho_openai_chat_request_body <- S7::new_generic(
   c("model", "context"),
   function(model, context, options = list(), ...) S7::S7_dispatch()
 )
+rho_openai_chat_content <- S7::new_generic(
+  "rho_openai_chat_content",
+  "content",
+  function(content, ...) S7::S7_dispatch()
+)
 rho_openai_request_sections <- S7::new_generic(
   "rho_openai_request_sections",
   c("model", "context", "placement"),

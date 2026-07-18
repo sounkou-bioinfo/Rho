@@ -174,6 +174,7 @@ RhoDeviceCodeEvent <- S7::new_class(
   properties = list(
     user_code = rho_non_empty_string,
     verification_uri = rho_non_empty_string,
+    verification_uri_complete = rho_optional_string,
     interval_seconds = S7::class_double,
     expires_in_seconds = S7::class_double
   )

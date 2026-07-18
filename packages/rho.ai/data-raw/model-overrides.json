@@ -292,13 +292,7 @@
   ],
   "records": [
     {
-      "provider": {
-        "kind": "openai_codex",
-        "id": "openai-codex",
-        "name": "OpenAI Codex",
-        "base_url": "https://chatgpt.com/backend-api"
-      },
-      "protocol": "openai_responses",
+      "profile": "openai-codex",
       "id": "gpt-5.3-codex-spark",
       "name": "GPT-5.3 Codex Spark",
       "reason": "The ChatGPT OAuth Codex endpoint is not represented as a distinct provider in models.dev; Rho keeps an offline supported subset for catalog construction before login.",
@@ -326,13 +320,7 @@
       "headers": {}
     },
     {
-      "provider": {
-        "kind": "openai_codex",
-        "id": "openai-codex",
-        "name": "OpenAI Codex",
-        "base_url": "https://chatgpt.com/backend-api"
-      },
-      "protocol": "openai_responses",
+      "profile": "openai-codex",
       "id": "gpt-5.4",
       "name": "GPT-5.4",
       "reason": "The ChatGPT OAuth Codex endpoint is not represented as a distinct provider in models.dev; Rho keeps an offline supported subset for catalog construction before login.",
@@ -360,13 +348,7 @@
       "headers": {}
     },
     {
-      "provider": {
-        "kind": "openai_codex",
-        "id": "openai-codex",
-        "name": "OpenAI Codex",
-        "base_url": "https://chatgpt.com/backend-api"
-      },
-      "protocol": "openai_responses",
+      "profile": "openai-codex",
       "id": "gpt-5.4-mini",
       "name": "GPT-5.4 mini",
       "reason": "The ChatGPT OAuth Codex endpoint is not represented as a distinct provider in models.dev; Rho keeps an offline supported subset for catalog construction before login.",
@@ -394,13 +376,7 @@
       "headers": {}
     },
     {
-      "provider": {
-        "kind": "openai_codex",
-        "id": "openai-codex",
-        "name": "OpenAI Codex",
-        "base_url": "https://chatgpt.com/backend-api"
-      },
-      "protocol": "openai_responses",
+      "profile": "openai-codex",
       "id": "gpt-5.5",
       "name": "GPT-5.5",
       "reason": "The ChatGPT OAuth Codex endpoint is not represented as a distinct provider in models.dev; Rho keeps an offline supported subset for catalog construction before login.",

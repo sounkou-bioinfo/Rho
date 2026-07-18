@@ -147,6 +147,52 @@ Z.ai keeps its Coding Plan endpoint, preserved-thinking policy, and streamed
 tool-call policy in typed values. Both remain ordinary providers to the agent
 loop.
 
+## Kimi credentials
+
+Kimi Code and Kimi Platform are different credential products. A Kimi Code
+subscription uses the managed `kimi-coding` provider and may be authorized by
+device login or by an explicitly supplied subscription key. A key from
+`platform.kimi.ai` belongs to the `moonshotai` provider; a key from
+`platform.kimi.com` belongs to `moonshotai-cn`.
+
+```{r kimi-credentials}
+kimi_code <- rho_kimi_code_provider()
+kimi_platform <- rho_kimi_platform_provider()
+credentials <- rho_memory_credential_store(list(
+  `kimi-coding` = rho_api_key_credential(
+    "kimi-coding",
+    "not-a-credential"
+  ),
+  moonshotai = rho_api_key_credential(
+    "moonshotai",
+    "not-a-credential"
+  )
+))
+kimi_models <- rho_models(
+  providers = list(kimi_code, kimi_platform),
+  credentials = credentials
+)
+selected <- list(
+  rho_kimi_code_model("k3"),
+  rho_kimi_platform_model("kimi-k3")
+)
+resolved <- lapply(selected, function(model) {
+  rho_resolve_model_auth(kimi_models, model) |>
+    rho_await(timeout = 1000L)
+})
+
+data.frame(
+  provider = vapply(selected, function(model) model@provider, character(1)),
+  configured = vapply(resolved, function(auth) auth@configured, logical(1))
+)
+```
+
+Interactive subscription login calls `rho_login_provider()` with
+`RhoOAuthLogin()` and a host-supplied `LoginIO`. The device code and approval
+URL arrive as a typed `RhoDeviceCodeEvent`; successful access and refresh
+tokens are written through the selected `CredentialStore`. Provider code never
+searches environment variables or a Kimi CLI directory.
+
 Provider request configuration is typed. OpenAI and Anthropic request bodies
 are reduced from S7 sections for tools, generation controls, caching, and
 reasoning. Codex defaults are methods on `OpenAICodexResponsesModel`;

@@ -11,6 +11,8 @@
 \alias{OpenAICodexModelCatalogProvider}
 \alias{GitHubCopilotModelCatalogProvider}
 \alias{AnthropicModelCatalogProvider}
+\alias{KimiCodeModelCatalogProvider}
+\alias{KimiPlatformModelCatalogProvider}
 \alias{ZaiModelCatalogProvider}
 \alias{ModelCatalogSource}
 \alias{ModelCatalogRecord}

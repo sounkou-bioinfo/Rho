@@ -21,7 +21,7 @@ fixture or integration test moves a row to `verified`.
 | Events | ordered lifecycle events with awaited stateful listeners | verified |
 | State | transcript, partial message, pending calls, error, reset, continue, and idle barrier | verified |
 | Provider-hosted operations | model-profiled binding, request translation, normalized content, and no local execution | verified |
-| Session compaction | cut point, semantic summary, durable entry, provider-input recovery, and lifecycle hooks | verified |
+| Session compaction | cut point, semantic summary, in-memory entry, provider-input recovery, and lifecycle hooks | verified |
 
 Live wire adapters are tracked separately from surface parity. An API family is
 not called implemented merely because its identifier is accepted.
@@ -42,4 +42,6 @@ value after the real authentication path.
 | Z.ai | explicit API-key auth, Coding Plan and general endpoints, GLM-5.2 thinking preservation, tool-call streaming, and normalized Chat Completions events | `zai.Rmd` | no paid entitlement; [Z.ai documents API-key/JWT auth](https://docs.z.ai/guides/develop/http/introduction) and no device grant | verified |
 | OpenAI | explicit API-key auth, model catalog, typed Responses request composition, normalized streaming, structured input-limit recovery, and agent completion | `openai.Rmd` and `openai-provider-loop.Rmd` | API-key account not supplied; executable HTTP fixtures cover the wire contract | verified |
 | Anthropic | API-key and Claude Pro/Max OAuth auth, capability-profiled Messages requests, signed thinking, cache controls, normalized streaming, GitHub Copilot dialect reuse, and agent tool turns | `anthropic.Rmd` and `anthropic-provider-loop.Rmd` | expired subscription returns the expected typed HTTP 403 after OAuth authorization | verified |
+| Kimi Code | explicit subscription key and OAuth device authorization, refresh ownership, adaptive Anthropic Messages translation, image input, and normalized events | `kimi.Rmd` | account not supplied; local OAuth and wire fixtures cover authorization and refresh | verified |
+| Kimi Platform | explicit API-key auth, distinct global and China catalogs, Kimi thinking controls, image input, completion limits, and normalized Chat Completions usage | `kimi.Rmd` | API-key account not supplied; executable request and event fixtures cover the advertised surface | verified |
 | Ollama | OpenAI-compatible chat request translation, normalized SSE streaming, and agent completion | `ollama.Rmd` | completed with `gemma3:27b` | verified |

@@ -335,6 +335,7 @@ NULL
 #' @aliases OpenAIChatThinkingDelta OpenAIChatTextDelta OpenAIChatToolDelta
 #' @aliases OpenAIChatFinishSignal OpenAIChatUsageUpdate OpenAIChatDone
 #' @aliases OpenAIChatError rho_openai_chat_decoder rho_openai_chat_message
+#' @aliases rho_openai_chat_content
 #' @export OpenAIChatCompletionsDecoder
 #' @export OpenAIChatWireEvent
 #' @export OpenAIChatIgnored
@@ -347,6 +348,7 @@ NULL
 #' @export OpenAIChatError
 #' @export rho_openai_chat_decoder
 #' @export rho_openai_chat_message
+#' @export rho_openai_chat_content
 NULL
 
 #' Z.ai provider
@@ -382,6 +384,42 @@ NULL
 #' @export rho_zai_request
 #' @export rho_apply_thinking_control
 #' @export rho_apply_tool_call_streaming
+NULL
+
+#' Kimi Platform provider
+#'
+#' Kimi Platform uses its own Chat Completions dialect. Its typed request
+#' methods preserve Kimi thinking controls, use `max_completion_tokens`, and
+#' accept explicit image content. The global and China endpoints remain
+#' separate providers because their credentials and model catalogs are scoped
+#' independently.
+#'
+#' @name rho_kimi_platform
+#' @aliases KimiPlatformEndpoint KimiPlatformGlobalEndpoint
+#' @aliases KimiPlatformChinaEndpoint KimiPlatformApi KimiPlatformApiKeyAuth
+#' @aliases KimiPlatformChatCompletionsModel KimiPlatformThinkingRequest
+#' @aliases KimiPlatformThinkingUnspecified KimiPlatformThinkingDisabled
+#' @aliases KimiPlatformThinkingEnabled KimiPlatformThinkingEffort
+#' @aliases rho_kimi_platform_global_endpoint rho_kimi_platform_china_endpoint
+#' @aliases rho_kimi_platform_model rho_kimi_platform_provider
+#' @aliases rho_kimi_platform_thinking rho_kimi_platform_request
+#' @export KimiPlatformEndpoint
+#' @export KimiPlatformGlobalEndpoint
+#' @export KimiPlatformChinaEndpoint
+#' @export KimiPlatformApi
+#' @export KimiPlatformApiKeyAuth
+#' @export KimiPlatformChatCompletionsModel
+#' @export KimiPlatformThinkingRequest
+#' @export KimiPlatformThinkingUnspecified
+#' @export KimiPlatformThinkingDisabled
+#' @export KimiPlatformThinkingEnabled
+#' @export KimiPlatformThinkingEffort
+#' @export rho_kimi_platform_global_endpoint
+#' @export rho_kimi_platform_china_endpoint
+#' @export rho_kimi_platform_model
+#' @export rho_kimi_platform_provider
+#' @export rho_kimi_platform_thinking
+#' @export rho_kimi_platform_request
 NULL
 
 #' Normalized assistant and provider event protocols
@@ -462,7 +500,9 @@ NULL
 #' @aliases AnthropicMessagesProtocol ModelCatalogProvider
 #' @aliases OpenAIModelCatalogProvider OpenAICodexModelCatalogProvider
 #' @aliases GitHubCopilotModelCatalogProvider AnthropicModelCatalogProvider
-#' @aliases ZaiModelCatalogProvider ModelCatalogSource ModelCatalogRecord
+#' @aliases KimiCodeModelCatalogProvider KimiPlatformModelCatalogProvider
+#' @aliases ZaiModelCatalogProvider
+#' @aliases ModelCatalogSource ModelCatalogRecord
 #' @aliases ModelCatalog ModelCatalogModelNotFound rho_model_expression
 #' @aliases rho_compile_catalog_model rho_default_model_catalog
 #' @aliases rho_catalog_models rho_catalog_model rho_catalog_bindings
@@ -476,6 +516,8 @@ NULL
 #' @export OpenAICodexModelCatalogProvider
 #' @export GitHubCopilotModelCatalogProvider
 #' @export AnthropicModelCatalogProvider
+#' @export KimiCodeModelCatalogProvider
+#' @export KimiPlatformModelCatalogProvider
 #' @export ZaiModelCatalogProvider
 #' @export ModelCatalogSource
 #' @export ModelCatalogRecord
@@ -688,6 +730,12 @@ NULL
 #' @aliases rho_github_copilot_discover_models_policy
 #' @aliases rho_github_copilot_enable_known_models_policy
 #' @aliases rho_prepare_github_copilot_models
+#' @aliases KimiCodeIdentity KimiCodeApi KimiCodeApiKeyAuth
+#' @aliases KimiCodeOAuthAuth KimiCodeOAuthCredential KimiCodeModelAuth
+#' @aliases KimiCodeDeviceAuthorization KimiCodeToken
+#' @aliases rho_kimi_code_identity_headers rho_kimi_code_identity
+#' @aliases rho_kimi_code_oauth_auth rho_kimi_code_provider
+#' @aliases rho_kimi_code_model
 #' @aliases rho_message_initiator rho_has_image_input
 #' @export CredentialStore
 #' @export OAuthAuth
@@ -780,6 +828,19 @@ NULL
 #' @export rho_github_copilot_provider
 #' @export rho_github_copilot_model
 #' @export rho_github_copilot_request
+#' @export KimiCodeIdentity
+#' @export KimiCodeApi
+#' @export KimiCodeApiKeyAuth
+#' @export KimiCodeOAuthAuth
+#' @export KimiCodeOAuthCredential
+#' @export KimiCodeModelAuth
+#' @export KimiCodeDeviceAuthorization
+#' @export KimiCodeToken
+#' @export rho_kimi_code_identity_headers
+#' @export rho_kimi_code_identity
+#' @export rho_kimi_code_oauth_auth
+#' @export rho_kimi_code_provider
+#' @export rho_kimi_code_model
 #' @export rho_message_initiator
 #' @export rho_has_image_input
 NULL

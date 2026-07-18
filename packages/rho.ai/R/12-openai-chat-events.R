@@ -186,8 +186,13 @@ rho_openai_chat_wire_events <- function(payload) {
     lapply(payload$choices %||% list(), rho_openai_chat_choice_events),
     recursive = FALSE
   )
-  if (is.list(payload$usage) && length(payload$usage)) {
-    events[[length(events) + 1L]] <- OpenAIChatUsageUpdate(usage = payload$usage)
+  usage <- payload$usage
+  choices <- payload$choices %||% list()
+  if ((!is.list(usage) || !length(usage)) && length(choices)) {
+    usage <- choices[[1L]]$usage
+  }
+  if (is.list(usage) && length(usage)) {
+    events[[length(events) + 1L]] <- OpenAIChatUsageUpdate(usage = usage)
   }
   if (!length(events)) list(OpenAIChatIgnored()) else events
 }

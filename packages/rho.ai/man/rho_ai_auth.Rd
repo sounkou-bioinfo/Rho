@@ -93,6 +93,19 @@
 \alias{rho_github_copilot_discover_models_policy}
 \alias{rho_github_copilot_enable_known_models_policy}
 \alias{rho_prepare_github_copilot_models}
+\alias{KimiCodeIdentity}
+\alias{KimiCodeApi}
+\alias{KimiCodeApiKeyAuth}
+\alias{KimiCodeOAuthAuth}
+\alias{KimiCodeOAuthCredential}
+\alias{KimiCodeModelAuth}
+\alias{KimiCodeDeviceAuthorization}
+\alias{KimiCodeToken}
+\alias{rho_kimi_code_identity_headers}
+\alias{rho_kimi_code_identity}
+\alias{rho_kimi_code_oauth_auth}
+\alias{rho_kimi_code_provider}
+\alias{rho_kimi_code_model}
 \alias{rho_message_initiator}
 \alias{rho_has_image_input}
 \title{Explicit credentials, login effects, and provider catalog state}

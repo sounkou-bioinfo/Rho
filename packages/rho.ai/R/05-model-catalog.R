@@ -37,6 +37,14 @@ AnthropicModelCatalogProvider <- S7::new_class(
   "AnthropicModelCatalogProvider",
   parent = ModelCatalogProvider
 )
+KimiCodeModelCatalogProvider <- S7::new_class(
+  "KimiCodeModelCatalogProvider",
+  parent = AnthropicModelCatalogProvider
+)
+KimiPlatformModelCatalogProvider <- S7::new_class(
+  "KimiPlatformModelCatalogProvider",
+  parent = ModelCatalogProvider
+)
 ZaiModelCatalogProvider <- S7::new_class(
   "ZaiModelCatalogProvider",
   parent = ModelCatalogProvider,
@@ -145,57 +153,23 @@ rho_catalog_source <- function(data) {
   )
 }
 
-rho_catalog_provider_builders <- list(
-  openai = function(data) {
-    OpenAIModelCatalogProvider(
-      id = data$id,
-      name = data$name,
-      base_url = data$base_url
-    )
-  },
-  openai_codex = function(data) {
-    OpenAICodexModelCatalogProvider(
-      id = data$id,
-      name = data$name,
-      base_url = data$base_url
-    )
-  },
-  github_copilot = function(data) {
-    GitHubCopilotModelCatalogProvider(
-      id = data$id,
-      name = data$name,
-      base_url = data$base_url
-    )
-  },
-  anthropic = function(data) {
-    AnthropicModelCatalogProvider(
-      id = data$id,
-      name = data$name,
-      base_url = data$base_url
-    )
-  },
-  zai = function(data) {
-    ZaiModelCatalogProvider(
-      id = data$id,
-      name = data$name,
-      base_url = data$base_url,
-      preserve_thinking = isTRUE(data$preserve_thinking)
+rho_catalog_evaluate <- function(expression, class, label) {
+  if (!is.call(expression)) {
+    rho.async::rho_signal_contract_violation(
+      "Model-catalog %s must be an R constructor call",
+      label
     )
   }
-)
-
-rho_catalog_protocol_builders <- list(
-  openai_responses = function(data) OpenAIResponsesProtocol(),
-  openai_chat_completions = function(data) OpenAIChatCompletionsProtocol(),
-  anthropic_messages = function(data) AnthropicMessagesProtocol()
-)
-
-rho_catalog_build_value <- function(builders, id, data, kind) {
-  builder <- builders[[id]]
-  if (is.null(builder)) {
-    rho.async::rho_signal_contract_violation("Unknown model-catalog %s: %s", kind, id)
+  value <- eval(expression, envir = environment(rho_catalog_evaluate))
+  if (!S7::S7_inherits(value, class)) {
+    rho.async::rho_signal_contract_violation(
+      "Model-catalog %s constructed %s instead of %s",
+      label,
+      rho_class_label(value),
+      class@name
+    )
   }
-  builder(data)
+  value
 }
 
 rho_catalog_record_from_data <- function(data, sources) {
@@ -203,16 +177,14 @@ rho_catalog_record_from_data <- function(data, sources) {
   if (is.null(source)) {
     rho.async::rho_signal_contract_violation("Unknown model-catalog source: %s", data$source)
   }
-  provider <- rho_catalog_build_value(
-    rho_catalog_provider_builders,
-    data$provider$kind,
+  provider <- rho_catalog_evaluate(
     data$provider,
-    "provider kind"
+    ModelCatalogProvider,
+    "provider"
   )
-  protocol <- rho_catalog_build_value(
-    rho_catalog_protocol_builders,
+  protocol <- rho_catalog_evaluate(
     data$protocol,
-    data,
+    ModelProtocol,
     "protocol"
   )
   ModelCatalogRecord(
@@ -241,7 +213,7 @@ rho_catalog_record_from_data <- function(data, sources) {
 }
 
 rho_default_model_catalog <- function() {
-  if (!identical(rho_model_catalog_data$schema_version, 1L)) {
+  if (!identical(rho_model_catalog_data$schema_version, 2L)) {
     rho.async::rho_signal_contract_violation(
       "Unsupported model-catalog schema version: %s",
       rho_model_catalog_data$schema_version

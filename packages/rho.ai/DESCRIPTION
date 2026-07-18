@@ -9,7 +9,7 @@ Authors@R:
 Description: Defines S7 protocols for models, messages, content, tools,
     credentials, capabilities, and normalized provider event streams. Includes
     adapters for OpenAI, OpenAI Codex, Anthropic, GitHub Copilot, Z.ai,
-    Ollama, and deterministic provider fixtures.
+    Kimi Code, Kimi Platform, Ollama, and deterministic provider fixtures.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

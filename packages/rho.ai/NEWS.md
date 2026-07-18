@@ -16,3 +16,9 @@
 - Derives GitHub Copilot provider protocols and transport capabilities from a
   sanitized `/models` endpoint snapshot. Catalog compilation no longer routes
   Copilot models from model-name patterns.
+- Compiles provider and protocol constructors from an executable R registry,
+  validates endpoint declarations retained from models.dev, and exposes model
+  catalogs through lazy read-only bindings.
+- Adds Kimi Code subscription keys and OAuth device authorization, plus
+  distinct global and China Kimi Platform API-key providers with Kimi thinking,
+  image-input, token-limit, and streamed-usage semantics.

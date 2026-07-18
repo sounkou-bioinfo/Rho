@@ -159,8 +159,56 @@ rho_openai_chat_message <- S7::new_generic(
   function(message, ...) S7::S7_dispatch()
 )
 
+S7::method(rho_openai_chat_content, TextContent) <- function(content, ...) {
+  list(type = "text", text = content@text)
+}
+
+S7::method(rho_openai_chat_content, S7::class_character) <- function(content, ...) {
+  list(type = "text", text = paste(content, collapse = ""))
+}
+
+S7::method(rho_openai_chat_content, ImageContent) <- function(content, ...) {
+  list(
+    type = "image_url",
+    image_url = list(
+      url = sprintf("data:%s;base64,%s", content@mime_type, content@data)
+    )
+  )
+}
+
+S7::method(rho_openai_chat_content, Content) <- function(content, ...) {
+  rho_provider_error(
+    sprintf("OpenAI Chat cannot encode %s content", rho_class_label(content)),
+    kind = "input",
+    code = "unsupported_content"
+  )
+}
+
+rho_openai_chat_content_fields <- function(content) {
+  if (is.character(content)) {
+    return(paste(content, collapse = ""))
+  }
+  values <- if (S7::S7_inherits(content, Content)) list(content) else content
+  parts <- lapply(values, rho_openai_chat_content)
+  error <- rho_first_provider_error(parts)
+  if (!is.null(error)) {
+    return(error)
+  }
+  if (
+    length(values) == 1L &&
+      S7::S7_inherits(values[[1L]], TextContent)
+  ) {
+    return(values[[1L]]@text)
+  }
+  unname(parts)
+}
+
 S7::method(rho_openai_chat_message, UserMessage) <- function(message, ...) {
-  list(role = "user", content = rho_content_text(message@content))
+  content <- rho_openai_chat_content_fields(message@content)
+  if (S7::S7_inherits(content, ProviderErrorValue)) {
+    return(content)
+  }
+  list(role = "user", content = content)
 }
 
 S7::method(rho_openai_chat_message, AssistantMessage) <- function(message, ...) {
@@ -201,20 +249,31 @@ S7::method(rho_openai_chat_message, AssistantMessage) <- function(message, ...) 
 }
 
 S7::method(rho_openai_chat_message, ToolResultMessage) <- function(message, ...) {
+  content <- rho_openai_chat_content_fields(message@content)
+  if (S7::S7_inherits(content, ProviderErrorValue)) {
+    return(content)
+  }
   list(
     role = "tool",
     tool_call_id = message@tool_call_id,
-    content = rho_content_text(message@content)
+    content = content
   )
 }
 
-S7::method(rho_openai_chat_message, S7::class_any) <- function(message, ...) NULL
+S7::method(rho_openai_chat_message, S7::class_any) <- function(message, ...) {
+  rho_provider_error(
+    sprintf("OpenAI Chat cannot encode %s messages", rho_class_label(message)),
+    kind = "input",
+    code = "unsupported_message"
+  )
+}
 
 rho_openai_chat_messages <- function(context) {
-  messages <- Filter(
-    Negate(is.null),
-    lapply(context@messages, rho_openai_chat_message)
-  )
+  messages <- lapply(context@messages, rho_openai_chat_message)
+  error <- rho_first_provider_error(messages)
+  if (!is.null(error)) {
+    return(error)
+  }
   if (nzchar(context@system_prompt)) {
     messages <- c(list(list(role = "system", content = context@system_prompt)), messages)
   }
@@ -239,9 +298,13 @@ rho_openai_chat_core_request_body <- function(model, context, options) {
   if (S7::S7_inherits(input_compatibility, ProviderErrorValue)) {
     return(input_compatibility)
   }
+  messages <- rho_openai_chat_messages(context)
+  if (S7::S7_inherits(messages, ProviderErrorValue)) {
+    return(messages)
+  }
   request <- list(
     model = model@id,
-    messages = rho_openai_chat_messages(context),
+    messages = messages,
     stream = TRUE,
     stream_options = list(include_usage = TRUE)
   )

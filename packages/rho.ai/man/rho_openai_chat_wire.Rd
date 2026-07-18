@@ -14,6 +14,7 @@
 \alias{OpenAIChatError}
 \alias{rho_openai_chat_decoder}
 \alias{rho_openai_chat_message}
+\alias{rho_openai_chat_content}
 \title{OpenAI-compatible Chat Completions stream protocol}
 \description{
 Chat Completions chunks are parsed into typed wire values and reduced by S7

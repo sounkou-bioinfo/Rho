@@ -1,13 +1,16 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "source": {
     "url": "https://models.dev/api.json",
-    "sha256": "9ec03193613c4e8e7e50da8a6c8af60f21d36a20c006baac2f06868c0b5e0699"
+    "sha256": "a5d5df2dbf443edc56af460ffc3f95d761eed7dd450720adb4b5f20d34e91fa1"
   },
   "providers": {
     "anthropic": {
       "id": "anthropic",
       "name": "Anthropic",
+      "api": "",
+      "package": "@ai-sdk/anthropic",
+      "documentation": "https://docs.anthropic.com/en/docs/about-claude/models",
       "models": {
         "claude-fable-5": {
           "id": "claude-fable-5",
@@ -411,6 +414,9 @@
     "github-copilot": {
       "id": "github-copilot",
       "name": "GitHub Copilot",
+      "api": "https://api.githubcopilot.com",
+      "package": "@ai-sdk/openai-compatible",
+      "documentation": "https://docs.github.com/en/copilot",
       "models": {
         "claude-fable-5": {
           "id": "claude-fable-5",
@@ -1088,7 +1094,7 @@
             "input": 1,
             "output": 6,
             "cache_read": 0.1,
-            "cache_write": 0.0
+            "cache_write": 1.25
           }
         },
         "gpt-5.6-sol": {
@@ -1120,7 +1126,7 @@
             "input": 5,
             "output": 30,
             "cache_read": 0.5,
-            "cache_write": 0.0
+            "cache_write": 6.25
           }
         },
         "gpt-5.6-terra": {
@@ -1152,7 +1158,7 @@
             "input": 2.5,
             "output": 15,
             "cache_read": 0.25,
-            "cache_write": 0.0
+            "cache_write": 3.125
           }
         },
         "kimi-k2.7-code": {
@@ -1206,9 +1212,577 @@
         }
       }
     },
+    "kimi-for-coding": {
+      "id": "kimi-for-coding",
+      "name": "Kimi For Coding",
+      "api": "https://api.kimi.com/coding/v1",
+      "package": "@ai-sdk/anthropic",
+      "documentation": "https://www.kimi.com/code/docs/en/third-party-tools/other-coding-agents.html",
+      "models": {
+        "k2p7": {
+          "id": "k2p7",
+          "name": "Kimi K2.7 Code",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": false,
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "context_window": 262144,
+          "max_tokens": 32768,
+          "pricing": {
+            "input": 0,
+            "output": 0,
+            "cache_read": 0,
+            "cache_write": 0
+          }
+        },
+        "k3": {
+          "id": "k3",
+          "name": "Kimi K3",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [
+            "toggle",
+            "effort"
+          ],
+          "reasoning_levels": [
+            "low",
+            "high",
+            "max"
+          ],
+          "temperature": false,
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "context_window": 1048576,
+          "max_tokens": 131072,
+          "pricing": {
+            "input": 0,
+            "output": 0,
+            "cache_read": 0,
+            "cache_write": 0
+          }
+        },
+        "kimi-for-coding-highspeed": {
+          "id": "kimi-for-coding-highspeed",
+          "name": "Kimi For Coding HighSpeed",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": false,
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "context_window": 262144,
+          "max_tokens": 32768,
+          "pricing": {
+            "input": 0,
+            "output": 0,
+            "cache_read": 0,
+            "cache_write": 0
+          }
+        }
+      }
+    },
+    "moonshotai": {
+      "id": "moonshotai",
+      "name": "Moonshot AI",
+      "api": "https://api.moonshot.ai/v1",
+      "package": "@ai-sdk/openai-compatible",
+      "documentation": "https://platform.moonshot.ai/docs/api/chat",
+      "models": {
+        "kimi-k2-0711-preview": {
+          "id": "kimi-k2-0711-preview",
+          "name": "Kimi K2 0711",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": false,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": true,
+          "input": [
+            "text"
+          ],
+          "context_window": 131072,
+          "max_tokens": 16384,
+          "pricing": {
+            "input": 0.6,
+            "output": 2.5,
+            "cache_read": 0.15,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2-0905-preview": {
+          "id": "kimi-k2-0905-preview",
+          "name": "Kimi K2 0905",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": false,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": true,
+          "input": [
+            "text"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 0.6,
+            "output": 2.5,
+            "cache_read": 0.15,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2-thinking": {
+          "id": "kimi-k2-thinking",
+          "name": "Kimi K2 Thinking",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": true,
+          "input": [
+            "text"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 0.6,
+            "output": 2.5,
+            "cache_read": 0.15,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2-thinking-turbo": {
+          "id": "kimi-k2-thinking-turbo",
+          "name": "Kimi K2 Thinking Turbo",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": true,
+          "input": [
+            "text"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 1.15,
+            "output": 8,
+            "cache_read": 0.15,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2-turbo-preview": {
+          "id": "kimi-k2-turbo-preview",
+          "name": "Kimi K2 Turbo",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": false,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": true,
+          "input": [
+            "text"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 2.4,
+            "output": 10,
+            "cache_read": 0.6,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2.5": {
+          "id": "kimi-k2.5",
+          "name": "Kimi K2.5",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [
+            "toggle"
+          ],
+          "reasoning_levels": [],
+          "temperature": false,
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 0.6,
+            "output": 3,
+            "cache_read": 0.1,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2.6": {
+          "id": "kimi-k2.6",
+          "name": "Kimi K2.6",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [
+            "toggle"
+          ],
+          "reasoning_levels": [],
+          "temperature": true,
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 0.95,
+            "output": 4,
+            "cache_read": 0.16,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2.7-code": {
+          "id": "kimi-k2.7-code",
+          "name": "Kimi K2.7 Code",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": false,
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 0.95,
+            "output": 4,
+            "cache_read": 0.19,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2.7-code-highspeed": {
+          "id": "kimi-k2.7-code-highspeed",
+          "name": "Kimi K2.7 Code HighSpeed",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": false,
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 1.9,
+            "output": 8,
+            "cache_read": 0.38,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k3": {
+          "id": "kimi-k3",
+          "name": "Kimi K3",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [
+            "toggle",
+            "effort"
+          ],
+          "reasoning_levels": [
+            "low",
+            "high",
+            "max"
+          ],
+          "temperature": false,
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "context_window": 1048576,
+          "max_tokens": 131072,
+          "pricing": {
+            "input": 3,
+            "output": 15,
+            "cache_read": 0.3,
+            "cache_write": 0.0
+          }
+        }
+      }
+    },
+    "moonshotai-cn": {
+      "id": "moonshotai-cn",
+      "name": "Moonshot AI (China)",
+      "api": "https://api.moonshot.cn/v1",
+      "package": "@ai-sdk/openai-compatible",
+      "documentation": "https://platform.moonshot.cn/docs/api/chat",
+      "models": {
+        "kimi-k2-0711-preview": {
+          "id": "kimi-k2-0711-preview",
+          "name": "Kimi K2 0711",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": false,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": true,
+          "input": [
+            "text"
+          ],
+          "context_window": 131072,
+          "max_tokens": 16384,
+          "pricing": {
+            "input": 0.6,
+            "output": 2.5,
+            "cache_read": 0.15,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2-0905-preview": {
+          "id": "kimi-k2-0905-preview",
+          "name": "Kimi K2 0905",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": false,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": true,
+          "input": [
+            "text"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 0.6,
+            "output": 2.5,
+            "cache_read": 0.15,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2-thinking": {
+          "id": "kimi-k2-thinking",
+          "name": "Kimi K2 Thinking",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": true,
+          "input": [
+            "text"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 0.6,
+            "output": 2.5,
+            "cache_read": 0.15,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2-thinking-turbo": {
+          "id": "kimi-k2-thinking-turbo",
+          "name": "Kimi K2 Thinking Turbo",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": true,
+          "input": [
+            "text"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 1.15,
+            "output": 8,
+            "cache_read": 0.15,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2-turbo-preview": {
+          "id": "kimi-k2-turbo-preview",
+          "name": "Kimi K2 Turbo",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": false,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": true,
+          "input": [
+            "text"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 2.4,
+            "output": 10,
+            "cache_read": 0.6,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2.5": {
+          "id": "kimi-k2.5",
+          "name": "Kimi K2.5",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [
+            "toggle"
+          ],
+          "reasoning_levels": [],
+          "temperature": false,
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 0.6,
+            "output": 3,
+            "cache_read": 0.1,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2.6": {
+          "id": "kimi-k2.6",
+          "name": "Kimi K2.6",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [
+            "toggle"
+          ],
+          "reasoning_levels": [],
+          "temperature": true,
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 0.95,
+            "output": 4,
+            "cache_read": 0.16,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2.7-code": {
+          "id": "kimi-k2.7-code",
+          "name": "Kimi K2.7 Code",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": false,
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 0.95,
+            "output": 4,
+            "cache_read": 0.19,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k2.7-code-highspeed": {
+          "id": "kimi-k2.7-code-highspeed",
+          "name": "Kimi K2.7 Code HighSpeed",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [],
+          "reasoning_levels": [],
+          "temperature": false,
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "context_window": 262144,
+          "max_tokens": 262144,
+          "pricing": {
+            "input": 1.9,
+            "output": 8,
+            "cache_read": 0.38,
+            "cache_write": 0.0
+          }
+        },
+        "kimi-k3": {
+          "id": "kimi-k3",
+          "name": "Kimi K3",
+          "status": "active",
+          "tool_call": true,
+          "reasoning": true,
+          "reasoning_modes": [
+            "toggle",
+            "effort"
+          ],
+          "reasoning_levels": [
+            "low",
+            "high",
+            "max"
+          ],
+          "temperature": false,
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "context_window": 1048576,
+          "max_tokens": 131072,
+          "pricing": {
+            "input": 3,
+            "output": 15,
+            "cache_read": 0.3,
+            "cache_write": 0.0
+          }
+        }
+      }
+    },
     "openai": {
       "id": "openai",
       "name": "OpenAI",
+      "api": "",
+      "package": "@ai-sdk/openai",
+      "documentation": "https://platform.openai.com/docs/models",
       "models": {
         "chatgpt-image-latest": {
           "id": "chatgpt-image-latest",
@@ -2692,6 +3266,9 @@
     "zai-coding-plan": {
       "id": "zai-coding-plan",
       "name": "Z.AI Coding Plan",
+      "api": "https://api.z.ai/api/coding/paas/v4",
+      "package": "@ai-sdk/openai-compatible",
+      "documentation": "https://docs.z.ai/devpack/overview",
       "models": {
         "glm-4.5-air": {
           "id": "glm-4.5-air",

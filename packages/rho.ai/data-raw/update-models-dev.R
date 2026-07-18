@@ -42,6 +42,9 @@ rho_models_dev_provider <- function(provider) {
   list(
     id = provider$id,
     name = provider$name,
+    api = provider$api %||% "",
+    package = provider$npm %||% "",
+    documentation = provider$doc %||% "",
     models = models
   )
 }
@@ -82,11 +85,17 @@ parser <- optparse::OptionParser(
       "--output",
       type = "character",
       default = file.path(data_raw, "models-dev-selected.json")
+    ),
+    optparse::make_option(
+      "--registry",
+      type = "character",
+      default = file.path(data_raw, "model-registry.R")
     )
   )
 )
 options <- optparse::parse_args(parser)
 output <- options$output
+sys.source(options$registry, envir = environment())
 source_url <- "https://models.dev/api.json"
 source_raw <- rho_fetch_models_dev(source_url)
 source <- yyjsonr::read_json_raw(
@@ -94,7 +103,7 @@ source <- yyjsonr::read_json_raw(
   arr_of_objs_to_df = FALSE,
   obj_of_arrs_to_df = FALSE
 )
-provider_ids <- c("anthropic", "github-copilot", "openai", "zai-coding-plan")
+provider_ids <- rho_catalog_registry_source_ids(rho_model_registry)
 missing <- setdiff(provider_ids, names(source))
 if (length(missing)) {
   stop(
@@ -105,7 +114,7 @@ if (length(missing)) {
 providers <- lapply(provider_ids, function(id) rho_models_dev_provider(source[[id]]))
 names(providers) <- provider_ids
 snapshot <- list(
-  schema_version = 1L,
+  schema_version = 2L,
   source = list(
     url = source_url,
     sha256 = digest::digest(source_raw, algo = "sha256", serialize = FALSE)
