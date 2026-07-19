@@ -6,10 +6,11 @@ rendering, Rmd-driven tinytest specs, and provider request builders. Package API
 documentation and namespaces are generated from roxygen2 tags. Air is the
 authoritative formatter; the local verified version is 0.10.0.
 
-All thirteen source packages are versioned `0.0.1.9000`, build from tarballs, and
-report `Status: OK` under `R CMD check --no-manual` with R 4.6.0 on Linux. The check driver treats every
-NOTE, WARNING, or ERROR as a failed monorepo gate. This establishes package
-health; it does not claim provider or Pi behavioral parity.
+All thirteen source packages are versioned `0.0.1.9001`, build from tarballs, and
+report `Status: OK` under `R CMD check --no-manual` locally and in the R 4.4 and
+R-release CI jobs. The check driver treats every NOTE, WARNING, or ERROR as a
+failed monorepo gate. This establishes package health; it does not claim provider
+or Pi behavioral parity.
 
 Verified executable behavior now includes typed assistant events, repeated agent
 turns, awaited listeners, steering/follow-up machinery, cancellation, typed
@@ -20,8 +21,8 @@ evaluation, and an opt-in stateful current-session R evaluator. Provider request
 builders require explicit resolved `RhoModelAuth`; they do not read API keys
 from process-global environment variables. Successful login and refresh values
 can be retained by the process-scoped memory store or an explicitly selected,
-owner-readable JSON store; both implement the same serialized credential
-protocol. JSON parsing and serialization use `yyjsonr` throughout.
+owner-only JSON store; both implement the same serialized credential protocol.
+JSON parsing and serialization use `yyjsonr` throughout.
 Semantic operations are planned separately from executable tools. OpenAI and
 Anthropic web search use typed, catalog-backed provider bindings, normalize
 provider activity as content, and reject unbound operations at request
@@ -46,9 +47,9 @@ text.
 Known incomplete work, stated directly:
 
 - `rho.ai::rho_faux_provider()` is the deterministic provider used by tests.
-- OpenAI Responses/Codex and Anthropic Messages have typed request and event
-  protocols with end-to-end agent fixtures. Ollama still needs normalized NDJSON
-  decoding. External-account checks remain recorded in the parity ledger.
+- OpenAI Responses/Codex, Anthropic Messages, and Ollama's OpenAI-compatible
+  chat protocol have typed request and event protocols with end-to-end agent
+  fixtures. External-account checks remain recorded in the parity ledger.
 - Z.ai authentication is explicitly API-key based. Its
   [documented API surface](https://docs.z.ai/guides/develop/http/introduction)
   offers API-key and JWT bearer authentication, not an OAuth device grant;
@@ -60,10 +61,10 @@ Known incomplete work, stated directly:
   [nanonext issue #329](https://github.com/r-lib/nanonext/issues/329) establishes
   the upstream API; replacing the pin will require the same receive,
   cancellation, completion, and close semantics.
-- `rho.http.httr2` implements the same complete-request and incremental-body
-  contract with worker-owned httr2 connections. Its fixtures verify response
-  heads, incremental SSE delivery, completion, and cancellation without making
-  provider code depend on httr2.
+- `rho.http.httr2` implements complete requests with httr2 and incremental
+  bodies through curl's native multi loop in a selected worker. Its fixtures
+  verify response heads, incremental SSE delivery, completion, and cancellation
+  without making provider code depend on httr2.
 - Provider turns select typed SSE, WebSocket, cached-WebSocket, or embedded
   strategies before opening a normalized assistant-event stream. OpenAI Codex
   implements one-shot `response.create` WebSocket execution with the nanonext
@@ -81,6 +82,9 @@ Known incomplete work, stated directly:
 - `rho_task_from_function()` defers an R closure but does not move blocking work
   out of the main R process. Credential-file reads, coding filesystem tools, and
   DuckDB calls still need explicit compute bindings where they may block.
+- `RhoFileCredentialStore` is plaintext JSON with owner-only permissions and
+  serializes access within one R process. An encrypted or keychain-backed store
+  and a cross-process file lock remain extension work.
 - Agent session entries have no durable store, replay, or crash recovery, and
   streaming message updates still replace their in-memory entry.
 - Graphics, tool output, and bio resources do not yet share an artifact store.

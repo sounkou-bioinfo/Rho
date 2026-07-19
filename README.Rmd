@@ -146,7 +146,7 @@ site.
 Provider implementations with no independent dependency or ABI constraint live
 in `rho.ai`. OpenAI Codex, GitHub Copilot, Z.ai, OpenAI, Anthropic, Ollama, and
 the deterministic faux provider therefore share one typed provider surface
-without a package per API. The [Pi parity ledger](docs/pi-parity.md) distinguishes
+without a package per API. The [Pi parity ledger](https://sounkou-bioinfo.github.io/Rho/docs/pi-parity.html) distinguishes
 complete wire adapters from request translators whose normalized stream is not
 yet complete. OpenAI, OpenAI Codex, GitHub Copilot, Z.ai, and Anthropic have
 executable normalized-stream fixtures; the ledger records the executable and
@@ -183,11 +183,11 @@ make check        # every package must report Status: OK
 make public-ready # complete publication gate
 ```
 
-The [Pi parity ledger](docs/pi-parity.md) records behavioral contracts and the
+The [Pi parity ledger](https://sounkou-bioinfo.github.io/Rho/docs/pi-parity.html) records behavioral contracts and the
 fixtures that verify them. Public release and addition to the
 [sounkou-bioinfo R-universe](https://sounkou-bioinfo.r-universe.dev) follow
 green package checks, live provider checks, documentation, and secret scanning.
-The exact sequence is recorded in the [publishing guide](docs/releasing.md).
+The exact sequence is recorded in the [publishing guide](https://sounkou-bioinfo.github.io/Rho/docs/releasing.html).
 
 ## License
 

@@ -174,7 +174,7 @@ over provider or agent scheduling.
 
 Candidate R-native presentation and secure-storage components, together with
 their package responsibilities, are recorded in
-[R-native interaction and secure storage](r-native-runtime.md).
+[R-native interaction and secure storage](https://sounkou-bioinfo.github.io/Rho/docs/r-native-runtime.html).
 
 ## Publication gate
 
