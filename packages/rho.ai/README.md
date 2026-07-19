@@ -48,9 +48,9 @@ selection <- rho_select_provider_transport(
 )
 
 rho_transport_id(selection@transport)
-#> [1] "sse"
+#> [1] "websocket"
 selection@reason
-#> [1] "sse is the first provider implementation accepted by model gpt-5.3-codex-spark"
+#> [1] "websocket is the first provider implementation accepted by model gpt-5.3-codex-spark"
 ```
 
 SSE, WebSocket, cached WebSocket, and embedded execution are separate S7
