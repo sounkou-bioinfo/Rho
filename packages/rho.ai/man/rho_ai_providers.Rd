@@ -28,6 +28,13 @@
 \alias{CachedWebSocketTransport}
 \alias{EmbeddedTransport}
 \alias{AutomaticTransport}
+\alias{RhoEmbeddedExecutor}
+\alias{RhoFunctionEmbeddedExecutor}
+\alias{RhoEmbeddedProvider}
+\alias{EmbeddedExecutor}
+\alias{rho_embedded_executor}
+\alias{rho_embedded_provider}
+\alias{rho_embedded_stream}
 \alias{ProviderOperationUnsupported}
 \alias{RhoProviderOperation}
 \alias{RhoToolSearchOperation}

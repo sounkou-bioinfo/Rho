@@ -16,16 +16,16 @@
 #' @aliases RhoNanonextAioTask RhoPromiseTask RhoAsyncError RhoTimeoutError
 #' @aliases RhoCancellation rho_contract_violation
 #' @aliases rho_signal_contract_violation
-#' @aliases RhoStream RhoListStream RhoMappedStream RhoFlatMappedStream
+#' @aliases RhoStream RhoDuplex RhoListStream RhoMappedStream RhoFlatMappedStream
 #' @aliases RhoTaskStream RhoStreamItem RhoStreamValue RhoStreamEnd
 #' @aliases RhoPollDecision RhoPollPending RhoPollComplete RhoPollFailed
 #' @aliases RhoSerialQueue rho_serial_queue rho_enqueue
-#' @aliases RhoAwaitable RhoStreamLike RhoTaskQueue
+#' @aliases RhoAwaitable RhoStreamLike RhoDuplexChannel RhoTaskQueue
 #' @aliases rho_task rho_rejected rho_task_from_function rho_task_from_promise
 #' @aliases rho_coro_task rho_wrap_aio rho_pending rho_await rho_cancel
 #' @aliases rho_then rho_catch rho_as_task rho_as_promise rho_all rho_race
 #' @aliases rho_timeout
-#' @aliases rho_list_stream rho_stream_from_task rho_stream_next
+#' @aliases rho_list_stream rho_stream_from_task rho_stream_next rho_duplex_send
 #' @aliases rho_stream_close rho_stream_collect rho_stream_map
 #' @aliases rho_stream_flat_map rho_stream_value rho_stream_end
 #' @aliases rho_poll rho_poll_pending rho_poll_complete rho_poll_failed
@@ -49,6 +49,7 @@
 #' @export rho_contract_violation
 #' @export rho_signal_contract_violation
 #' @export RhoStream
+#' @export RhoDuplex
 #' @export RhoListStream
 #' @export RhoMappedStream
 #' @export RhoFlatMappedStream
@@ -63,6 +64,7 @@
 #' @export RhoSerialQueue
 #' @export RhoAwaitable
 #' @export RhoStreamLike
+#' @export RhoDuplexChannel
 #' @export RhoTaskQueue
 #' @export rho_task
 #' @export rho_rejected
@@ -83,6 +85,7 @@
 #' @export rho_list_stream
 #' @export rho_stream_from_task
 #' @export rho_stream_next
+#' @export rho_duplex_send
 #' @export rho_stream_close
 #' @export rho_stream_collect
 #' @export rho_stream_map

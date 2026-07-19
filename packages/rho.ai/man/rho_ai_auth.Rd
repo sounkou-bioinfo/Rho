@@ -64,12 +64,14 @@
 \alias{rho_auth_error}
 \alias{OpenAICodexApi}
 \alias{OpenAICodexOAuthAuth}
+\alias{OpenAICodexWebSocketRequest}
 \alias{rho_openai_codex_auth}
 \alias{rho_openai_codex_credential}
 \alias{rho_load_openai_codex_credential}
 \alias{rho_openai_codex_provider}
 \alias{rho_openai_codex_model}
 \alias{rho_openai_codex_request}
+\alias{rho_openai_codex_websocket_request}
 \alias{GitHubCopilotClientIdentity}
 \alias{GitHubCopilotEndpoints}
 \alias{GitHubCopilotDeviceAuthorization}

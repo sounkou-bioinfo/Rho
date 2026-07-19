@@ -13,6 +13,12 @@
 - Adds typed provider-turn strategies and a default `rho_stream()` method so
   HTTP SSE, WebSocket, and embedded providers share the normalized event
   protocol without sharing a wire implementation.
+- Adds executable embedded-provider values: an explicit executor can return a
+  normalized stream or a task resolving to one, without inventing a provider
+  class for each in-process model.
+- Adds the OpenAI Codex `response.create` WebSocket transport when the selected
+  HTTP client implements Rho's WebSocket client interface. Explicit WebSocket
+  selection reports an unsupported transport instead of changing to SSE.
 - Derives GitHub Copilot provider protocols and transport capabilities from a
   sanitized `/models` endpoint snapshot. Catalog compilation no longer routes
   Copilot models from model-name patterns.

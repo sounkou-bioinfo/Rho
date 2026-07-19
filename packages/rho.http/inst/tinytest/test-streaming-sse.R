@@ -128,6 +128,32 @@ rho_http_client_contract(
   timeout_ms = 5000L
 )
 
+nanonext_client_factory <- function(
+  timeout_ms,
+  stream_buffer_size,
+  max_error_body_bytes
+) {
+  rho_http_client(
+    timeout_ms = timeout_ms,
+    stream_buffer_size = stream_buffer_size,
+    max_error_body_bytes = max_error_body_bytes
+  )
+}
+
+rho_http_contract_connection_delimited_body(
+  client_factory = nanonext_client_factory,
+  timeout_ms = 5000L
+)
+rho_http_contract_truncated_content_length(
+  client_factory = nanonext_client_factory,
+  timeout_ms = 5000L
+)
+
+rho_http_contract_malformed_chunked_body(
+  client_factory = nanonext_client_factory,
+  timeout_ms = 5000L
+)
+
 server_connection <- NULL
 server <- nanonext::http_server(
   url = "http://127.0.0.1:0",

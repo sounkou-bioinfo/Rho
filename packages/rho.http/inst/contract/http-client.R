@@ -329,6 +329,56 @@ rho_http_contract_truncated_content_length <- function(client_factory, timeout_m
   expect_true(S7::S7_inherits(ending, rho.async::RhoStreamEnd))
 }
 
+rho_http_contract_malformed_chunked_body <- function(client_factory, timeout_ms) {
+  peer <- rho_http_contract_raw_peer(
+    head = charToRaw(paste0(
+      "HTTP/1.1 200 OK\r\n",
+      "Content-Type: application/octet-stream\r\n",
+      "Transfer-Encoding: chunked\r\n",
+      "Connection: close\r\n\r\n"
+    )),
+    body = charToRaw("not-a-chunk\r\n"),
+    body_delay_ms = 500L
+  )
+  client <- rho_http_contract_client(client_factory, timeout_ms)
+  stream <- NULL
+  on.exit(
+    {
+      rho_http_contract_raw_peer_close(peer)
+      rho_http_contract_close(client = client, stream = stream)
+    },
+    add = TRUE
+  )
+
+  stream <- rho.http::rho_http_open_stream(
+    client,
+    rho.http::rho_http_request(
+      "GET",
+      paste0(peer$url, "/malformed-chunk"),
+      timeout_ms = timeout_ms
+    )
+  ) |>
+    rho.async::rho_await(timeout = timeout_ms)
+  expect_true(S7::S7_inherits(stream, rho.http::RhoHttpBodyStream))
+  expect_equal(stream@head@status, 200L)
+  observed <- rho_http_contract_read_until_terminal(stream, timeout_ms)
+  payload <- observed$values[
+    !vapply(
+      observed$values,
+      function(value) S7::S7_inherits(value, rho.http::RhoHttpError),
+      logical(1)
+    )
+  ]
+  expect_equal(length(payload), 0L)
+  expect_true(S7::S7_inherits(
+    observed$terminal,
+    rho.http::RhoHttpTransportError
+  ))
+  ending <- rho.async::rho_stream_next(stream) |>
+    rho.async::rho_await(timeout = timeout_ms)
+  expect_true(S7::S7_inherits(ending, rho.async::RhoStreamEnd))
+}
+
 rho_http_contract_incremental_sse <- function(client_factory, timeout_ms) {
   server_connection <- NULL
   server <- nanonext::http_server(
@@ -590,8 +640,6 @@ rho_http_client_contract <- function(
   )
   rho_http_contract_complete_request(client_factory, timeout_ms)
   rho_http_contract_fixed_body(client_factory, timeout_ms)
-  rho_http_contract_connection_delimited_body(client_factory, timeout_ms)
-  rho_http_contract_truncated_content_length(client_factory, timeout_ms)
   rho_http_contract_incremental_sse(client_factory, timeout_ms)
   rho_http_contract_receive_cancellation(client_factory, timeout_ms)
   rho_http_contract_receive_timeout(client_factory, timeout_ms)

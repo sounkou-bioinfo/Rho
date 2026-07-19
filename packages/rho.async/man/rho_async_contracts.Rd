@@ -14,6 +14,7 @@
 \alias{rho_contract_violation}
 \alias{rho_signal_contract_violation}
 \alias{RhoStream}
+\alias{RhoDuplex}
 \alias{RhoListStream}
 \alias{RhoMappedStream}
 \alias{RhoFlatMappedStream}
@@ -30,6 +31,7 @@
 \alias{rho_enqueue}
 \alias{RhoAwaitable}
 \alias{RhoStreamLike}
+\alias{RhoDuplexChannel}
 \alias{RhoTaskQueue}
 \alias{rho_task}
 \alias{rho_rejected}
@@ -50,6 +52,7 @@
 \alias{rho_list_stream}
 \alias{rho_stream_from_task}
 \alias{rho_stream_next}
+\alias{rho_duplex_send}
 \alias{rho_stream_close}
 \alias{rho_stream_collect}
 \alias{rho_stream_map}

@@ -8,3 +8,5 @@
   through derived streams.
 - Adds a cancellable serial task queue whose queued entries do not cancel
   active work.
+- Adds `RhoDuplex` and `rho_duplex_send()` so bidirectional transports retain
+  the same typed stream, task, timeout, and cancellation contracts.

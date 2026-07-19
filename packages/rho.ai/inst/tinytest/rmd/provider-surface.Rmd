@@ -28,28 +28,15 @@ expect_equal(message@content[[1L]]@text, "faux: hi")
 ```
 
 ```{r embedded-provider-default}
-FixtureEmbeddedProvider <- S7::new_class("FixtureEmbeddedProvider")
-
-S7::method(
-  rho_provider_transports,
-  list(FixtureEmbeddedProvider, Model)
-) <- function(provider, model, ...) {
-  list(EmbeddedTransport())
-}
-
-S7::method(
-  rho_open_provider_transport,
-  list(EmbeddedTransport, FixtureEmbeddedProvider, Model, Context)
-) <- function(transport, provider, model, context, options = list(), ...) {
+executor <- rho_embedded_executor(function(provider, model, context, options) {
   answer <- rho_assistant_message(
     content = list(rho_text("in-process result")),
-    provider = model@provider,
+    provider = provider@provider_id,
     model = model@id
   )
-  rho_list_stream(list(rho_assistant_done_event(answer)))
-}
-
-embedded_provider <- FixtureEmbeddedProvider()
+  rho_task(rho_list_stream(list(rho_assistant_done_event(answer))))
+})
+embedded_provider <- rho_embedded_provider(executor, provider_id = "fixture")
 embedded_model <- rho_model("fixture", "embedded")
 embedded_context <- rho_context(messages = list(rho_user_message("run")))
 embedded_events <- rho_stream(
@@ -60,6 +47,7 @@ embedded_events <- rho_stream(
   rho_stream_collect(timeout = 1000L)
 
 expect_true(s7contract::implements(embedded_provider, Provider))
+expect_true(s7contract::implements(RhoFunctionEmbeddedExecutor, EmbeddedExecutor))
 expect_equal(length(embedded_events), 1L)
 expect_equal(embedded_events[[1L]]@message@content[[1L]]@text, "in-process result")
 ```
@@ -401,8 +389,8 @@ required_websocket <- rho_select_provider_transport(
   WebSocketTransport()
 )
 expect_true(S7::S7_inherits(automatic_transport, ProviderTransportSelection))
-expect_true(S7::S7_inherits(automatic_transport@transport, SseTransport))
-expect_true(S7::S7_inherits(required_websocket, ProviderTransportUnsupported))
+expect_true(S7::S7_inherits(automatic_transport@transport, WebSocketTransport))
+expect_true(S7::S7_inherits(required_websocket, ProviderTransportSelection))
 expect_equal(spark@pricing@cache_read, 0.175)
 expect_equal(spark@limits@context_window, 128000L)
 ```

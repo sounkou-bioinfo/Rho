@@ -3,6 +3,7 @@
 \name{rho_http_contracts}
 \alias{rho_http_contracts}
 \alias{HttpClient}
+\alias{WebSocketClient}
 \alias{RhoHttpClient}
 \alias{RhoNanonextHttpClient}
 \alias{RhoHttpOpenExecution}
@@ -14,6 +15,9 @@
 \alias{RhoHttpPayload}
 \alias{RhoHttpResponse}
 \alias{RhoHttpResponseHead}
+\alias{RhoWebSocketRequest}
+\alias{RhoWebSocket}
+\alias{RhoNanonextWebSocket}
 \alias{RhoHttpBodyStream}
 \alias{RhoNanonextHttpBodyStream}
 \alias{RhoSseEvent}
@@ -21,6 +25,7 @@
 \alias{RhoSseStream}
 \alias{RhoHttpError}
 \alias{RhoHttpTransportError}
+\alias{RhoWebSocketTransportError}
 \alias{RhoHttpStatusError}
 \alias{rho_http_client}
 \alias{rho_http_request}
@@ -29,6 +34,8 @@
 \alias{rho_http_open_execution}
 \alias{rho_http_open_stream}
 \alias{rho_http_client_close}
+\alias{rho_ws_request}
+\alias{rho_ws_connect}
 \alias{rho_sse_connect}
 \alias{rho_sse_decoder}
 \alias{rho_sse_decode}
@@ -41,6 +48,9 @@
 preserves protocol state across arbitrary byte chunks. \code{\link[=rho_sse_connect]{rho_sse_connect()}}
 is the default composition over any \code{RhoHttpClient} implementation and
 exposes decoded \code{RhoSseEvent} values through the common Rho stream protocol.
+\code{WebSocketClient} is deliberately separate: an HTTP client does not imply
+that it can open a WebSocket. \code{rho_ws_connect()} resolves to a \code{RhoWebSocket},
+an asynchronous duplex whose inbound values use the common stream protocol.
 }
 \details{
 \code{rho_http_client()} constructs the built-in \code{RhoNanonextHttpClient}. Its TLS

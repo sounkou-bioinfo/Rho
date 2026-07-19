@@ -17,6 +17,10 @@ only behavior already supported by an executable fixture.
 - HTTP clients dispatch through `rho_http_send()` and
   `rho_http_open_stream()`. The nanonext and httr2 implementations can be
   selected without changing provider code.
+- The nanonext client also implements typed WebSocket connection and duplex
+  contracts. OpenAI Codex uses its one-shot `response.create` WebSocket
+  transport or SSE according to an explicit transport selection; an embedded
+  provider runs through an explicit executor without an HTTP request.
 - `rho_http_open_execution()` records Aio, worker, or caller-process response
   opening as typed values. Both shipped implementations run the same installed
   client contract for fixed, chunked, and connection-delimited bodies, one-byte
@@ -47,20 +51,15 @@ only behavior already supported by an executable fixture.
 - Preserve `rho.http.httr2` as an independent implementation of the same HTTP
   client interface. It is also the executable alternative when opening a
   nanonext response remains synchronous.
-- The shared HTTP client contract uses a raw local peer to distinguish a
+- The nanonext transport fixture uses a raw local peer to distinguish a
   connection-delimited body, which ends normally, from a premature close before
   the declared `Content-Length`, which yields a typed transport error after
-  already received bytes. Add malformed chunk-framing fixtures when the
-  transport exposes the response head before its parser rejects the body.
+  already received bytes. It also verifies that a malformed chunked body is
+  reported as a typed transport error after its successful response head.
 - Keep response opening explicit through `rho_http_open_execution()`. The
   nanonext fork declares cancellable Aio opening, httr2 declares worker opening,
   and an implementation without an asynchronous method receives the explicit
   caller-process default with its reason.
-- Implement the declared OpenAI Codex WebSocket strategies and feed their data
-  into the same normalized assistant-event stream used by SSE.
-- Add an embedded-provider transport for an in-process model without routing it
-  through HTTP. This will exercise the distinction between provider semantics
-  and wire transport.
 
 ## 3. Durable sessions and artifacts
 

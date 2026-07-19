@@ -77,7 +77,10 @@ bodies; nanonext and the worker-owned httr2 adapter implement the same methods.
 method selects a typed `ProviderTransport` implemented by both the provider and
 model, then dispatches through `rho_open_provider_transport()`. SSE, WebSocket,
 cached WebSocket, and embedded execution are distinct values. An in-process model
-implements `EmbeddedTransport` directly and does not construct an HTTP request.
+uses `RhoEmbeddedProvider` with an explicit `EmbeddedExecutor`; it does not
+construct an HTTP request. An executor returns a `RhoStream` or a
+`RhoTask<RhoStream>`, so an embedded R object, a native engine, and a remote
+relay can share provider semantics without sharing an I/O implementation.
 The selection is a typed value with a reason, while an unavailable explicit
 choice resolves through `ProviderTransportUnsupported`.
 

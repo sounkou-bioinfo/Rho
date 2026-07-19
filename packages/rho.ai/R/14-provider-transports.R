@@ -158,6 +158,9 @@ S7::method(
   rho_provider_transports,
   list(OpenAICodexApi, OpenAICodexResponsesModel)
 ) <- function(provider, model, ...) {
+  if (s7contract::implements(provider@http, rho.http::WebSocketClient)) {
+    return(list(WebSocketTransport(), SseTransport()))
+  }
   list(SseTransport())
 }
 

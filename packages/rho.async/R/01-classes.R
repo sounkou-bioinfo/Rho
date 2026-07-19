@@ -24,6 +24,8 @@ RhoStream <- S7::new_class(
   }
 )
 
+RhoDuplex <- S7::new_class("RhoDuplex", parent = RhoStream)
+
 RhoListStream <- S7::new_class("RhoListStream", parent = RhoStream)
 RhoMappedStream <- S7::new_class("RhoMappedStream", parent = RhoStream)
 RhoFlatMappedStream <- S7::new_class("RhoFlatMappedStream", parent = RhoStream)

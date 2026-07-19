@@ -251,6 +251,28 @@ EmbeddedTransport <- S7::new_class(
 )
 AutomaticTransport <- S7::new_class("AutomaticTransport")
 
+RhoEmbeddedExecutor <- S7::new_class("RhoEmbeddedExecutor", abstract = TRUE)
+RhoFunctionEmbeddedExecutor <- S7::new_class(
+  "RhoFunctionEmbeddedExecutor",
+  parent = RhoEmbeddedExecutor,
+  properties = list(execute = S7::class_function)
+)
+RhoEmbeddedProvider <- S7::new_class(
+  "RhoEmbeddedProvider",
+  properties = list(
+    provider_id = rho_non_empty_string,
+    executor = RhoEmbeddedExecutor
+  )
+)
+
+OpenAICodexWebSocketRequest <- S7::new_class(
+  "OpenAICodexWebSocketRequest",
+  properties = list(
+    request = rho.http::RhoWebSocketRequest,
+    message = rho_non_empty_string
+  )
+)
+
 rho_model_transport_ids <- S7::new_property(
   S7::class_character,
   validator = function(value) {

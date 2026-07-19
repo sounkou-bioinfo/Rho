@@ -86,6 +86,14 @@ OpenAIUnsupportedItem <- S7::new_class(
 
 OpenAIResponseWireEvent <- S7::new_class("OpenAIResponseWireEvent", abstract = TRUE)
 
+OpenAIResponseJsonEvent <- S7::new_class(
+  "OpenAIResponseJsonEvent",
+  properties = list(
+    data = rho_non_empty_string,
+    transport = ProviderTransport
+  )
+)
+
 OpenAIResponseIgnored <- S7::new_class(
   "OpenAIResponseIgnored",
   parent = OpenAIResponseWireEvent,
@@ -433,13 +441,13 @@ rho_openai_response_protocol_error <- function(message, details = list()) {
   )
 }
 
-rho_openai_decode_wire_event <- function(event) {
-  if (!nzchar(event@data) || identical(event@data, "[DONE]")) {
+rho_openai_decode_response_json <- function(data, source) {
+  if (!nzchar(data) || identical(data, "[DONE]")) {
     return(OpenAIResponseIgnored(type = "", payload = list()))
   }
   payload <- tryCatch(
     yyjsonr::read_json_str(
-      event@data,
+      data,
       arr_of_objs_to_df = FALSE,
       obj_of_arrs_to_df = FALSE
     ),
@@ -447,11 +455,15 @@ rho_openai_decode_wire_event <- function(event) {
   )
   if (inherits(payload, "error")) {
     return(rho_openai_response_protocol_error(
-      sprintf("Invalid OpenAI Responses SSE JSON: %s", conditionMessage(payload)),
-      details = list(data = event@data)
+      sprintf("Invalid OpenAI Responses %s JSON: %s", source, conditionMessage(payload)),
+      details = list(data = data, source = source)
     ))
   }
   rho_openai_response_wire_event(payload)
+}
+
+rho_openai_decode_wire_event <- function(event) {
+  rho_openai_decode_response_json(event@data, "SSE")
 }
 
 rho_openai_responses_decoder <- function(model) {
@@ -560,6 +572,14 @@ S7::method(
   c(rho_openai_begin_events(decoder), rho_reduce_provider_event(wire_event, decoder))
 }
 
+S7::method(
+  rho_decode_provider_event,
+  list(OpenAIResponseDecoder, OpenAIResponseJsonEvent)
+) <- function(decoder, event, ...) {
+  wire_event <- rho_openai_decode_response_json(event@data, rho_transport_id(event@transport))
+  c(rho_openai_begin_events(decoder), rho_reduce_provider_event(wire_event, decoder))
+}
+
 rho_openai_error_events <- function(decoder, error) {
   c(
     rho_openai_begin_events(decoder),
@@ -578,6 +598,13 @@ S7::method(
     decoder,
     rho_provider_http_error(decoder@model, event)
   )
+}
+
+S7::method(
+  rho_decode_provider_event,
+  list(OpenAIResponseDecoder, ProviderErrorValue)
+) <- function(decoder, event, ...) {
+  rho_openai_error_events(decoder, event)
 }
 
 S7::method(

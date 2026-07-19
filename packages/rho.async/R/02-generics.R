@@ -22,6 +22,11 @@ rho_stream_next <- S7::new_generic(
 rho_stream_close <- S7::new_generic("rho_stream_close", "stream", function(stream, ...) {
   S7::S7_dispatch()
 })
+rho_duplex_send <- S7::new_generic(
+  "rho_duplex_send",
+  "duplex",
+  function(duplex, value, timeout = NULL, ...) S7::S7_dispatch()
+)
 rho_stream_collect <- S7::new_generic(
   "rho_stream_collect",
   "stream",

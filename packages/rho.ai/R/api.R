@@ -556,6 +556,9 @@ NULL
 #' @aliases ProviderTransportUnsupported ProviderTransportSelection
 #' @aliases ProviderTransport SseTransport WebSocketTransport
 #' @aliases CachedWebSocketTransport EmbeddedTransport AutomaticTransport
+#' @aliases RhoEmbeddedExecutor RhoFunctionEmbeddedExecutor RhoEmbeddedProvider
+#' @aliases EmbeddedExecutor rho_embedded_executor rho_embedded_provider
+#' @aliases rho_embedded_stream
 #' @aliases ProviderOperationUnsupported RhoProviderOperation
 #' @aliases RhoToolSearchOperation RhoToolReferencesOperation
 #' @aliases RhoCacheRetentionOperation
@@ -612,6 +615,10 @@ NULL
 #' @export CachedWebSocketTransport
 #' @export EmbeddedTransport
 #' @export AutomaticTransport
+#' @export RhoEmbeddedExecutor
+#' @export RhoFunctionEmbeddedExecutor
+#' @export RhoEmbeddedProvider
+#' @export EmbeddedExecutor
 #' @export ProviderOperationUnsupported
 #' @export RhoProviderOperation
 #' @export RhoToolSearchOperation
@@ -646,6 +653,9 @@ NULL
 #' @export rho_provider_transports
 #' @export rho_select_provider_transport
 #' @export rho_open_provider_transport
+#' @export rho_embedded_executor
+#' @export rho_embedded_provider
+#' @export rho_embedded_stream
 #' @export rho_stream
 #' @export rho_complete
 #' @export rho_provider_error
@@ -714,9 +724,11 @@ NULL
 #' @aliases rho_credential_encode rho_credential_decode
 #' @aliases rho_auth_refresh rho_auth_to_request rho_auth_prompt rho_auth_notify
 #' @aliases rho_auth_error OpenAICodexApi OpenAICodexOAuthAuth
+#' @aliases OpenAICodexWebSocketRequest
 #' @aliases rho_openai_codex_auth rho_openai_codex_credential
 #' @aliases rho_load_openai_codex_credential rho_openai_codex_provider
 #' @aliases rho_openai_codex_model rho_openai_codex_request
+#' @aliases rho_openai_codex_websocket_request
 #' @aliases GitHubCopilotClientIdentity GitHubCopilotEndpoints
 #' @aliases GitHubCopilotDeviceAuthorization
 #' @aliases GitHubCopilotCredential GitHubCopilotModelAuth
@@ -799,12 +811,14 @@ NULL
 #' @export rho_auth_error
 #' @export OpenAICodexApi
 #' @export OpenAICodexOAuthAuth
+#' @export OpenAICodexWebSocketRequest
 #' @export rho_openai_codex_auth
 #' @export rho_openai_codex_credential
 #' @export rho_load_openai_codex_credential
 #' @export rho_openai_codex_provider
 #' @export rho_openai_codex_model
 #' @export rho_openai_codex_request
+#' @export rho_openai_codex_websocket_request
 #' @export GitHubCopilotClientIdentity
 #' @export GitHubCopilotEndpoints
 #' @export GitHubCopilotDeviceAuthorization

@@ -553,8 +553,81 @@ rho_openai_codex_url <- function(base_url) {
   paste0(normalized, "/codex/responses")
 }
 
+rho_openai_codex_websocket_url <- function(base_url) {
+  endpoint <- rho_openai_codex_url(base_url)
+  if (startsWith(endpoint, "https://")) {
+    return(sub("^https://", "wss://", endpoint))
+  }
+  if (startsWith(endpoint, "http://")) {
+    return(sub("^http://", "ws://", endpoint))
+  }
+  if (startsWith(endpoint, "ws://") || startsWith(endpoint, "wss://")) {
+    return(endpoint)
+  }
+  NULL
+}
+
+rho_openai_codex_websocket_request_id <- function() {
+  paste0("rho-", rho_base64url_encode(nanonext::random(16L, convert = FALSE)))
+}
+
+rho_openai_codex_websocket_headers <- function(headers, request_id) {
+  excluded <- c("accept", "content-type", "openai-beta", "session-id", "x-client-request-id")
+  retained <- headers[!tolower(names(headers)) %in% excluded]
+  c(
+    retained,
+    list(
+      `OpenAI-Beta` = "responses_websockets=2026-02-06",
+      `session-id` = request_id,
+      `x-client-request-id` = request_id
+    )
+  )
+}
+
 rho_openai_codex_request <- function(provider, model, context, options = list()) {
   rho_build_provider_request(provider, model, context, options = options)
+}
+
+rho_openai_codex_websocket_request <- function(provider, model, context, options = list()) {
+  http_request <- rho_openai_codex_request(provider, model, context, options)
+  if (S7::S7_inherits(http_request, ProviderErrorValue)) {
+    return(http_request)
+  }
+  url <- rho_openai_codex_websocket_url(http_request@url)
+  if (is.null(url)) {
+    return(rho_provider_error(
+      "OpenAI Codex WebSocket requires an http, https, ws, or wss endpoint",
+      kind = "configuration",
+      code = "codex_websocket_url",
+      details = list(url = http_request@url)
+    ))
+  }
+  request_id <- options$session_id %||% rho_openai_codex_websocket_request_id()
+  payload <- tryCatch(
+    yyjsonr::write_json_str(
+      c(list(type = "response.create"), http_request@body),
+      auto_unbox = TRUE,
+      null = "null"
+    ),
+    error = identity
+  )
+  if (inherits(payload, "error")) {
+    return(rho_provider_error(
+      "OpenAI Codex WebSocket request could not be encoded as JSON",
+      kind = "configuration",
+      code = "codex_websocket_payload",
+      details = list(parent = payload)
+    ))
+  }
+  OpenAICodexWebSocketRequest(
+    request = rho.http::rho_ws_request(
+      url = url,
+      headers = rho_openai_codex_websocket_headers(http_request@headers, request_id),
+      timeout_ms = http_request@timeout_ms,
+      textframes = TRUE
+    ),
+    message = payload
+  )
 }
 
 S7::method(
@@ -719,4 +792,70 @@ S7::method(
     raw_stream,
     function(event) rho_decode_provider_event(decoder, event)
   )
+}
+
+rho_openai_codex_websocket_event <- function(value, model) {
+  if (S7::S7_inherits(value, rho.http::RhoHttpError)) {
+    return(value)
+  }
+  if (is.character(value) && length(value) == 1L && !is.na(value) && nzchar(value)) {
+    return(OpenAIResponseJsonEvent(data = value, transport = WebSocketTransport()))
+  }
+  rho_provider_error(
+    "OpenAI Codex WebSocket yielded a non-text response frame",
+    kind = "protocol",
+    code = "codex_websocket_frame",
+    details = list(value_class = rho_class_label(value), model = model@id)
+  )
+}
+
+rho_openai_codex_websocket_open_stream <- function(provider, model, request) {
+  opening <- rho.http::rho_ws_connect(provider@http, request@request)
+  connected <- rho.async::rho_then(opening, function(socket) {
+    if (S7::S7_inherits(socket, rho.http::RhoHttpError)) {
+      return(rho.async::rho_list_stream(list(socket)))
+    }
+    rho.async::rho_then(
+      rho.async::rho_duplex_send(socket, request@message),
+      function(sent) {
+        if (S7::S7_inherits(sent, rho.http::RhoHttpError)) {
+          rho.async::rho_stream_close(socket)
+          return(rho.async::rho_list_stream(list(sent)))
+        }
+        socket
+      }
+    )
+  })
+  rho.async::rho_stream_from_task(connected)
+}
+
+S7::method(
+  rho_open_provider_transport,
+  list(WebSocketTransport, OpenAICodexApi, OpenAICodexResponsesModel, Context)
+) <- function(transport, provider, model, context, options = list(), ...) {
+  request <- rho_openai_codex_websocket_request(provider, model, context, options)
+  if (S7::S7_inherits(request, ProviderErrorValue)) {
+    return(rho_provider_error_stream(model, request))
+  }
+  raw_stream <- rho_openai_codex_websocket_open_stream(provider, model, request)
+  decoder <- rho_openai_responses_decoder(model)
+  events <- rho.async::rho_stream_map(
+    raw_stream,
+    function(value) rho_openai_codex_websocket_event(value, model)
+  )
+  rho.async::rho_stream_flat_map(events, function(event) {
+    decoded <- rho_decode_provider_event(decoder, event)
+    if (
+      any(vapply(
+        decoded,
+        function(value) {
+          S7::S7_inherits(value, AssistantTerminalEvent)
+        },
+        logical(1)
+      ))
+    ) {
+      rho.async::rho_stream_close(raw_stream)
+    }
+    decoded
+  })
 }

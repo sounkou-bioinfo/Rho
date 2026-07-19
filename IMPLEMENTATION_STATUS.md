@@ -66,9 +66,11 @@ Known incomplete work, stated directly:
   provider code depend on httr2.
 - Provider turns select typed SSE, WebSocket, cached-WebSocket, or embedded
   strategies before opening a normalized assistant-event stream. OpenAI Codex
-  currently implements SSE; its WebSocket strategies remain explicit model
-  capabilities and return `ProviderTransportUnsupported` until their executable
-  methods and fixtures are present.
+  implements one-shot `response.create` WebSocket execution with the nanonext
+  WebSocket client and the same event decoder as SSE. Cached connection reuse
+  remains an explicit unsupported strategy until its lifecycle and fixtures
+  exist. Embedded providers run through an explicit executor that returns a
+  stream or a task resolving to one.
 - `rho.duckdb` has a conservative read-only SQL guard; production hardening should add a parser-backed guard before enabling untrusted SQL.
 - The Bash tool currently returns complete combined output. Pi-equivalent
   incremental output updates, bounded tail retention, and persisted full-output

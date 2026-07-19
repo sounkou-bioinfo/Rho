@@ -37,7 +37,7 @@ value after the real authentication path.
 
 | Adapter | Contract | Fixture | External account | Status |
 |---|---|---|---|---|
-| OpenAI Codex | explicit OAuth credential import, auth resolution, Responses translation, decoding, and agent completion with `gpt-5.3-codex-spark` | `codex-agent` in `README.Rmd` | completed | verified |
+| OpenAI Codex | explicit OAuth credential import, auth resolution, Responses translation, SSE and one-shot `response.create` WebSocket decoding, and agent completion with `gpt-5.3-codex-spark` | `codex-agent` in `README.Rmd` and `openai-codex-websocket.Rmd` | completed | verified |
 | GitHub Copilot | device authorization, session-token refresh, opt-in model policy, account-scoped catalog, token-derived endpoint, dynamic headers, Responses translation, and agent completion with `gpt-5.3-codex` | `github-copilot.Rmd` | completed | verified |
 | Z.ai | explicit API-key auth, Coding Plan and general endpoints, GLM-5.2 thinking preservation, tool-call streaming, and normalized Chat Completions events | `zai.Rmd` | no paid entitlement; [Z.ai documents API-key/JWT auth](https://docs.z.ai/guides/develop/http/introduction) and no device grant | verified |
 | OpenAI | explicit API-key auth, model catalog, typed Responses request composition, normalized streaming, structured input-limit recovery, and agent completion | `openai.Rmd` and `openai-provider-loop.Rmd` | API-key account not supplied; executable HTTP fixtures cover the wire contract | verified |

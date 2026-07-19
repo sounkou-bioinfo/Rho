@@ -8,6 +8,16 @@ Provider <- s7contract::new_interface(
     )
   )
 )
+EmbeddedExecutor <- s7contract::new_interface(
+  "EmbeddedExecutor",
+  generics = list(
+    rho_embedded_stream = s7contract::interface_requirement(
+      rho_embedded_stream,
+      args = list(provider = RhoEmbeddedProvider, model = Model, context = Context),
+      returns = rho.async::RhoStream
+    )
+  )
+)
 Tool <- s7contract::new_interface(
   "Tool",
   generics = list(

@@ -180,6 +180,16 @@ RhoHttpPayload <- S7::new_class(
   )
 )
 
+RhoWebSocketRequest <- S7::new_class(
+  "RhoWebSocketRequest",
+  properties = list(
+    url = rho_non_empty_string,
+    headers = rho_http_headers,
+    timeout_ms = rho_positive_integer,
+    textframes = rho_scalar_logical
+  )
+)
+
 RhoHttpResponse <- S7::new_class(
   "RhoHttpResponse",
   properties = list(
@@ -231,6 +241,17 @@ RhoNanonextHttpBodyStream <- S7::new_class(
   parent = RhoHttpBodyStream
 )
 
+RhoWebSocket <- S7::new_class(
+  "RhoWebSocket",
+  parent = rho.async::RhoDuplex,
+  properties = list(url = rho_non_empty_string)
+)
+
+RhoNanonextWebSocket <- S7::new_class(
+  "RhoNanonextWebSocket",
+  parent = RhoWebSocket
+)
+
 RhoSseStream <- S7::new_class(
   "RhoSseStream",
   parent = rho.async::RhoStream
@@ -247,6 +268,12 @@ RhoHttpError <- S7::new_class(
 
 RhoHttpTransportError <- S7::new_class(
   "RhoHttpTransportError",
+  parent = RhoHttpError,
+  properties = list(parent = S7::class_any)
+)
+
+RhoWebSocketTransportError <- S7::new_class(
+  "RhoWebSocketTransportError",
   parent = RhoHttpError,
   properties = list(parent = S7::class_any)
 )

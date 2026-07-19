@@ -18,3 +18,14 @@ HttpClient <- s7contract::new_interface(
     rho_http_client_close = rho_http_client_close
   )
 )
+
+WebSocketClient <- s7contract::new_interface(
+  "WebSocketClient",
+  generics = list(
+    rho_ws_connect = s7contract::interface_requirement(
+      rho_ws_connect,
+      args = list(request = RhoWebSocketRequest),
+      returns = rho.async::RhoTask
+    )
+  )
+)

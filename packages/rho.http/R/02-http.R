@@ -34,6 +34,20 @@ rho_http_request <- function(
   )
 }
 
+rho_ws_request <- function(
+  url,
+  headers = list(),
+  timeout_ms = 30000L,
+  textframes = TRUE
+) {
+  RhoWebSocketRequest(
+    url = url,
+    headers = headers,
+    timeout_ms = as.integer(timeout_ms),
+    textframes = isTRUE(textframes)
+  )
+}
+
 rho_http_payload <- S7::new_generic(
   "rho_http_payload",
   c("client", "request"),
@@ -174,4 +188,45 @@ rho_http_client_close <- S7::new_generic(
 
 S7::method(rho_http_client_close, RhoHttpClient) <- function(client, ...) {
   invisible(TRUE)
+}
+
+rho_ws_connect <- S7::new_generic(
+  "rho_ws_connect",
+  c("client", "request"),
+  function(client, request, ...) S7::S7_dispatch()
+)
+
+S7::method(rho_ws_connect, list(RhoNanonextHttpClient, RhoWebSocketRequest)) <- function(
+  client,
+  request,
+  ...
+) {
+  aio <- nanonext::stream_aio(
+    dial = request@url,
+    textframes = request@textframes,
+    headers = rho_normalize_http_headers(request@headers),
+    tls = client@tls,
+    buffer = client@stream_buffer_size,
+    timeout = request@timeout_ms
+  )
+  opening <- rho.async::rho_wrap_aio(aio)
+  socket <- rho.async::rho_then(opening, function(connection) {
+    RhoNanonextWebSocket(
+      url = request@url,
+      state = rho.async::rho_new_state(
+        connection = connection,
+        timeout_ms = request@timeout_ms,
+        textframes = request@textframes,
+        closed = FALSE,
+        created_at = Sys.time()
+      )
+    )
+  })
+  rho.async::rho_catch(socket, function(error) {
+    RhoWebSocketTransportError(
+      message = sprintf("WebSocket could not be opened: %s", conditionMessage(error)),
+      url = request@url,
+      parent = error
+    )
+  })
 }

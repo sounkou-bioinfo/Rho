@@ -37,6 +37,41 @@ S7::method(rho_stream_close, RhoProbeStream) <- function(stream, ...) {
   invisible(TRUE)
 }
 
+RhoProbeDuplex <- S7::new_class("RhoProbeDuplex", parent = RhoDuplex)
+
+rho_probe_duplex <- function() {
+  RhoProbeDuplex(state = rho_new_state(
+    sent = list(),
+    closed = FALSE,
+    created_at = Sys.time()
+  ))
+}
+
+S7::method(rho_stream_next, RhoProbeDuplex) <- function(stream, timeout = NULL, ...) {
+  rho_task(rho_stream_end())
+}
+
+S7::method(rho_duplex_send, RhoProbeDuplex) <- function(
+  duplex,
+  value,
+  timeout = NULL,
+  ...
+) {
+  duplex@state$sent[[length(duplex@state$sent) + 1L]] <- list(
+    value = value,
+    timeout = timeout
+  )
+  rho_task(NULL)
+}
+
+duplex <- rho_probe_duplex()
+sent <- rho_duplex_send(duplex, "outbound", timeout = 29L)
+
+expect_true(S7::S7_inherits(duplex, RhoDuplex))
+expect_true(S7::S7_inherits(sent, RhoTask))
+expect_null(rho_await(sent, timeout = 1000L))
+expect_equal(duplex@state$sent, list(list(value = "outbound", timeout = 29L)))
+
 source <- rho_probe_stream(list(2L))
 mapped <- rho_stream_map(source, function(value) value * 3L)
 item <- rho_stream_next(mapped, timeout = 37L) |>

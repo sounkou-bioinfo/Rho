@@ -114,6 +114,13 @@ rho_open_provider_transport <- S7::new_generic(
     S7::S7_dispatch()
   }
 )
+rho_embedded_stream <- S7::new_generic(
+  "rho_embedded_stream",
+  c("executor", "provider", "model", "context"),
+  function(executor, provider, model, context, options = list(), ...) {
+    S7::S7_dispatch()
+  }
+)
 rho_price_usage <- S7::new_generic(
   "rho_price_usage",
   c("model", "usage"),
