@@ -53,8 +53,9 @@ profiles over the same contracts.
 ## A file store is one result, not the premise
 
 The first durability thesis was an append-only JSONL session owned by
-`rho.coding`. It is useful because it is inspectable, recoverable, and close to
-Pi's established session format. It is not sufficient as the architecture.
+`rho.coding`. It is useful because it is inspectable and replayable. It shares
+append-only JSONL framing with Pi, but not Pi's version-3 header and ID-linked
+entry-tree schema. It is not sufficient as the architecture.
 
 `pi-bio-agent` supplies the counterexample. Its injected `SqlConn` may be local
 or owned by a ducknng service. Independent processes and remote workers share
@@ -71,13 +72,14 @@ not the only way to consume it.
 
 The first executable slice keeps the interface narrower than that destination:
 compare-and-append and full snapshot are the methods pulled by the current
-agent and tests. The in-memory implementation returns typed commit positions
-and rejects stale positions before mutation. An idle agent can synchronize a
-snapshot and rebuild its active message projection. An assistant partial
-remains in the active turn until its terminal value commits, and reset appends
-a boundary entry rather than erasing history. Durable recovery, branch
-identity, subscription, and remote cursors enter only with their corresponding
-topology fixtures.
+agent and tests. The in-memory and JSONL implementations return typed commit
+positions and reject stale positions before mutation. JSONL replay rebuilds an
+idle agent's active message projection after restart and rejects a partial final
+record rather than guessing at recovery. An assistant partial remains in the
+active turn until its terminal value commits, and reset appends a boundary entry
+rather than erasing history. Storage synchronization, branch identity,
+subscription, and remote cursors enter only with their corresponding topology
+fixtures.
 
 Large immutable entry payloads may move to CAS while the journal retains their
 typed references. The journal itself is not CAS: ordering, branching,
@@ -138,8 +140,9 @@ shared capabilities.
 
 ## The next contradictions to push
 
-1. Exercise the same journal contract with memory, JSONL, and an NNG-owned
-   service before choosing its final method set.
+1. Exercise the journal contract through an NNG-owned service, then run the same
+   lifecycle fixture against memory, JSONL, and NNG before choosing its final
+   method set.
 2. Express a bounded recursive Rho worker and a blackboard-driven diamond with
    the same execution and resource handles.
 3. Make resolver forcing lazy within R while keeping every effect asynchronous

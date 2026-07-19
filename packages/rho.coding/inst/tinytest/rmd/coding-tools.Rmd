@@ -7,6 +7,7 @@ output: html_document
 library(tinytest)
 library(rho.async)
 library(rho.ai)
+library(rho.agent)
 library(rho.coding)
 ```
 
@@ -135,4 +136,203 @@ repl_result <- rho_execute_tool(
 expect_equal(repl_result@details$value, 42L)
 expect_equal(session$answer, 41L)
 expect_true(S7::S7_inherits(r_repl@overlap, ToolRequiresExclusiveExecution))
+```
+
+## The coding host can persist an agent journal as typed JSONL
+
+```{r session-codec-round-trip}
+codec <- rho_json_session_codec()
+usage <- ProviderUsage(
+  input = 4,
+  output = 2,
+  cache_read = 1,
+  cache_write = 0,
+  total = 7,
+  cost = NULL,
+  provider = "fixture"
+)
+message <- rho_assistant_message(
+  content = list(
+    rho_text("persisted"),
+    ToolCall(
+      id = "call-1",
+      name = "r",
+      arguments = list(iterations = 2L, label = NA_character_)
+    )
+  ),
+  provider = "fixture",
+  model = "fixture",
+  usage = usage,
+  timestamp = 1
+)
+entry <- RhoSessionMessageEntry(
+  id = "entry-1",
+  timestamp = 1,
+  message = message
+)
+
+document <- rho_encode_session_value(codec, entry)
+json <- yyjsonr::write_json_str(
+  document,
+  auto_unbox = TRUE,
+  null = "null",
+  digits = -1L
+)
+parsed <- yyjsonr::read_json_str(
+  json,
+  arr_of_objs_to_df = FALSE,
+  obj_of_arrs_to_df = FALSE
+)
+restored <- rho_decode_session_value(codec, parsed)
+
+expect_identical(restored, entry)
+expect_equal(restored@message@content[[2L]]@arguments$iterations, 2L)
+expect_true(is.na(restored@message@content[[2L]]@arguments$label))
+
+RhoFixtureSessionValue <- S7::new_class(
+  "RhoFixtureSessionValue",
+  properties = list(value = S7::class_integer)
+)
+unsupported <- rho_encode_session_value(codec, RhoFixtureSessionValue(value = 1L))
+expect_true(S7::S7_inherits(unsupported, RhoSessionCodecErrorValue))
+
+extended <- rho_json_session_codec(classes = list(RhoFixtureSessionValue))
+extended_document <- rho_encode_session_value(
+  extended,
+  RhoFixtureSessionValue(value = 1L)
+)
+expect_identical(
+  rho_decode_session_value(extended, extended_document),
+  RhoFixtureSessionValue(value = 1L)
+)
+
+invalid_atomic <- rho_decode_session_value(
+  codec,
+  list(
+    kind = "atomic",
+    storage = "raw",
+    length = 1L,
+    values = list("999"),
+    missing = list(),
+    names = list(kind = "null")
+  )
+)
+expect_true(S7::S7_inherits(invalid_atomic, RhoSessionCodecErrorValue))
+expect_true(grepl("@values", invalid_atomic@details$message, fixed = TRUE))
+
+unknown_document <- rho_decode_session_value(codec, list(kind = "future"))
+expect_true(S7::S7_inherits(unknown_document, RhoSessionCodecErrorValue))
+```
+
+```{r jsonl-session-restart}
+path <- tempfile(fileext = ".jsonl")
+journal <- rho_jsonl_session_journal(path, timeout_ms = 10000L)
+expect_true(s7contract::implements(journal, SessionJournal))
+
+writer <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  journal = journal
+)
+first_run <- rho_prompt(writer, "before restart") |>
+  rho_await(timeout = 15000L)
+expect_equal(first_run@status, "completed")
+expect_equal(length(readLines(path, warn = FALSE)), 2L)
+
+reopened <- rho_jsonl_session_journal(path, timeout_ms = 10000L)
+reader <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  journal = reopened
+)
+expect_identical(
+  rho_sync_session(reader) |> rho_await(timeout = 15000L),
+  reader
+)
+expect_equal(rho_state_messages(reader), first_run@messages)
+
+second_run <- rho_prompt(reader, "after restart") |>
+  rho_await(timeout = 15000L)
+snapshot <- rho_session_snapshot(reopened) |>
+  rho_await(timeout = 15000L)
+expect_equal(second_run@status, "completed")
+expect_equal(snapshot@position, 4L)
+expect_equal(length(snapshot@entries), 4L)
+if (.Platform$OS.type == "unix") {
+  expect_equal(as.character(file.info(path)$mode), "600")
+}
+
+unlink(c(path, paste0(path, ".lock")))
+```
+
+```{r jsonl-session-stale-writer}
+path <- tempfile(fileext = ".jsonl")
+first_journal <- rho_jsonl_session_journal(path, timeout_ms = 10000L)
+second_journal <- rho_jsonl_session_journal(path, timeout_ms = 10000L)
+first <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  journal = first_journal
+)
+second <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  journal = second_journal
+)
+
+rho_sync_session(first) |> rho_await(timeout = 15000L)
+rho_sync_session(second) |> rho_await(timeout = 15000L)
+rho_prompt(first, "committed first") |> rho_await(timeout = 15000L)
+conflicted <- rho_prompt(second, "stale writer") |>
+  rho_await(timeout = 15000L)
+snapshot <- rho_session_snapshot(first_journal) |>
+  rho_await(timeout = 15000L)
+
+expect_equal(conflicted@status, "error")
+expect_true(S7::S7_inherits(conflicted@error, RhoSessionConflictErrorValue))
+expect_equal(snapshot@position, 2L)
+expect_equal(length(readLines(path, warn = FALSE)), 2L)
+
+unlink(c(path, paste0(path, ".lock")))
+```
+
+```{r jsonl-session-torn-line}
+path <- tempfile(fileext = ".jsonl")
+journal <- rho_jsonl_session_journal(path, timeout_ms = 10000L)
+agent <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  journal = journal
+)
+rho_prompt(agent, "complete record") |> rho_await(timeout = 15000L)
+
+blank_path <- tempfile(fileext = ".jsonl")
+expect_true(file.copy(path, blank_path))
+connection <- file(blank_path, open = "ab")
+writeBin(as.raw(10L), connection)
+close(connection)
+
+blank <- rho_session_snapshot(rho_jsonl_session_journal(blank_path)) |>
+  rho_await(timeout = 15000L)
+expect_true(S7::S7_inherits(blank, RhoJsonlSessionJournalErrorValue))
+expect_true(grepl("empty line", blank@message, fixed = TRUE))
+
+connection <- file(path, open = "ab")
+writeBin(charToRaw("{\"schema\":"), connection)
+close(connection)
+
+corrupt <- rho_session_snapshot(journal) |> rho_await(timeout = 15000L)
+expect_true(S7::S7_inherits(corrupt, RhoJsonlSessionJournalErrorValue))
+expect_true(grepl("partial line", corrupt@message, fixed = TRUE))
+
+blocked <- rho_prompt(agent, "must not append") |> rho_await(timeout = 15000L)
+expect_equal(blocked@status, "error")
+expect_true(S7::S7_inherits(blocked@error, RhoJsonlSessionJournalErrorValue))
+
+unlink(c(
+  path,
+  paste0(path, ".lock"),
+  blank_path,
+  paste0(blank_path, ".lock")
+))
 ```

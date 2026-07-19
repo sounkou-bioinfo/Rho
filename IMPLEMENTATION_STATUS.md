@@ -17,12 +17,15 @@ turns, awaited listeners, steering/follow-up machinery, cancellation, typed
 per-tool overlap requirements, concurrent task joining with source-order
 results, real parallel mirai workers, cross-platform resolution of an actual
 Bash executable, shell execution in mirai workers, isolated R expression
-evaluation, and an opt-in stateful current-session R evaluator. Provider request
-builders require explicit resolved `RhoModelAuth`; they do not read API keys
-from process-global environment variables. Successful login and refresh values
-can be retained by the process-scoped memory store or an explicitly selected,
-owner-only JSON store; both implement the same serialized credential protocol.
-JSON parsing and serialization use `yyjsonr` throughout.
+evaluation, an opt-in stateful current-session R evaluator, and a structural
+session journal with in-memory and worker-backed JSONL implementations. The
+JSONL fixtures cover lossless typed replay after restart, stale-writer
+rejection, and partial-tail refusal. Provider request builders require explicit
+resolved `RhoModelAuth`; they do not read API keys from process-global
+environment variables. Successful login and refresh values can be retained by
+the process-scoped memory store or an explicitly selected, owner-only JSON
+store; both implement the same serialized credential protocol. JSON parsing and
+serialization use `yyjsonr` throughout.
 Semantic operations are planned separately from executable tools. OpenAI and
 Anthropic web search use typed, catalog-backed provider bindings, normalize
 provider activity as content, and reject unbound operations at request
@@ -88,12 +91,14 @@ Known incomplete work, stated directly:
   `RhoKeychainCredentialStore` supplies native keychain storage while rejecting
   environment and keyring-file backends. Durable file stores serialize access
   within one R process; a cross-process file lock remains work.
-- Agent session entries have no durable store, replay, or crash recovery, and
-  streaming message updates still replace their in-memory entry.
+- The coding-host JSONL session journal detects a partial final record and
+  refuses further mutation. It does not yet repair that record, establish
+  storage synchronization beyond a flushed R connection, assign stable session
+  or entry identities, model branches, or expose a remote cursor.
 - Graphics, tool output, and bio resources do not yet share an artifact store.
 - `rho.compute` does not yet model pool lifecycle, placement, affinity, bounded
   queues, or remote execution receipts.
 
 The parity ledger records provider and agent-core behavior. It is not a claim
-that durable storage, execution placement, coding tools, or the downstream bio
-agent are complete.
+that every durability, execution-placement, coding-tool, or downstream bio-agent
+refinement is complete.

@@ -33,6 +33,9 @@ supported by an executable fixture.
   in-memory implementation proves compare-and-append, snapshot synchronization,
   typed failure, terminal-only assistant entries, and reset without erasing
   journal history.
+- `rho.coding` implements that interface as locked, worker-backed JSONL. Its
+  fixtures prove lossless S7 entry replay after restart, stale-writer rejection,
+  and refusal to read or append after a partial final record.
 
 ## 1. Publication integrity
 
@@ -76,14 +79,20 @@ supported by an executable fixture.
   request and snapshot methods to cursors and branching only as those consumers
   land. The agent receives a journal explicitly; it does not construct a
   filesystem layout.
-- Keep an in-memory implementation for embedding and exercise JSONL as one
-  coding-host adapter. Exercise the same contract through an NNG-owned service
-  before treating any method set or deployment topology as settled. Provider
-  and bio packages do not learn filesystem session layouts.
+- Keep the in-memory implementation for embedding and the exercised JSONL
+  implementation as one coding-host adapter. Exercise the same contract through
+  an NNG-owned service before treating any method set or deployment topology as
+  settled. Provider and bio packages do not learn filesystem session layouts.
 - Give session entries stable identifiers and define atomic append and
   checkpoint rules before choosing a file or database implementation. The
-  current compare-and-append position is the first atomic rule; durable adapters
-  must prove it under restart and concurrent writers.
+  current compare-and-append position is the first atomic rule; the JSONL
+  adapter proves it across independent writers in one host. It deliberately
+  detects and refuses a torn final record; it does not yet claim recovery,
+  `fsync()` durability, session identity, or branching.
+- Rho JSONL is not Pi JSONL. Pi version 3 has a session header and tree entries
+  with stable IDs and parent links; Rho currently records linear typed S7
+  entries at committed positions. Add Pi import/export as a separate codec only
+  when identity and lineage are consumed by the Rho journal contract.
 - Emit typed session-start, compaction, switch/fork, and shutdown events only
   after the corresponding session mutation commits. Extension handlers receive
   the session identity, lineage, committed sequence, and a journal cursor or

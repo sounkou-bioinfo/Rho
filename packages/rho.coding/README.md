@@ -18,6 +18,7 @@ current-session environment.
 ``` r
 library(rho.async)
 library(rho.ai)
+library(rho.agent)
 library(rho.coding)
 
 r_tool <- rho_tool_r()
@@ -32,15 +33,12 @@ result <- rho_execute_tool(
 ) |>
   rho_await(timeout = 10000)
 
-list(
+data.frame(
   value = result@details$value,
   may_overlap = S7::S7_inherits(r_tool@overlap, ToolMayOverlap)
 )
-#> $value
-#> [1] 91
-#>
-#> $may_overlap
-#> [1] TRUE
+#>   value may_overlap
+#> 1    91        TRUE
 ```
 
 The ordinary R tool is isolated and may overlap with another call. A
@@ -52,6 +50,50 @@ methods rather than another agent execution path. Bash follows the same
 discipline: on Windows it resolves a real Bash implementation rather
 than translating model-generated Bash into another shell language, and
 on Unix it reports a typed unavailable value when Bash is absent.
+
+## Session replay
+
+The coding host may persist the agent journal as locked JSONL without
+making a path part of the agent contract. The codec derives its
+supported document types from the S7 classes reachable from session
+entries and messages.
+
+``` r
+path <- tempfile(fileext = ".jsonl")
+journal <- rho_jsonl_session_journal(path)
+
+writer <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  journal = journal
+)
+run <- rho_prompt(writer, "remember this turn") |>
+  rho_await(timeout = 10000)
+
+reader <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  journal = rho_jsonl_session_journal(path)
+)
+reader <- rho_sync_session(reader) |>
+  rho_await(timeout = 10000)
+
+snapshot <- rho_session_snapshot(reader@journal) |>
+  rho_await(timeout = 10000)
+
+data.frame(
+  committed_entries = snapshot@position,
+  restored_messages = length(rho_state_messages(reader))
+)
+#>   committed_entries restored_messages
+#> 1                 2                 2
+
+unlink(c(path, paste0(path, ".lock")))
+```
+
+The native format is versioned Rho JSONL, not Pi session JSONL. Pi
+import or export can be added as another codec once session identity and
+branch lineage are exercised by Rho consumers.
 
 See the [`rho.coding`
 reference](https://sounkou-bioinfo.github.io/Rho/rho.coding/reference/)

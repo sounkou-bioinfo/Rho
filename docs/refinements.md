@@ -13,8 +13,10 @@ journals, CAS references, or a coordination port.
 The agent now closes over the structural `SessionJournal` interface. The
 in-memory implementation proves compare-and-append, full snapshots, typed
 journal failure, terminal-only assistant entries, and reset as an append-only
-entry. An idle agent can asynchronously synchronize an existing snapshot. Its
-committed process-local projection then drives context and compaction.
+entry. The coding-host JSONL implementation runs reads, locking, validation,
+and append in mirai workers. An idle agent can asynchronously synchronize either
+implementation. Its committed process-local projection then drives context and
+compaction.
 
 Compare-and-append supplies the first concurrency rule: a writer presents its
 known committed position, and the journal rejects a stale position before
@@ -22,8 +24,18 @@ mutation. This prevents a process-local agent from discovering divergence only
 after an external journal has already accepted its entry. Branch lineage,
 incremental cursors, and durable recovery remain unproven.
 
-A future JSONL adapter can prove local recovery but cannot by itself prove
-remote ownership, concurrent readers, or sub-agent composition.
+The JSONL fixtures prove replay after restart, rejection of a stale writer, and
+strict detection of a partial final line. Detection is not repair: the adapter
+refuses further mutation until the file is repaired by an explicit host policy.
+It does not prove remote ownership, `fsync()` durability, branch lineage, or
+sub-agent composition.
+
+The native JSONL schema is not Pi's version-3 session schema. Pi stores a
+session header followed by an ID-linked entry tree. Rho stores lossless typed S7
+entries at monotonically committed positions. Preserve this as an explicit
+codec divergence until identity and branches exist in the shared journal
+contract; interoperability belongs in a Pi codec, not in conditionals inside
+the Rho codec.
 
 Do not make a path part of the agent contract. First exercise committed append,
 ordered read, cursor/watermark, branch lineage, flush, and close through an
@@ -31,14 +43,17 @@ in-memory adapter, a JSONL adapter, and an NNG-owned adapter. Extension delivery
 must carry session identity and committed position rather than inviting an
 extension to inspect a file.
 
-Evidence required: restart and torn-write fixtures for JSONL; disconnect,
-duplicate-delivery, cancellation, and resumed-cursor fixtures for NNG; the same
-agent and extension tests against all adapters.
+Evidence required: disconnect, duplicate-delivery, cancellation, and
+resumed-cursor fixtures for NNG; the same agent and extension tests against all
+adapters. JSONL still needs an explicit recovery policy and a durability test
+that can distinguish a flushed R connection from storage synchronization.
 
 Current evidence: the
 [`SessionJournal` interface](https://github.com/sounkou-bioinfo/Rho/blob/main/packages/rho.agent/R/04-interfaces.R),
 [in-memory implementation](https://github.com/sounkou-bioinfo/Rho/blob/main/packages/rho.agent/R/06-session.R),
-and [authored journal fixture](https://github.com/sounkou-bioinfo/Rho/blob/main/packages/rho.agent/inst/tinytest/rmd/agent-loop.Rmd).
+[JSONL implementation](https://github.com/sounkou-bioinfo/Rho/blob/main/packages/rho.coding/R/03-session-jsonl.R),
+[authored in-memory fixture](https://github.com/sounkou-bioinfo/Rho/blob/main/packages/rho.agent/inst/tinytest/rmd/agent-loop.Rmd),
+and [authored JSONL fixture](https://github.com/sounkou-bioinfo/Rho/blob/main/packages/rho.coding/inst/tinytest/rmd/coding-tools.Rmd).
 
 ### Immutable content versus changing state
 

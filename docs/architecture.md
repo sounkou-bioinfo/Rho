@@ -185,12 +185,21 @@ the definition of durability.
 
 The first exercised journal contract is deliberately smaller: a typed
 compare-and-append request and a full snapshot. The in-memory implementation
-returns typed commits and snapshots, and journal failure is an operational
-value. Assistant partials stay inside the active turn; only a terminal assistant
-message is appended. Reset is also an entry, so it begins a new active context
-without deleting prior history. Snapshot synchronization rebuilds an idle
-agent's projection; durable recovery, branch identity, and remote cursors remain
-refinements rather than methods added in anticipation.
+returns typed commits and snapshots. The coding-host JSONL implementation uses
+the same methods, a codec derived from session-reachable S7 classes, locked
+compare-and-append in a worker, and strict partial-tail detection. Journal
+failure remains an operational value. Assistant partials stay inside the active
+turn; only a terminal assistant message is appended. Reset is also an entry, so
+it begins a new active context without deleting prior history. Snapshot
+synchronization rebuilds an idle agent's projection; partial-tail recovery,
+storage synchronization, branch identity, and remote cursors remain refinements
+rather than methods added in anticipation.
+
+Rho's JSONL schema is not Pi's session JSONL schema. Pi's version-3 file carries
+a session header and an ID-linked tree. Rho currently carries typed S7 entries
+at committed linear positions. A Pi interoperability codec may translate these
+representations when session identity and lineage are part of the exercised Rho
+contract; the native codec does not silently erase either model's semantics.
 
 Extensions consume the same session lifecycle. They may append typed custom
 entries or derive another representation from committed entries, a cursor, or
@@ -241,9 +250,9 @@ their package responsibilities, are recorded in
 
 ## Publication gate
 
-Development remains private while provider and agent parity is incomplete. The
-repository becomes public only after the parity ledger is satisfied, every
-package installs and checks on supported platforms, live provider checks
+Development is public and remains experimental while provider and agent parity
+is incomplete. A tagged release follows only after the parity ledger is
+satisfied, every package installs and checks on supported platforms, live provider checks
 pass without stored credentials, generated documentation is current, and a
 secret scan is clean. The public repository can then be added to
 `sounkou-bioinfo/sounkou-bioinfo.r-universe.dev`; r-universe inclusion is a

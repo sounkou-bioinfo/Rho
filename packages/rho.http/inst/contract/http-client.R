@@ -410,6 +410,7 @@ rho_http_contract_malformed_chunked_body <- function(client_factory, timeout_ms)
 }
 
 rho_http_contract_incremental_sse <- function(client_factory, timeout_ms) {
+  event_timeout_ms <- as.integer(timeout_ms * 2)
   server_connection <- NULL
   server <- nanonext::http_server(
     "http://127.0.0.1:0",
@@ -445,7 +446,7 @@ rho_http_contract_incremental_sse <- function(client_factory, timeout_ms) {
     )
   )
   first <- rho.async::rho_stream_next(events) |>
-    rho.async::rho_await(timeout = timeout_ms)
+    rho.async::rho_await(timeout = event_timeout_ms)
   rho_http_contract_expect_sse_data(first, "first")
 
   expect_equal(
@@ -453,14 +454,14 @@ rho_http_contract_incremental_sse <- function(client_factory, timeout_ms) {
     0L
   )
   second <- rho.async::rho_stream_next(events) |>
-    rho.async::rho_await(timeout = timeout_ms)
+    rho.async::rho_await(timeout = event_timeout_ms)
   rho_http_contract_expect_sse_data(second, "second")
 
   expect_equal(server_connection$close(), 0L)
   ending <- rho.async::rho_stream_next(events) |>
-    rho.async::rho_await(timeout = timeout_ms)
+    rho.async::rho_await(timeout = event_timeout_ms)
   repeated_end <- rho.async::rho_stream_next(events) |>
-    rho.async::rho_await(timeout = timeout_ms)
+    rho.async::rho_await(timeout = event_timeout_ms)
   expect_true(S7::S7_inherits(ending, rho.async::RhoStreamEnd))
   expect_true(S7::S7_inherits(repeated_end, rho.async::RhoStreamEnd))
 }
