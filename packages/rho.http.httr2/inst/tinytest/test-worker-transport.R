@@ -32,6 +32,22 @@ rho_http_client_contract(
   timeout_ms = worker_timeout_ms
 )
 
+rho_http_contract_connection_delimited_body(
+  client_factory = function(
+    timeout_ms,
+    stream_buffer_size,
+    max_error_body_bytes
+  ) {
+    rho_httr2_http_client(
+      timeout_ms = timeout_ms,
+      stream_buffer_size = stream_buffer_size,
+      max_error_body_bytes = max_error_body_bytes,
+      compute = worker_compute
+    )
+  },
+  timeout_ms = worker_timeout_ms
+)
+
 server <- nanonext::http_server(
   "http://127.0.0.1:0",
   handlers = list(nanonext::handler(

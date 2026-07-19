@@ -81,36 +81,9 @@ rho_httr2_send_message <- function(socket, message) {
   !nanonext::is_error_value(sent)
 }
 
-rho_httr2_wait_for_body <- function(response) {
-  descriptors <- response$body$get_fdset()
-  descriptor_count <- length(descriptors$reads) +
-    length(descriptors$writes) +
-    length(descriptors$exceptions)
-  if (!descriptor_count) {
-    return("httr2 exposed no file descriptor for an incomplete response body")
-  }
-
-  wait <- new.env(parent = emptyenv())
-  wait$done <- FALSE
-  wait$ready <- logical()
-  cancel <- later::later_fd(
-    function(ready) {
-      wait$ready <- ready
-      wait$done <- TRUE
-    },
-    readfds = descriptors$reads,
-    writefds = descriptors$writes,
-    exceptfds = descriptors$exceptions,
-    timeout = descriptors$timeout
-  )
-  on.exit(cancel(), add = TRUE)
-  while (!wait$done) {
-    later::run_now(timeoutSecs = Inf)
-  }
-  if (length(wait$ready) && all(is.na(wait$ready))) {
-    return("httr2 response readiness descriptors became invalid")
-  }
-  NULL
+rho_httr2_drive_connection <- function() {
+  curl::multi_run(timeout = 0.1)
+  invisible(TRUE)
 }
 
 rho_httr2_stream_worker <- function(address, token, payload, buffer_bytes) {
@@ -154,14 +127,7 @@ rho_httr2_stream_worker <- function(address, token, payload, buffer_bytes) {
         if (httr2::resp_stream_is_complete(response)) {
           break
         }
-        wait_error <- rho_httr2_wait_for_body(response)
-        if (!is.null(wait_error)) {
-          rho_httr2_send_message(
-            socket,
-            RhoHttr2ErrorMessage(token = token, message = wait_error)
-          )
-          return(RhoHttr2WorkerFailure(message = wait_error))
-        }
+        rho_httr2_drive_connection()
       }
 
       if (!rho_httr2_send_message(socket, RhoHttr2EndMessage(token = token))) {

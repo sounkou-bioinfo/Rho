@@ -15,9 +15,9 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:
     S7, rho.async (>= 0.0.1.9001), rho.http (>= 0.0.1.9001),
-    rho.compute (>= 0.0.1.9001), nanonext, httr2, later
+    rho.compute (>= 0.0.1.9001), nanonext, httr2, curl
 Suggests:
-    tinytest, knitr, s7contract, mirai
+    tinytest, knitr, s7contract, mirai, later
 Remotes:
     sounkou-bioinfo/Rho/packages/rho.async,
     sounkou-bioinfo/Rho/packages/rho.http,

@@ -243,14 +243,19 @@ rho_http_contract_fixed_body <- function(client_factory, timeout_ms) {
   expect_true(is.null(close_error))
 }
 
-rho_http_contract_connection_delimited_body <- function(client_factory, timeout_ms) {
+rho_http_contract_connection_delimited_body <- function(
+  client_factory,
+  timeout_ms,
+  body_delay_ms = 100L
+) {
   peer <- rho_http_contract_raw_peer(
     head = charToRaw(paste0(
       "HTTP/1.1 200 OK\r\n",
       "Content-Type: application/octet-stream\r\n",
       "Connection: close\r\n\r\n"
     )),
-    body = charToRaw("close body")
+    body = charToRaw("close body"),
+    body_delay_ms = body_delay_ms
   )
   client <- rho_http_contract_client(client_factory, timeout_ms)
   stream <- NULL
