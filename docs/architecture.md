@@ -158,11 +158,14 @@ contains transport configuration, never ambient process credentials. Concurrent
 refresh is serialized by the credential-store queue and publishes the refreshed
 credential back to that store before another request resolves auth.
 
-The process-scoped memory store and durable file store implement the same
-protocol. The file store is opt-in through an explicit path, persists login and
-rotated refresh credentials, replaces its JSON document, and requests `0600`
-permissions. Its payload is not encrypted; an encrypted store can implement the
-same protocol without changing providers or the agent loop.
+The process-scoped memory store, durable plaintext-file store, encrypted-file
+store, and operating-system keychain store implement the same protocol. The
+file stores are opt-in through explicit paths, persist login and rotated refresh
+credentials, replace their document, and request `0600` permissions. The
+encrypted store accepts an explicit passphrase or 32-byte key and authenticates
+the complete credential document. The keychain store accepts native keyring
+backends only; it rejects environment and keyring-file backends. Neither choice
+changes provider or agent-loop semantics.
 
 ## Interactive safe points and presentation
 

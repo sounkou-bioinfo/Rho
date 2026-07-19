@@ -722,10 +722,14 @@ NULL
 #'
 #' `rho_memory_credential_store()` keeps credentials for one R process.
 #' `rho_file_credential_store()` persists them as a versioned JSON document at
-#' an explicitly supplied path. File updates are serialized, replace the prior
-#' document, and use owner-only permissions where the platform supports them.
-#' The document is not encrypted. `rho_user_credential_path()` returns R's
-#' platform-specific user configuration path without creating it.
+#' an explicitly supplied path. `rho_encrypted_file_credential_store()` encrypts
+#' that document with an explicitly supplied passphrase or 32-byte key using
+#' Argon2id and XChaCha20-Poly1305. `rho_keychain_credential_store()` keeps each
+#' provider credential in the operating system's native keychain and rejects
+#' keyring's environment and file backends. File updates are serialized, replace
+#' the prior document, and use owner-only permissions where the platform supports
+#' them. `rho_user_credential_path()` returns R's platform-specific user
+#' configuration path without creating it.
 #'
 #' @name rho_ai_auth
 #' @aliases CredentialStore OAuthAuth LoginIO RhoCredential RhoApiKeyCredential
@@ -733,13 +737,18 @@ NULL
 #' @aliases RhoOAuthAuth RhoFunctionOAuthAuth RhoProviderAuth RhoCredentialGate
 #' @aliases RhoLoginMethod RhoApiKeyLogin RhoOAuthLogin rho_login_strategy
 #' @aliases RhoMemoryCredentialStore RhoFileCredentialStore
+#' @aliases RhoEncryptedFileCredentialStore RhoKeychainCredentialStore
+#' @aliases RhoCredentialEncryptionSecret RhoCredentialPassphrase
+#' @aliases RhoCredentialEncryptionKey
 #' @aliases RhoAuthPrompt RhoTextAuthPrompt
 #' @aliases RhoSecretAuthPrompt RhoManualCodeAuthPrompt RhoSelectAuthPrompt
 #' @aliases RhoAuthEvent RhoAuthUrlEvent RhoDeviceCodeEvent RhoAuthProgressEvent
 #' @aliases RhoFunctionLoginIO RhoProvider RhoModels AuthErrorValue
 #' @aliases rho_api_key_credential rho_model_auth rho_api_key_auth rho_oauth_auth
 #' @aliases rho_provider_auth rho_credential_gate rho_memory_credential_store
-#' @aliases rho_file_credential_store rho_user_credential_path
+#' @aliases rho_file_credential_store rho_encrypted_file_credential_store
+#' @aliases rho_keychain_credential_store rho_credential_passphrase
+#' @aliases rho_credential_encryption_key rho_user_credential_path
 #' @aliases rho_login_io rho_provider rho_models rho_models_provider
 #' @aliases rho_provider_models rho_available_models
 #' @aliases rho_login_provider rho_resolve_model_auth rho_credential_read
@@ -790,6 +799,11 @@ NULL
 #' @export RhoCredentialGate
 #' @export RhoMemoryCredentialStore
 #' @export RhoFileCredentialStore
+#' @export RhoEncryptedFileCredentialStore
+#' @export RhoKeychainCredentialStore
+#' @export RhoCredentialEncryptionSecret
+#' @export RhoCredentialPassphrase
+#' @export RhoCredentialEncryptionKey
 #' @export RhoAuthPrompt
 #' @export RhoTextAuthPrompt
 #' @export RhoSecretAuthPrompt
@@ -811,6 +825,10 @@ NULL
 #' @export rho_credential_gate
 #' @export rho_memory_credential_store
 #' @export rho_file_credential_store
+#' @export rho_encrypted_file_credential_store
+#' @export rho_keychain_credential_store
+#' @export rho_credential_passphrase
+#' @export rho_credential_encryption_key
 #' @export rho_user_credential_path
 #' @export rho_login_io
 #' @export rho_provider

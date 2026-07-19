@@ -164,6 +164,24 @@ owner-readable JSON. It uses the same `CredentialStore` methods, so
 provider auth code does not know which storage implementation owns the
 credential.
 
+## Secure credential stores
+
+For portable durable credentials,
+`rho_encrypted_file_credential_store()` uses an explicit passphrase or
+32-byte key to encrypt the complete credential document with Argon2id
+and XChaCha20-Poly1305. Provider and credential-kind metadata is
+authenticated with the encrypted payload. A wrong secret or altered
+envelope resolves to `AuthErrorValue`; it does not yield a partial
+credential.
+
+For desktop and workstation use, `rho_keychain_credential_store()`
+stores each provider credential in the operating system keychain. It
+accepts native macOS, Windows, and Secret Service keyring backends, and
+refuses keyring’s environment and file backends. Both stores implement
+the same explicit asynchronous `CredentialStore` operations as the
+memory and plaintext-file stores, so login, refresh, and provider
+request translation remain unchanged.
+
 GitHub Copilot uses device authorization and a short-lived session
 credential. Z.ai keeps its Coding Plan endpoint, preserved-thinking
 policy, and streamed tool-call policy in typed values. Both remain

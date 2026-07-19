@@ -1,5 +1,9 @@
 # rho.ai 0.0.1.9001
 
+- Adds explicit encrypted-file and native-keychain credential stores. Portable
+  storage uses Argon2id and XChaCha20-Poly1305, authenticates metadata, and
+  returns typed values for wrong secrets or altered envelopes. Keychain storage
+  rejects environment and file backends.
 - Replaces ambiguous zero-valued usage with typed provider-reported,
   explicitly estimated, and unavailable observations. Nominal API-equivalent
   pricing is distinct from a subscription charge.

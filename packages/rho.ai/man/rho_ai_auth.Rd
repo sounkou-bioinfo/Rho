@@ -21,6 +21,11 @@
 \alias{rho_login_strategy}
 \alias{RhoMemoryCredentialStore}
 \alias{RhoFileCredentialStore}
+\alias{RhoEncryptedFileCredentialStore}
+\alias{RhoKeychainCredentialStore}
+\alias{RhoCredentialEncryptionSecret}
+\alias{RhoCredentialPassphrase}
+\alias{RhoCredentialEncryptionKey}
 \alias{RhoAuthPrompt}
 \alias{RhoTextAuthPrompt}
 \alias{RhoSecretAuthPrompt}
@@ -42,6 +47,10 @@
 \alias{rho_credential_gate}
 \alias{rho_memory_credential_store}
 \alias{rho_file_credential_store}
+\alias{rho_encrypted_file_credential_store}
+\alias{rho_keychain_credential_store}
+\alias{rho_credential_passphrase}
+\alias{rho_credential_encryption_key}
 \alias{rho_user_credential_path}
 \alias{rho_login_io}
 \alias{rho_provider}
@@ -120,8 +129,12 @@ gates instead of relying on process-global auth state.
 \details{
 \code{rho_memory_credential_store()} keeps credentials for one R process.
 \code{rho_file_credential_store()} persists them as a versioned JSON document at
-an explicitly supplied path. File updates are serialized, replace the prior
-document, and use owner-only permissions where the platform supports them.
-The document is not encrypted. \code{rho_user_credential_path()} returns R's
-platform-specific user configuration path without creating it.
+an explicitly supplied path. \code{rho_encrypted_file_credential_store()} encrypts
+that document with an explicitly supplied passphrase or 32-byte key using
+Argon2id and XChaCha20-Poly1305. \code{rho_keychain_credential_store()} keeps each
+provider credential in the operating system's native keychain and rejects
+keyring's environment and file backends. File updates are serialized, replace
+the prior document, and use owner-only permissions where the platform supports
+them. \code{rho_user_credential_path()} returns R's platform-specific user
+configuration path without creating it.
 }

@@ -18,7 +18,7 @@ responsibilities should be separated.
 | [eventloop](https://github.com/coolbutuseless/eventloop) | Typed mouse, keyboard, frame, and device state around R graphics event handlers | Design reference only. Its X11 graphics-device loop is blocking and platform-specific, so it is not Rho's event substrate. |
 | [devoutansi](https://github.com/coolbutuseless/devoutansi) and [miniansi](https://github.com/coolbutuseless/miniansi) | ANSI graphics-device output | Optional terminal graphic renderer. ANSI image output is distinct from terminal input, layout, focus, and accessibility; these packages do not constitute a TUI. |
 | [tickle](https://github.com/coolbutuseless/tickle) | Tcl/Tk widgets, event bindings, canvas operations, and scheduled idle callbacks | Possible downstream desktop UI extension. Tcl/Tk lifecycle remains inside that extension. |
-| [rmonocypher](https://github.com/coolbutuseless/rmonocypher) | XChaCha20-Poly1305 authenticated encryption and Argon2id | Candidate cipher for an encrypted `CredentialStore`. Rho would use the raw AEAD operations, not arbitrary R-object encryption. |
+| [rmonocypher](https://github.com/coolbutuseless/rmonocypher) | XChaCha20-Poly1305 authenticated encryption and Argon2id | Implements Rho's encrypted `CredentialStore` envelope through raw AEAD operations, not arbitrary R-object encryption. |
 | [cryptorng](https://github.com/coolbutuseless/cryptorng) | Operating-system cryptographic random bytes | No core dependency. `nanonext::random(convert = FALSE)` already supplies cryptographic bytes from its bundled Mbed TLS implementation. |
 | [cryogenic](https://github.com/coolbutuseless/cryogenic) | Capture, inspect, modify, and later evaluate R calls | No dependency required. Rho model and compute specifications already use language objects directly and attach contracts with S7 classes. |
 | [zstdlite](https://github.com/coolbutuseless/zstdlite) | Zstandard compression for raw data and R serialization | Possible artifact compression adapter. Compression and its parameters must be part of artifact metadata. |
@@ -80,9 +80,9 @@ alone does not satisfy that contract.
 
 ## Encrypted credential storage
 
-An encrypted credential store must preserve the existing `CredentialStore`
-interface and keep key acquisition explicit. The on-disk envelope needs its own
-stable schema containing at least:
+`rho.ai` preserves the existing `CredentialStore` interface for encrypted
+storage and keeps key acquisition explicit. Its on-disk envelope has a versioned
+schema containing:
 
 - envelope and credential schema versions;
 - cipher and key-derivation identifiers with their parameters;
@@ -90,17 +90,22 @@ stable schema containing at least:
 - the AEAD nonce, authentication tag, and ciphertext;
 - authenticated provider and credential-type metadata.
 
-The payload should be a small, deterministic byte encoding of credential fields.
-It should not be `serialize(..., xdr = FALSE)` output. Encryption and decryption
-failures resolve to typed values, and filesystem reads, writes, and replacement
-remain asynchronous effects.
+The payload is JSON for the typed credential fields, not
+`serialize(..., xdr = FALSE)` output. Encryption and decryption failures resolve
+to typed values, and filesystem reads, writes, and replacement remain
+asynchronous effects.
 
-If `rmonocypher` is selected, Rho should use `encrypt_raw()` and `decrypt_raw()`.
-It should generate salts with `nanonext::random(convert = FALSE)`, supply explicit
-additional authenticated data, and avoid the convenience behavior that derives a
-salt from the password. Secret keys should cross as little R code as possible;
-measured key-handling or envelope work can move to C without moving the public S7
-protocol out of R.
+Rho uses `rmonocypher::encrypt_raw()` and `decrypt_raw()`, generates salts with
+`nanonext::random(convert = FALSE)`, and supplies explicit additional
+authenticated data. A passphrase uses Argon2id with the stored random salt; an
+automated caller can instead supply an explicit 32-byte key. Secret keys should
+cross as little R code as possible; measured key-handling or envelope work can
+move to C without moving the public S7 protocol out of R.
+
+`rho_keychain_credential_store()` is the alternative for systems with a native
+credential service. It deliberately rejects keyring's environment and file
+backends, so a caller cannot silently exchange OS-backed storage for a process
+variable or another unencrypted file.
 
 Compression, when useful, happens before encryption and is declared in the
 envelope. It is not required for the small credential documents expected here.

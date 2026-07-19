@@ -82,9 +82,12 @@ Known incomplete work, stated directly:
 - `rho_task_from_function()` defers an R closure but does not move blocking work
   out of the main R process. Credential-file reads, coding filesystem tools, and
   DuckDB calls still need explicit compute bindings where they may block.
-- `RhoFileCredentialStore` is plaintext JSON with owner-only permissions and
-  serializes access within one R process. An encrypted or keychain-backed store
-  and a cross-process file lock remain extension work.
+- `RhoFileCredentialStore` remains plaintext JSON with owner-only permissions
+  for explicit development use. `RhoEncryptedFileCredentialStore` supplies
+  Argon2id/XChaCha20-Poly1305 portable storage, and
+  `RhoKeychainCredentialStore` supplies native keychain storage while rejecting
+  environment and keyring-file backends. Durable file stores serialize access
+  within one R process; a cross-process file lock remains work.
 - Agent session entries have no durable store, replay, or crash recovery, and
   streaming message updates still replace their in-memory entry.
 - Graphics, tool output, and bio resources do not yet share an artifact store.

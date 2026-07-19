@@ -205,10 +205,10 @@ RhoProvider <- S7::new_class(
   }
 )
 
-RhoFileCredentialStore <- S7::new_class(
-  "RhoFileCredentialStore",
+RhoPersistentCredentialStore <- S7::new_class(
+  "RhoPersistentCredentialStore",
+  abstract = TRUE,
   properties = list(
-    path = rho_non_empty_string,
     providers = S7::class_list,
     state = S7::class_environment
   ),
@@ -237,6 +237,12 @@ RhoFileCredentialStore <- S7::new_class(
       "@state$queue must be a RhoSerialQueue"
     }
   }
+)
+
+RhoFileCredentialStore <- S7::new_class(
+  "RhoFileCredentialStore",
+  parent = RhoPersistentCredentialStore,
+  properties = list(path = rho_non_empty_string)
 )
 
 RhoModels <- S7::new_class(
@@ -377,7 +383,13 @@ rho_empty_credential_document <- function() {
   list(version = 1L, credentials = list())
 }
 
-rho_read_credential_document <- function(store) {
+rho_read_credential_document <- S7::new_generic(
+  "rho_read_credential_document",
+  "store",
+  function(store, ...) S7::S7_dispatch()
+)
+
+S7::method(rho_read_credential_document, RhoFileCredentialStore) <- function(store, ...) {
   rho.async::rho_task_from_function(
     function() {
       if (!file.exists(store@path)) {
@@ -422,26 +434,91 @@ rho_read_credential_document <- function(store) {
   )
 }
 
-rho_write_credential_document <- function(store, document) {
-  rho.async::rho_task_from_function(
-    function() {
-      directory <- dirname(store@path)
-      if (!dir.exists(directory)) {
-        created <- dir.create(
-          directory,
-          recursive = TRUE,
-          showWarnings = FALSE,
-          mode = "0700"
+rho_write_credential_document <- S7::new_generic(
+  "rho_write_credential_document",
+  "store",
+  function(store, document, ...) S7::S7_dispatch()
+)
+
+rho_write_credential_file_text <- function(store, text) {
+  directory <- dirname(store@path)
+  if (!dir.exists(directory)) {
+    created <- dir.create(
+      directory,
+      recursive = TRUE,
+      showWarnings = FALSE,
+      mode = "0700"
+    )
+    if (!created && !dir.exists(directory)) {
+      return(rho_credential_document_error(
+        sprintf("Could not create credential-store directory: %s", directory),
+        store@path,
+        "credential_store_write"
+      ))
+    }
+  }
+
+  temporary <- tempfile("rho-credentials-", tmpdir = directory)
+  previous_umask <- Sys.umask("077")
+  connection <- NULL
+  on.exit(
+    {
+      if (!is.null(connection) && isOpen(connection)) {
+        close(connection)
+      }
+      Sys.umask(previous_umask)
+      if (file.exists(temporary)) {
+        unlink(temporary)
+      }
+    },
+    add = TRUE
+  )
+  written <- tryCatch(
+    {
+      connection <- file(temporary, open = "wb")
+      writeBin(charToRaw(text), connection)
+      close(connection)
+      connection <- NULL
+      Sys.chmod(temporary, mode = "0600", use_umask = FALSE)
+      renamed <- file.rename(temporary, store@path)
+      if (!renamed) {
+        copied <- file.copy(
+          temporary,
+          store@path,
+          overwrite = TRUE,
+          copy.mode = TRUE
         )
-        if (!created && !dir.exists(directory)) {
+        unlink(temporary)
+        if (!copied) {
           return(rho_credential_document_error(
-            sprintf("Could not create credential-store directory: %s", directory),
+            "Could not replace the credential-store file",
             store@path,
             "credential_store_write"
           ))
         }
       }
+      Sys.chmod(store@path, mode = "0600", use_umask = FALSE)
+      TRUE
+    },
+    error = function(error) error
+  )
+  if (inherits(written, "error")) {
+    return(rho_credential_document_error(
+      sprintf("Could not write credential store: %s", conditionMessage(written)),
+      store@path,
+      "credential_store_write"
+    ))
+  }
+  written
+}
 
+S7::method(rho_write_credential_document, RhoFileCredentialStore) <- function(
+  store,
+  document,
+  ...
+) {
+  rho.async::rho_task_from_function(
+    function() {
       encoded <- tryCatch(
         yyjsonr::write_json_str(document, auto_unbox = TRUE, null = "null"),
         error = function(error) error
@@ -453,59 +530,7 @@ rho_write_credential_document <- function(store, document) {
           "credential_store_write"
         ))
       }
-
-      temporary <- tempfile("rho-credentials-", tmpdir = directory)
-      previous_umask <- Sys.umask("077")
-      connection <- NULL
-      on.exit(
-        {
-          if (!is.null(connection) && isOpen(connection)) {
-            close(connection)
-          }
-          Sys.umask(previous_umask)
-          if (file.exists(temporary)) {
-            unlink(temporary)
-          }
-        },
-        add = TRUE
-      )
-      written <- tryCatch(
-        {
-          connection <- file(temporary, open = "wb")
-          writeBin(charToRaw(encoded), connection)
-          close(connection)
-          connection <- NULL
-          Sys.chmod(temporary, mode = "0600", use_umask = FALSE)
-          renamed <- file.rename(temporary, store@path)
-          if (!renamed) {
-            copied <- file.copy(
-              temporary,
-              store@path,
-              overwrite = TRUE,
-              copy.mode = TRUE
-            )
-            unlink(temporary)
-            if (!copied) {
-              return(rho_credential_document_error(
-                "Could not replace the credential-store file",
-                store@path,
-                "credential_store_write"
-              ))
-            }
-          }
-          Sys.chmod(store@path, mode = "0600", use_umask = FALSE)
-          TRUE
-        },
-        error = function(error) error
-      )
-      if (inherits(written, "error")) {
-        return(rho_credential_document_error(
-          sprintf("Could not write credential store: %s", conditionMessage(written)),
-          store@path,
-          "credential_store_write"
-        ))
-      }
-      written
+      rho_write_credential_file_text(store, encoded)
     },
     label = "credential-store-write"
   )

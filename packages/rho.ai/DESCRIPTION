@@ -15,12 +15,15 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:
     S7, s7contract, rho.async (>= 0.0.1.9001),
-    rho.http (>= 0.0.1.9001), yyjsonr, nanonext, digest, base64enc
+    rho.http (>= 0.0.1.9001), yyjsonr, nanonext, digest, base64enc,
+    keyring, rmonocypher
 Suggests:
     tinytest, knitr
 Remotes:
     sounkou-bioinfo/Rho/packages/rho.async,
     sounkou-bioinfo/Rho/packages/rho.http
+Additional_repositories:
+    https://coolbutuseless.r-universe.dev
 URL: https://github.com/sounkou-bioinfo/Rho,
     https://sounkou-bioinfo.github.io/Rho/rho.ai/
 BugReports: https://github.com/sounkou-bioinfo/Rho/issues

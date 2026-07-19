@@ -2,6 +2,7 @@ configured_repos <- getOption("repos")
 configured_repos[configured_repos == "@CRAN@"] <- "https://cloud.r-project.org"
 repos <- c(
   sounkou = "https://sounkou-bioinfo.r-universe.dev",
+  coolbutuseless = "https://coolbutuseless.r-universe.dev",
   configured_repos
 )
 repos <- repos[!duplicated(unname(repos))]
@@ -36,6 +37,8 @@ install.packages(
     "yyjsonr",
     "base64enc",
     "digest",
+    "keyring",
+    "rmonocypher",
     "processx",
     "DBI",
     "duckdb",

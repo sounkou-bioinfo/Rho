@@ -1,5 +1,8 @@
 # Rho 0.0.1.9001
 
+- Adds explicit encrypted-file and native-keychain credential stores. Portable
+  storage authenticates the complete credential envelope; keychain storage
+  rejects environment and file backends.
 - Publishes a synchronized package version so repositories select matching
   internal Rho dependencies instead of stale same-version artifacts.
 - Distinguishes provider-reported, explicitly estimated, and unavailable usage

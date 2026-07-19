@@ -282,6 +282,144 @@ expect_true(S7::S7_inherits(wrong_shape, AuthErrorValue))
 expect_equal(wrong_shape@code, "credential_store_format")
 unlink(path)
 
+encrypted_path <- tempfile("rho-encrypted-credentials-", fileext = ".json")
+encrypted_store <- rho_encrypted_file_credential_store(
+  encrypted_path,
+  list(provider),
+  rho_credential_passphrase("credential-store-test-passphrase")
+)
+expect_true(s7contract::implements(RhoEncryptedFileCredentialStore, CredentialStore))
+
+encrypted_stored <- rho_credential_modify(encrypted_store, "fixture", function(current) {
+  expect_true(is.null(current))
+  rho_api_key_credential(
+    "fixture",
+    "encrypted-persistent-secret",
+    provider_env = list(revision = 1L)
+  )
+}) |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(encrypted_stored, RhoApiKeyCredential))
+
+envelope_text <- paste(readLines(encrypted_path, warn = FALSE), collapse = "")
+expect_false(grepl("encrypted-persistent-secret", envelope_text, fixed = TRUE))
+expect_true(grepl("xchacha20poly1305", envelope_text, fixed = TRUE))
+
+encrypted_reopened <- rho_encrypted_file_credential_store(
+  encrypted_path,
+  list(provider),
+  rho_credential_passphrase("credential-store-test-passphrase")
+)
+encrypted_restored <- rho_credential_read(encrypted_reopened, "fixture") |>
+  rho_await(timeout = 1000L)
+expect_equal(encrypted_restored@state$key, "encrypted-persistent-secret")
+expect_equal(encrypted_restored@provider_env$revision, 1L)
+
+wrong_secret_store <- rho_encrypted_file_credential_store(
+  encrypted_path,
+  list(provider),
+  rho_credential_passphrase("different-test-passphrase")
+)
+wrong_secret <- rho_credential_read(wrong_secret_store, "fixture") |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(wrong_secret, AuthErrorValue))
+expect_equal(wrong_secret@code, "credential_store_decrypt")
+
+envelope <- yyjsonr::read_json_file(
+  encrypted_path,
+  arr_of_objs_to_df = FALSE,
+  obj_of_arrs_to_df = FALSE
+)
+envelope$metadata$fixture$kind <- "oauth"
+writeLines(yyjsonr::write_json_str(envelope, auto_unbox = TRUE), encrypted_path)
+tampered <- rho_credential_read(encrypted_reopened, "fixture") |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(tampered, AuthErrorValue))
+expect_equal(tampered@code, "credential_store_decrypt")
+
+key_path <- tempfile("rho-encrypted-key-credentials-", fileext = ".json")
+key <- as.raw(seq_len(32L))
+key_store <- rho_encrypted_file_credential_store(
+  key_path,
+  list(provider),
+  rho_credential_encryption_key(key)
+)
+rho_credential_modify(key_store, "fixture", function(current) {
+  rho_api_key_credential("fixture", "key-encrypted-secret")
+}) |>
+  rho_await(timeout = 1000L)
+key_reopened <- rho_encrypted_file_credential_store(
+  key_path,
+  list(provider),
+  rho_credential_encryption_key(key)
+)
+key_restored <- rho_credential_read(key_reopened, "fixture") |>
+  rho_await(timeout = 1000L)
+expect_equal(key_restored@state$key, "key-encrypted-secret")
+unlink(c(encrypted_path, key_path))
+
+backend <- new.env(parent = emptyenv())
+backend$credentials <- list()
+backend$list <- function(service) {
+  entries <- backend$credentials[[service]]
+  if (is.null(entries) || !length(entries)) {
+    return(data.frame(service = character(), username = character()))
+  }
+  data.frame(
+    service = rep(service, length(entries)),
+    username = names(entries)
+  )
+}
+backend$get <- function(service, username) backend$credentials[[service]][[username]]
+backend$set_with_value <- function(service, username, password) {
+  entries <- backend$credentials[[service]]
+  if (is.null(entries)) {
+    entries <- list()
+  }
+  entries[[username]] <- password
+  backend$credentials[[service]] <- entries
+  invisible(NULL)
+}
+backend$delete <- function(service, username) {
+  entries <- backend$credentials[[service]]
+  entries[[username]] <- NULL
+  backend$credentials[[service]] <- entries
+  invisible(NULL)
+}
+class(backend) <- "backend_keyrings"
+
+keychain_store <- rho_keychain_credential_store(
+  list(provider),
+  service = "rho.ai-tinytest",
+  backend = backend
+)
+expect_true(s7contract::implements(RhoKeychainCredentialStore, CredentialStore))
+keychain_stored <- rho_credential_modify(keychain_store, "fixture", function(current) {
+  expect_true(is.null(current))
+  rho_api_key_credential("fixture", "keychain-secret")
+}) |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(keychain_stored, RhoApiKeyCredential))
+
+keychain_restored <- rho_credential_read(keychain_store, "fixture") |>
+  rho_await(timeout = 1000L)
+expect_equal(keychain_restored@state$key, "keychain-secret")
+expect_equal(keychain_restored@source, "keychain:rho.ai-tinytest/fixture")
+rho_credential_delete(keychain_store, "fixture") |> rho_await(timeout = 1000L)
+expect_true(is.null(
+  rho_credential_read(keychain_store, "fixture") |> rho_await(timeout = 1000L)
+))
+
+insecure_backend <- tryCatch(
+  rho_keychain_credential_store(
+    list(provider),
+    service = "rho.ai-tinytest",
+    backend = keyring::backend_env$new()
+  ),
+  error = function(error) error
+)
+expect_true(inherits(insecure_backend, "error"))
+
 stored <- rho_api_key_credential(
   "fixture",
   "initial",
