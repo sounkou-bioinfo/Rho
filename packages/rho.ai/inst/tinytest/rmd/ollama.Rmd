@@ -92,6 +92,7 @@ expect_equal(
 message <- events[[5L]]@message
 expect_equal(message@provider, "ollama")
 expect_equal(message@content[[1L]]@text, "hello from ollama")
+expect_true(S7::S7_inherits(message@usage, ProviderUsage))
 expect_equal(message@usage@input, 2)
 expect_equal(message@usage@output, 3)
 expect_equal(message@usage@total, 5)

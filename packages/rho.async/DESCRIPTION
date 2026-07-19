@@ -2,7 +2,7 @@ Package: rho.async
 Type: Package
 Depends: R (>= 4.4.0)
 Title: Rho Async Task and Stream Contracts
-Version: 0.0.1.9000
+Version: 0.0.1.9001
 Authors@R:
     person(given = "Sounkou Mahamane", family = "Toure",
            email = "sounkoutoure@gmail.com", role = c("aut", "cre"))

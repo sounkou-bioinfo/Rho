@@ -45,7 +45,8 @@ AnthropicUsageSnapshot <- S7::new_class(
     output = rho_nonnegative_double,
     cache_read = rho_nonnegative_double,
     cache_write = rho_nonnegative_double,
-    cache_write_1h = rho_nonnegative_double
+    cache_write_1h = rho_nonnegative_double,
+    reported = S7::class_logical
   )
 )
 
@@ -172,7 +173,11 @@ AnthropicContentStopped <- S7::new_class(
 AnthropicMessageChanged <- S7::new_class(
   "AnthropicMessageChanged",
   parent = AnthropicWireEvent,
-  properties = list(stop_reason = AnthropicStopReason, output_tokens = rho_nonnegative_double)
+  properties = list(
+    stop_reason = AnthropicStopReason,
+    output_tokens = rho_nonnegative_double,
+    reported = S7::class_logical
+  )
 )
 AnthropicMessageStopped <- S7::new_class("AnthropicMessageStopped", parent = AnthropicWireEvent)
 AnthropicWireError <- S7::new_class(
@@ -212,14 +217,17 @@ rho_anthropic_event_requires_start <- S7::new_generic(
   function(event, ...) S7::S7_dispatch()
 )
 
-rho_anthropic_usage_snapshot <- function(payload = list()) {
+rho_anthropic_usage_snapshot <- function(payload = NULL) {
+  reported <- is.list(payload) && length(payload)
+  payload <- payload %||% list()
   creation <- payload[["cache_creation"]] %||% list()
   AnthropicUsageSnapshot(
     input = as.double(payload$input_tokens %||% 0),
     output = as.double(payload$output_tokens %||% 0),
     cache_read = as.double(payload$cache_read_input_tokens %||% 0),
     cache_write = as.double(payload$cache_creation_input_tokens %||% 0),
-    cache_write_1h = as.double(creation$ephemeral_1h_input_tokens %||% 0)
+    cache_write_1h = as.double(creation$ephemeral_1h_input_tokens %||% 0),
+    reported = reported
   )
 }
 
@@ -402,7 +410,7 @@ rho_anthropic_message_started_event <- function(payload) {
   message <- payload$message %||% list()
   AnthropicMessageStarted(
     response_id = as.character(message$id %||% ""),
-    usage = rho_anthropic_usage_snapshot(message$usage %||% list())
+    usage = rho_anthropic_usage_snapshot(message$usage)
   )
 }
 
@@ -447,10 +455,11 @@ rho_anthropic_content_stopped_event <- function(payload) {
 
 rho_anthropic_message_changed_event <- function(payload) {
   delta <- payload$delta %||% list()
-  usage <- payload$usage %||% list()
+  usage <- payload$usage
   AnthropicMessageChanged(
     stop_reason = rho_anthropic_stop_reason(delta$stop_reason),
-    output_tokens = as.double(usage$output_tokens %||% 0)
+    output_tokens = as.double(usage$output_tokens %||% 0),
+    reported = is.list(usage) && length(usage)
   )
 }
 
@@ -562,7 +571,14 @@ rho_anthropic_messages_decoder <- function(
 
 rho_anthropic_usage_value <- function(decoder, priced = FALSE) {
   snapshot <- decoder@state$usage
-  usage <- rho_usage(
+  if (!snapshot@reported) {
+    return(rho_usage_unavailable(
+      decoder@model@provider,
+      "Anthropic stream did not report token usage"
+    ))
+  }
+  usage <- rho_provider_usage(
+    provider = decoder@model@provider,
     input = snapshot@input,
     output = snapshot@output,
     cache_read = snapshot@cache_read,
@@ -803,7 +819,10 @@ S7::method(rho_reduce_provider_event, AnthropicMessageChanged) <- function(
   ...
 ) {
   usage <- decoder@state$usage
-  usage@output <- event@output_tokens
+  if (event@reported) {
+    usage@output <- event@output_tokens
+    usage@reported <- TRUE
+  }
   decoder@state$usage <- usage
   decoder@state$stop_reason <- event@stop_reason
   list()

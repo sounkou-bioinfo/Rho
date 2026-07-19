@@ -1,3 +1,8 @@
+# rho.coding 0.0.1.9001
+
+- Advances with the synchronized monorepo package release so dependent Rho
+  packages resolve matching internal dependencies.
+
 # rho.coding 0.0.1.9000
 
 - Adds experimental file, Bash, isolated-worker R, and explicitly stateful

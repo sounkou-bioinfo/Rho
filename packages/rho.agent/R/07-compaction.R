@@ -43,6 +43,7 @@ rho_assistant_usage_is_current <- function(message, after) {
   S7::S7_inherits(message, rho.ai::AssistantMessage) &&
     message@timestamp > after &&
     !message@stop_reason %in% c("aborted", "error") &&
+    S7::S7_inherits(message@usage, rho.ai::Usage) &&
     message@usage@total > 0
 }
 

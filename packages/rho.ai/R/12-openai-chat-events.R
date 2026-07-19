@@ -77,7 +77,7 @@ rho_openai_chat_decoder <- function(model) {
   state$tool_slots <- list()
   state$finish_reason <- "stop"
   state$response_id <- ""
-  state$usage <- list()
+  state$usage <- NULL
   OpenAIChatCompletionsDecoder(model = model, state = state)
 }
 
@@ -466,6 +466,12 @@ S7::method(
 
 rho_openai_chat_usage <- function(decoder) {
   usage <- decoder@state$usage
+  if (!is.list(usage) || !length(usage)) {
+    return(rho_usage_unavailable(
+      decoder@model@provider,
+      "OpenAI-compatible stream did not report token usage"
+    ))
+  }
   input_total <- as.double(usage$prompt_tokens %||% usage$input_tokens %||% 0)
   output <- as.double(usage$completion_tokens %||% usage$output_tokens %||% 0)
   input_details <- usage$prompt_tokens_details %||% usage$input_tokens_details %||% list()
@@ -475,14 +481,17 @@ rho_openai_chat_usage <- function(decoder) {
   cached <- as.double(input_details$cached_tokens %||% 0)
   cache_write <- as.double(input_details$cache_write_tokens %||% 0)
   reasoning <- output_details$reasoning_tokens
-  normalized <- rho_usage(
-    input = max(0, input_total - cached - cache_write),
-    output = output,
-    cache_read = cached,
-    cache_write = cache_write,
-    reasoning = if (is.null(reasoning)) NULL else as.double(reasoning)
+  rho_price_usage(
+    decoder@model,
+    rho_provider_usage(
+      provider = decoder@model@provider,
+      input = max(0, input_total - cached - cache_write),
+      output = output,
+      cache_read = cached,
+      cache_write = cache_write,
+      reasoning = if (is.null(reasoning)) NULL else as.double(reasoning)
+    )
   )
-  rho_price_usage(decoder@model, normalized)
 }
 
 rho_openai_chat_stop_reason <- function(reason) {

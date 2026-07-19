@@ -1,3 +1,8 @@
+# rho.async 0.0.1.9001
+
+- Advances with the synchronized monorepo package release so dependent Rho
+  packages resolve a matching async contract.
+
 # rho.async 0.0.1.9000
 
 - Adds experimental task, stream, cancellation, timeout, and composition

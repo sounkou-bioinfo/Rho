@@ -755,11 +755,15 @@ S7::method(rho_reduce_provider_event, OpenAIResponseOutputItemDone) <- function(
   rho_finish_response_item(event@item, decoder, event@output_index)
 }
 
-rho_openai_terminal_events <- function(decoder, response, incomplete = FALSE) {
-  if (nzchar(as.character(response$id %||% ""))) {
-    decoder@state$response_id <- as.character(response$id)
+rho_openai_responses_usage <- function(decoder, response) {
+  usage_data <- response$usage
+  if (!is.list(usage_data) || !length(usage_data)) {
+    return(rho_usage_unavailable(
+      decoder@model@provider,
+      "OpenAI Responses did not report token usage"
+    ))
   }
-  usage_data <- response$usage %||% list()
+
   input_details <- usage_data$input_tokens_details %||% list()
   output_details <- usage_data$output_tokens_details %||% list()
   input_tokens <- as.double(usage_data$input_tokens %||% 0)
@@ -767,14 +771,24 @@ rho_openai_terminal_events <- function(decoder, response, incomplete = FALSE) {
   cached_tokens <- as.double(input_details$cached_tokens %||% 0)
   cache_write_tokens <- as.double(input_details$cache_write_tokens %||% 0)
   reasoning_tokens <- output_details$reasoning_tokens
-  usage <- rho_usage(
-    input = max(0, input_tokens - cached_tokens - cache_write_tokens),
-    output = output_tokens,
-    cache_read = cached_tokens,
-    cache_write = cache_write_tokens,
-    reasoning = if (is.null(reasoning_tokens)) NULL else as.double(reasoning_tokens)
+  rho_price_usage(
+    decoder@model,
+    rho_provider_usage(
+      provider = decoder@model@provider,
+      input = max(0, input_tokens - cached_tokens - cache_write_tokens),
+      output = output_tokens,
+      cache_read = cached_tokens,
+      cache_write = cache_write_tokens,
+      reasoning = if (is.null(reasoning_tokens)) NULL else as.double(reasoning_tokens)
+    )
   )
-  usage <- rho_price_usage(decoder@model, usage)
+}
+
+rho_openai_terminal_events <- function(decoder, response, incomplete = FALSE) {
+  if (nzchar(as.character(response$id %||% ""))) {
+    decoder@state$response_id <- as.character(response$id)
+  }
+  usage <- rho_openai_responses_usage(decoder, response)
   status <- as.character(response$status %||% if (incomplete) "incomplete" else "completed")
   stop_reasons <- c(
     completed = "stop",

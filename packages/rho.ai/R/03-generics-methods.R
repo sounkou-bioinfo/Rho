@@ -126,6 +126,11 @@ rho_price_usage <- S7::new_generic(
   c("model", "usage"),
   function(model, usage, ...) S7::S7_dispatch()
 )
+rho_usage_with_cost <- S7::new_generic(
+  "rho_usage_with_cost",
+  "usage",
+  function(usage, cost, ...) S7::S7_dispatch()
+)
 rho_credential_read <- S7::new_generic(
   "rho_credential_read",
   "store",
@@ -284,7 +289,7 @@ rho_assistant_event_type <- S7::new_generic(
   function(event, ...) S7::S7_dispatch()
 )
 
-S7::method(rho_price_usage, list(Model, Usage)) <- function(model, usage, ...) {
+rho_nominal_usage_cost_for <- function(model, usage) {
   input_tokens <- usage@input + usage@cache_read + usage@cache_write
   rates <- model@pricing
   tiers <- Filter(
@@ -298,13 +303,17 @@ S7::method(rho_price_usage, list(Model, Usage)) <- function(model, usage, ...) {
 
   long_write <- usage@cache_write_1h %||% 0
   short_write <- usage@cache_write - long_write
-  cost <- rho_usage_cost(
+  rho_nominal_usage_cost(
     input = rates@input * usage@input / 1e6,
     output = rates@output * usage@output / 1e6,
     cache_read = rates@cache_read * usage@cache_read / 1e6,
     cache_write = (rates@cache_write * short_write + rates@input * 2 * long_write) / 1e6
   )
-  rho_usage(
+}
+
+S7::method(rho_usage_with_cost, ProviderUsage) <- function(usage, cost, ...) {
+  rho_provider_usage(
+    provider = usage@provider,
     input = usage@input,
     output = usage@output,
     cache_read = usage@cache_read,
@@ -313,6 +322,32 @@ S7::method(rho_price_usage, list(Model, Usage)) <- function(model, usage, ...) {
     reasoning = usage@reasoning,
     cost = cost
   )
+}
+
+S7::method(rho_usage_with_cost, EstimatedUsage) <- function(usage, cost, ...) {
+  rho_estimated_usage(
+    estimator = usage@estimator,
+    method = usage@method,
+    input = usage@input,
+    output = usage@output,
+    cache_read = usage@cache_read,
+    cache_write = usage@cache_write,
+    cache_write_1h = usage@cache_write_1h,
+    reasoning = usage@reasoning,
+    cost = cost
+  )
+}
+
+S7::method(rho_price_usage, list(Model, ProviderUsage)) <- function(model, usage, ...) {
+  rho_usage_with_cost(usage, rho_nominal_usage_cost_for(model, usage))
+}
+
+S7::method(rho_price_usage, list(Model, EstimatedUsage)) <- function(model, usage, ...) {
+  rho_usage_with_cost(usage, rho_nominal_usage_cost_for(model, usage))
+}
+
+S7::method(rho_price_usage, list(Model, UsageUnavailable)) <- function(model, usage, ...) {
+  usage
 }
 
 S7::method(rho_assistant_event_type, AssistantStartEvent) <- function(event, ...) "start"

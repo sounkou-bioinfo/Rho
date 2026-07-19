@@ -9,7 +9,7 @@ rho_thinking <- function(text, signature = "", redacted = FALSE) {
   ThinkingContent(text = as.character(text), signature = signature, redacted = isTRUE(redacted))
 }
 
-rho_usage_cost <- function(
+rho_nominal_usage_cost <- function(
   input = 0,
   output = 0,
   cache_read = 0,
@@ -19,7 +19,7 @@ rho_usage_cost <- function(
   output <- as.double(output)
   cache_read <- as.double(cache_read)
   cache_write <- as.double(cache_write)
-  UsageCost(
+  NominalUsageCost(
     input = input,
     output = output,
     cache_read = cache_read,
@@ -28,20 +28,22 @@ rho_usage_cost <- function(
   )
 }
 
-rho_usage <- function(
+rho_provider_usage <- function(
+  provider,
   input = 0,
   output = 0,
   cache_read = 0,
   cache_write = 0,
   cache_write_1h = NULL,
   reasoning = NULL,
-  cost = rho_usage_cost()
+  cost = NULL
 ) {
   input <- as.double(input)
   output <- as.double(output)
   cache_read <- as.double(cache_read)
   cache_write <- as.double(cache_write)
-  Usage(
+  ProviderUsage(
+    provider = provider,
     input = input,
     output = output,
     cache_read = cache_read,
@@ -51,6 +53,39 @@ rho_usage <- function(
     total = input + output + cache_read + cache_write,
     cost = cost
   )
+}
+
+rho_estimated_usage <- function(
+  estimator,
+  method,
+  input = 0,
+  output = 0,
+  cache_read = 0,
+  cache_write = 0,
+  cache_write_1h = NULL,
+  reasoning = NULL,
+  cost = NULL
+) {
+  input <- as.double(input)
+  output <- as.double(output)
+  cache_read <- as.double(cache_read)
+  cache_write <- as.double(cache_write)
+  EstimatedUsage(
+    estimator = estimator,
+    method = method,
+    input = input,
+    output = output,
+    cache_read = cache_read,
+    cache_write = cache_write,
+    cache_write_1h = if (is.null(cache_write_1h)) NULL else as.double(cache_write_1h),
+    reasoning = if (is.null(reasoning)) NULL else as.double(reasoning),
+    total = input + output + cache_read + cache_write,
+    cost = cost
+  )
+}
+
+rho_usage_unavailable <- function(provider, reason) {
+  UsageUnavailable(provider = provider, reason = reason)
 }
 
 rho_user_message <- function(content, timestamp = as.numeric(Sys.time())) {
@@ -91,7 +126,11 @@ rho_assistant_message <- function(
     provider = provider,
     model = model,
     stop_reason = stop_reason,
-    usage = usage %||% rho_usage(),
+    usage = usage %||%
+      rho_usage_unavailable(
+        provider,
+        "No usage observation was supplied"
+      ),
     response_id = response_id,
     timestamp = timestamp
   )

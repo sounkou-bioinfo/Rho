@@ -125,14 +125,17 @@ provider translator or the loop.
 
 ## Usage and cost
 
-Token accounting is normalized before it reaches the agent. Ordinary
-input, cache reads, and cache writes are disjoint; reasoning is an
-optional subset of output. Pricing is an S7 generic, so the catalog
-supplies the common method and specialized models can define different
-rules.
+Token accounting carries its provenance before it reaches the agent.
+`ProviderUsage` records counts supplied by a provider; `EstimatedUsage`
+names the estimator and method; `UsageUnavailable` records that a
+provider supplied no counts. Ordinary input, cache reads, and cache
+writes are disjoint; reasoning is an optional subset of output. Pricing
+is an S7 generic: it adds a `NominalUsageCost` calculated from the model
+catalogue, not a subscription bill.
 
 ``` r
-usage <- rho_usage(
+usage <- rho_provider_usage(
+  provider = model@provider,
   input = 800,
   output = 120,
   cache_read = 200,

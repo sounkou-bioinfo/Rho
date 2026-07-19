@@ -2,7 +2,7 @@ Package: rho.ai
 Type: Package
 Depends: R (>= 4.4.0)
 Title: Rho AI Protocol
-Version: 0.0.1.9000
+Version: 0.0.1.9001
 Authors@R:
     person(given = "Sounkou Mahamane", family = "Toure",
            email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
@@ -14,8 +14,8 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:
-    S7, s7contract, rho.async (>= 0.0.1.9000),
-    rho.http (>= 0.0.1.9000), yyjsonr, nanonext, digest, base64enc
+    S7, s7contract, rho.async (>= 0.0.1.9001),
+    rho.http (>= 0.0.1.9001), yyjsonr, nanonext, digest, base64enc
 Suggests:
     tinytest, knitr
 Remotes:

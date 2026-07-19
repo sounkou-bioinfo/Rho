@@ -524,6 +524,7 @@ expect_equal(
 terminal <- events[[length(events)]]
 expect_equal(terminal@message@content[[1L]]@text, "hello from anthropic")
 expect_equal(terminal@message@response_id, "msg_1")
+expect_true(S7::S7_inherits(terminal@message@usage, ProviderUsage))
 expect_equal(terminal@message@usage@input, 8)
 expect_equal(terminal@message@usage@cache_read, 2)
 expect_equal(terminal@message@usage@cache_write, 3)

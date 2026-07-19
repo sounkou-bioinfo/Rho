@@ -255,4 +255,5 @@ done <- Filter(
 
 expect_equal(done@message@usage@input, 5)
 expect_equal(done@message@usage@output, 2)
+expect_true(S7::S7_inherits(done@message@usage, ProviderUsage))
 ```

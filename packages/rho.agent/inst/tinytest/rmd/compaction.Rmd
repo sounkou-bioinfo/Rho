@@ -102,7 +102,7 @@ S7::method(
 ```{r usage-estimate}
 usage_message <- rho_assistant_message(
   content = list(rho_text("accounted")),
-  usage = rho_usage(input = 40, output = 10),
+  usage = rho_provider_usage(provider = "fixture", input = 40, output = 10),
   timestamp = 1
 )
 trailing_message <- rho_user_message(paste(rep("x", 40L), collapse = ""), timestamp = 2)

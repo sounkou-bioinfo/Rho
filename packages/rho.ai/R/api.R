@@ -129,24 +129,47 @@ NULL
 #' @export rho_operation_unsupported
 NULL
 
-#' Normalized token usage and pricing
+#' Usage observations and nominal pricing
 #'
-#' Usage components are disjoint: `input` excludes cache reads and writes,
-#' while `output` includes any reported reasoning tokens. `reasoning` is an
-#' optional breakdown of `output`; it is never added to `total` a second time.
-#' The optional `cache_write_1h` value is a subset of `cache_write`.
+#' `ProviderUsage` records token and cache counts supplied by a provider.
+#' `EstimatedUsage` records an explicitly named estimator and method.
+#' `UsageUnavailable` records that a provider did not supply counts; it has no
+#' fabricated token counts or cost. Usage components are disjoint: `input`
+#' excludes cache reads and writes, while `output` includes any reported
+#' reasoning tokens. `reasoning` is an optional breakdown of `output`; it is
+#' never added to `total` a second time. The optional `cache_write_1h` value is
+#' a subset of `cache_write`.
 #'
 #' `rho_price_usage()` is the open pricing protocol. Its default `Model`
 #' method selects the highest matching long-context tier, prices every
-#' component, and returns a new `Usage` value. Model subclasses may provide
-#' methods for provider-specific pricing rules.
+#' component, and returns a new counted usage value with a
+#' `NominalUsageCost`. It does not claim to report a subscription charge. Model
+#' subclasses may provide methods for provider-specific pricing rules.
 #'
 #' @name rho_ai_usage
-#' @aliases Usage UsageCost rho_usage rho_usage_cost rho_price_usage
+#' @aliases UsageObservation
+#' @aliases Usage
+#' @aliases ProviderUsage
+#' @aliases EstimatedUsage
+#' @aliases UsageUnavailable
+#' @aliases UsageCost
+#' @aliases NominalUsageCost
+#' @aliases rho_provider_usage
+#' @aliases rho_estimated_usage
+#' @aliases rho_usage_unavailable
+#' @aliases rho_nominal_usage_cost
+#' @aliases rho_price_usage
+#' @export UsageObservation
 #' @export Usage
+#' @export ProviderUsage
+#' @export EstimatedUsage
+#' @export UsageUnavailable
 #' @export UsageCost
-#' @export rho_usage
-#' @export rho_usage_cost
+#' @export NominalUsageCost
+#' @export rho_provider_usage
+#' @export rho_estimated_usage
+#' @export rho_usage_unavailable
+#' @export rho_nominal_usage_cost
 #' @export rho_price_usage
 NULL
 

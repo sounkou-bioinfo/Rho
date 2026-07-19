@@ -1,3 +1,8 @@
+# rho.http 0.0.1.9001
+
+- Gives the local WebSocket transport specification a finite 20-second
+  deadline so cold CI startup is not treated as a transport failure.
+
 # rho.http 0.0.1.9000
 
 - Adds the experimental typed HTTP and SSE contracts backed by nanonext,

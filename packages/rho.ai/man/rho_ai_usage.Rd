@@ -2,21 +2,33 @@
 % Please edit documentation in R/api.R
 \name{rho_ai_usage}
 \alias{rho_ai_usage}
+\alias{UsageObservation}
 \alias{Usage}
+\alias{ProviderUsage}
+\alias{EstimatedUsage}
+\alias{UsageUnavailable}
 \alias{UsageCost}
-\alias{rho_usage}
-\alias{rho_usage_cost}
+\alias{NominalUsageCost}
+\alias{rho_provider_usage}
+\alias{rho_estimated_usage}
+\alias{rho_usage_unavailable}
+\alias{rho_nominal_usage_cost}
 \alias{rho_price_usage}
-\title{Normalized token usage and pricing}
+\title{Usage observations and nominal pricing}
 \description{
-Usage components are disjoint: \code{input} excludes cache reads and writes,
-while \code{output} includes any reported reasoning tokens. \code{reasoning} is an
-optional breakdown of \code{output}; it is never added to \code{total} a second time.
-The optional \code{cache_write_1h} value is a subset of \code{cache_write}.
+\code{ProviderUsage} records token and cache counts supplied by a provider.
+\code{EstimatedUsage} records an explicitly named estimator and method.
+\code{UsageUnavailable} records that a provider did not supply counts; it has no
+fabricated token counts or cost. Usage components are disjoint: \code{input}
+excludes cache reads and writes, while \code{output} includes any reported
+reasoning tokens. \code{reasoning} is an optional breakdown of \code{output}; it is
+never added to \code{total} a second time. The optional \code{cache_write_1h} value is
+a subset of \code{cache_write}.
 }
 \details{
 \code{rho_price_usage()} is the open pricing protocol. Its default \code{Model}
 method selects the highest matching long-context tier, prices every
-component, and returns a new \code{Usage} value. Model subclasses may provide
-methods for provider-specific pricing rules.
+component, and returns a new counted usage value with a
+\code{NominalUsageCost}. It does not claim to report a subscription charge. Model
+subclasses may provide methods for provider-specific pricing rules.
 }

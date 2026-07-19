@@ -1,3 +1,8 @@
+# rho.http.httr2 0.0.1.9001
+
+- Gives the worker transport contract a finite 20-second cold-worker deadline
+  in place of a CI-sensitive five-second deadline.
+
 # rho.http.httr2 0.0.1.9000
 
 - Implements the `rho.http` client contract with worker-owned httr2

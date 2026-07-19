@@ -1,3 +1,9 @@
+# rho.ai 0.0.1.9001
+
+- Replaces ambiguous zero-valued usage with typed provider-reported,
+  explicitly estimated, and unavailable observations. Nominal API-equivalent
+  pricing is distinct from a subscription charge.
+
 # rho.ai 0.0.1.9000
 
 - Adds experimental typed models, messages, credentials, provider operations,

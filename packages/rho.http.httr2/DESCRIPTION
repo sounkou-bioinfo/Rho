@@ -2,7 +2,7 @@ Package: rho.http.httr2
 Type: Package
 Depends: R (>= 4.4.0)
 Title: Httr2 Worker Transport for Rho HTTP
-Version: 0.0.1.9000
+Version: 0.0.1.9001
 Authors@R:
     person(given = "Sounkou Mahamane", family = "Toure",
            email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
@@ -14,8 +14,8 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:
-    S7, rho.async (>= 0.0.1.9000), rho.http (>= 0.0.1.9000),
-    rho.compute (>= 0.0.1.9000), nanonext, httr2, later
+    S7, rho.async (>= 0.0.1.9001), rho.http (>= 0.0.1.9001),
+    rho.compute (>= 0.0.1.9001), nanonext, httr2, later
 Suggests:
     tinytest, knitr, s7contract
 Remotes:

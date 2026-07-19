@@ -405,6 +405,7 @@ expect_equal(
 terminal <- events[[length(events)]]
 expect_equal(terminal@message@content[[1L]]@text, "hello from openai")
 expect_equal(terminal@message@response_id, "resp_1")
+expect_true(S7::S7_inherits(terminal@message@usage, ProviderUsage))
 expect_equal(terminal@message@usage@input, 10)
 expect_equal(terminal@message@usage@cache_read, 2)
 expect_equal(terminal@message@usage@reasoning, 1)
@@ -413,6 +414,19 @@ expect_equal(received_body$model, "gpt-5.4")
 expect_equal(received_body$reasoning$effort, "high")
 expect_identical(received_body$store, FALSE)
 expect_equal(server$close(), 0L)
+
+missing_usage_events <- rho_reduce_provider_event(
+  OpenAIResponseCompleted(response = list(id = "resp_without_usage", status = "completed")),
+  rho_openai_responses_decoder(model)
+)
+missing_usage <- Filter(
+  function(event) S7::S7_inherits(event, AssistantDoneEvent),
+  missing_usage_events
+)[[1L]]@message@usage
+
+expect_true(S7::S7_inherits(missing_usage, UsageUnavailable))
+expect_equal(missing_usage@provider, "openai")
+expect_match(missing_usage@reason, "did not report token usage")
 
 input_limit_events <- rho_decode_provider_event(
   rho_openai_responses_decoder(model),

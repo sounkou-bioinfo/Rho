@@ -498,6 +498,7 @@ expect_equal(
 )
 expect_equal(events[[5L]]@message@provider, "github-copilot")
 expect_equal(events[[5L]]@message@content[[1L]]@text, "hello")
+expect_true(S7::S7_inherits(events[[5L]]@message@usage, ProviderUsage))
 expect_equal(events[[5L]]@message@usage@input, 3)
 expect_equal(events[[5L]]@message@usage@cache_read, 1)
 expect_equal(events[[5L]]@message@usage@reasoning, 1)

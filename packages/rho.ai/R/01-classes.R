@@ -136,8 +136,11 @@ rho_optional_nonnegative_double <- S7::new_property(
   }
 )
 
+UsageObservation <- S7::new_class("UsageObservation", abstract = TRUE)
+
 UsageCost <- S7::new_class(
   "UsageCost",
+  abstract = TRUE,
   properties = list(
     input = rho_nonnegative_double,
     output = rho_nonnegative_double,
@@ -153,8 +156,22 @@ UsageCost <- S7::new_class(
   }
 )
 
+NominalUsageCost <- S7::new_class("NominalUsageCost", parent = UsageCost)
+
+rho_optional_usage_cost <- S7::new_property(
+  S7::class_any,
+  default = NULL,
+  validator = function(value) {
+    if (!is.null(value) && !S7::S7_inherits(value, UsageCost)) {
+      "must be NULL or a UsageCost value"
+    }
+  }
+)
+
 Usage <- S7::new_class(
   "Usage",
+  parent = UsageObservation,
+  abstract = TRUE,
   properties = list(
     input = rho_nonnegative_double,
     output = rho_nonnegative_double,
@@ -163,7 +180,7 @@ Usage <- S7::new_class(
     cache_write_1h = rho_optional_nonnegative_double,
     reasoning = rho_optional_nonnegative_double,
     total = rho_nonnegative_double,
-    cost = UsageCost
+    cost = rho_optional_usage_cost
   ),
   validator = function(self) {
     components <- self@input + self@output + self@cache_read + self@cache_write
@@ -179,6 +196,30 @@ Usage <- S7::new_class(
   }
 )
 
+ProviderUsage <- S7::new_class(
+  "ProviderUsage",
+  parent = Usage,
+  properties = list(provider = rho_non_empty_string)
+)
+
+EstimatedUsage <- S7::new_class(
+  "EstimatedUsage",
+  parent = Usage,
+  properties = list(
+    estimator = rho_non_empty_string,
+    method = rho_non_empty_string
+  )
+)
+
+UsageUnavailable <- S7::new_class(
+  "UsageUnavailable",
+  parent = UsageObservation,
+  properties = list(
+    provider = rho_non_empty_string,
+    reason = rho_non_empty_string
+  )
+)
+
 UserMessage <- S7::new_class(
   "UserMessage",
   properties = list(content = S7::class_any, timestamp = S7::class_double)
@@ -190,7 +231,7 @@ AssistantMessage <- S7::new_class(
     provider = S7::class_character,
     model = S7::class_character,
     stop_reason = S7::class_character,
-    usage = Usage,
+    usage = UsageObservation,
     response_id = S7::new_property(S7::class_character, default = ""),
     timestamp = S7::class_double
   )

@@ -1,3 +1,8 @@
+# rho.agent 0.0.1.9001
+
+- Uses only counted usage observations when projecting context usage; an
+  unavailable provider observation is estimated from message content instead.
+
 # rho.agent 0.0.1.9000
 
 - Gives the provider-operation agent-loop fixture enough time on slower build

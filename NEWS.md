@@ -1,3 +1,10 @@
+# Rho 0.0.1.9001
+
+- Publishes a synchronized package version so repositories select matching
+  internal Rho dependencies instead of stale same-version artifacts.
+- Distinguishes provider-reported, explicitly estimated, and unavailable usage
+  observations; nominal API-equivalent pricing is not a subscription charge.
+
 # Rho 0.0.1.9000
 
 - Separates the HTTP client contract from its nanonext implementation and adds

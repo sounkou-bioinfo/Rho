@@ -271,6 +271,7 @@ expect_equal(
 terminal <- events[[length(events)]]
 expect_equal(terminal@reason, "toolUse")
 expect_equal(terminal@message@provider, "zai")
+expect_true(S7::S7_inherits(terminal@message@usage, ProviderUsage))
 expect_equal(terminal@message@usage@total, 14)
 expect_equal(terminal@message@usage@input, 7)
 expect_equal(terminal@message@usage@cache_read, 3)

@@ -9,7 +9,8 @@ library(rho.ai)
 ```
 
 ```{r disjoint-components}
-usage <- rho_usage(
+usage <- rho_provider_usage(
+  provider = "fixture",
   input = 1e6,
   output = 1e5,
   cache_read = 5e5,
@@ -18,16 +19,16 @@ usage <- rho_usage(
   reasoning = 2e4
 )
 
-expect_true(S7::S7_inherits(usage, Usage))
+expect_true(S7::S7_inherits(usage, ProviderUsage))
 expect_equal(usage@total, 1.7e6)
 expect_equal(usage@reasoning, 2e4)
 expect_equal(usage@cache_write_1h, 4e4)
 expect_error(
-  rho_usage(output = 3, reasoning = 4),
+  rho_provider_usage(provider = "fixture", output = 3, reasoning = 4),
   "subset of @output"
 )
 expect_error(
-  rho_usage(cache_write = 1, cache_write_1h = 2),
+  rho_provider_usage(provider = "fixture", cache_write = 1, cache_write_1h = 2),
   "subset of @cache_write"
 )
 ```
@@ -51,7 +52,9 @@ expect_equal(priced@cost@output, 0.8)
 expect_equal(priced@cost@cache_read, 0.1)
 expect_equal(priced@cost@cache_write, 0.31)
 expect_equal(priced@cost@total, 3.21)
-expect_equal(usage@cost@total, 0)
+expect_true(S7::S7_inherits(priced, ProviderUsage))
+expect_true(S7::S7_inherits(priced@cost, NominalUsageCost))
+expect_null(usage@cost)
 ```
 
 ```{r long-context-tier}
@@ -72,11 +75,41 @@ tiered <- rho_model(
 )
 tiered_usage <- rho_price_usage(
   tiered,
-  rho_usage(input = 9e5, output = 1e5, cache_read = 2e5)
+  rho_provider_usage(
+    provider = "fixture",
+    input = 9e5,
+    output = 1e5,
+    cache_read = 2e5
+  )
 )
 
 expect_equal(tiered_usage@cost@input, 2.7)
 expect_equal(tiered_usage@cost@output, 0.6)
 expect_equal(tiered_usage@cost@cache_read, 0.06)
 expect_equal(tiered_usage@cost@total, 3.36)
+```
+
+```{r usage-provenance}
+estimated <- rho_estimated_usage(
+  estimator = "character-count",
+  method = "ceil(bytes / 4)",
+  input = 12,
+  output = 3
+)
+unavailable <- rho_usage_unavailable(
+  provider = "subscription-provider",
+  reason = "The provider response did not include token counts"
+)
+default_message <- rho_assistant_message(provider = "subscription-provider")
+
+expect_true(S7::S7_inherits(estimated, EstimatedUsage))
+expect_equal(estimated@estimator, "character-count")
+expect_equal(estimated@method, "ceil(bytes / 4)")
+expect_null(estimated@cost)
+expect_true(S7::S7_inherits(unavailable, UsageUnavailable))
+expect_equal(unavailable@provider, "subscription-provider")
+expect_equal(unavailable@reason, "The provider response did not include token counts")
+expect_identical(rho_price_usage(model, unavailable), unavailable)
+expect_true(S7::S7_inherits(default_message@usage, UsageUnavailable))
+expect_equal(default_message@usage@provider, "subscription-provider")
 ```
