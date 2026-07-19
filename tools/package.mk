@@ -21,7 +21,7 @@ rd:
 	Rscript -e 'roxygen2::roxygenise(".")'
 
 rdm: install
-	Rscript -e 'rmarkdown::render("README.Rmd", output_format = "github_document", quiet = TRUE)'
+	Rscript -e 'rmarkdown::render("README.Rmd", output_format = "github_document", quiet = TRUE, intermediates_dir = tempdir())'
 	@rm -f README.html
 
 clean:

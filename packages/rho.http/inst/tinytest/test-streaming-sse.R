@@ -112,6 +112,24 @@ expect_equal(first@value@data, "first")
 expect_equal(second@value@data, "second")
 expect_true(S7::S7_inherits(ending, RhoStreamEnd))
 
+source <- rho_stream_from_task(rho_task(RhoTimeoutError(
+  message = "source deadline elapsed",
+  parent = NULL
+)))
+sse_state <- rho_new_state(
+  source = source,
+  decoder = rho_sse_decoder(),
+  buffer = list(),
+  closed = FALSE,
+  created_at = Sys.time()
+)
+sse <- RhoSseStream(state = sse_state)
+
+result <- rho_stream_next(sse) |>
+  rho_await(timeout = 1000L)
+
+expect_true(S7::S7_inherits(result, RhoTimeoutError))
+
 rho_http_client_contract(
   client_factory = function(
     timeout_ms,

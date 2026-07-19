@@ -218,8 +218,16 @@ rho_http_collect_error_body <- function(stream, limit, bytes = raw()) {
   rho.async::rho_then(
     rho.async::rho_stream_next(stream),
     function(item) {
+      if (S7::S7_inherits(item, rho.async::RhoAsyncError)) {
+        return(item)
+      }
       if (S7::S7_inherits(item, rho.async::RhoStreamEnd)) {
         return(RhoHttpErrorBody(bytes = bytes, truncated = FALSE))
+      }
+      if (!S7::S7_inherits(item, rho.async::RhoStreamValue)) {
+        rho.async::rho_signal_contract_violation(
+          "An HTTP body stream must yield a RhoStreamValue or RhoStreamEnd"
+        )
       }
       if (S7::S7_inherits(item@value, RhoHttpError)) {
         return(item@value)
@@ -243,6 +251,9 @@ rho_http_status_error_stream <- function(stream, head, limit) {
   rho.async::rho_then(
     rho_http_collect_error_body(stream, limit),
     function(body) {
+      if (S7::S7_inherits(body, rho.async::RhoAsyncError)) {
+        return(rho.async::rho_list_stream(list(body)))
+      }
       if (S7::S7_inherits(body, RhoHttpError)) {
         return(rho.async::rho_list_stream(list(body)))
       }
@@ -265,8 +276,16 @@ S7::method(rho_sse_connect, list(RhoHttpClient, RhoHttpRequest)) <- function(
 ) {
   request@headers <- c(request@headers, list(Accept = "text/event-stream"))
   source <- rho.async::rho_then(rho_http_open_stream(client, request), function(body) {
+    if (S7::S7_inherits(body, rho.async::RhoAsyncError)) {
+      return(body)
+    }
     if (S7::S7_inherits(body, RhoHttpError)) {
       return(rho.async::rho_list_stream(list(body)))
+    }
+    if (!S7::S7_inherits(body, RhoHttpBodyStream)) {
+      rho.async::rho_signal_contract_violation(
+        "An HTTP stream opener must yield a RhoHttpBodyStream or typed error"
+      )
     }
     head <- body@head
     if (is.na(head@status) || head@status < 200L || head@status >= 300L) {

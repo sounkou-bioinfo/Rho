@@ -1,10 +1,12 @@
-#' Worker-owned httr2 implementation of the Rho HTTP contract
+#' Worker-owned httr2 and curl implementation of the Rho HTTP contract
 #'
-#' `rho_httr2_http_client()` constructs an `HttpClient` whose httr2 connection
-#' lives in a compute worker. The worker sends a typed response head, raw body
-#' chunks, completion, or an error value over a private localhost NNG socket.
-#' The calling process receives those values through `RhoTask` and `RhoStream`
-#' without parsing HTTP or waiting for httr2's synchronous response-head open.
+#' `rho_httr2_http_client()` constructs an `HttpClient` owned by a compute
+#' worker. Complete requests use httr2. For a streaming request, the worker
+#' uses curl's native multi event loop, captures the final response head before
+#' relaying its first body chunk, and sends typed head, raw chunk, completion,
+#' or error values over a private localhost NNG socket. The calling process
+#' receives those values through `RhoTask` and `RhoStream` without blocking its
+#' R event loop.
 #'
 #' Complete requests also execute through the selected compute backend. Closing
 #' a body stream or client closes its NNG socket and cancels the owning compute

@@ -73,10 +73,19 @@ rho_sse_stream_next <- function(stream, timeout) {
   rho.async::rho_then(
     rho.async::rho_stream_next(stream@state$source, timeout = timeout),
     function(item) {
+      if (S7::S7_inherits(item, rho.async::RhoAsyncError)) {
+        stream@state$closed <- TRUE
+        return(item)
+      }
       if (S7::S7_inherits(item, rho.async::RhoStreamEnd)) {
         rho_sse_decode(stream@state$decoder, final = TRUE)
         stream@state$closed <- TRUE
         return(rho.async::rho_stream_end())
+      }
+      if (!S7::S7_inherits(item, rho.async::RhoStreamValue)) {
+        rho.async::rho_signal_contract_violation(
+          "An SSE source stream must yield a RhoStreamValue or RhoStreamEnd"
+        )
       }
       if (S7::S7_inherits(item@value, RhoHttpError)) {
         stream@state$closed <- TRUE

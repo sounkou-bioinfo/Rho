@@ -5,13 +5,15 @@
 \alias{RhoHttr2HttpClient}
 \alias{RhoHttr2HttpBodyStream}
 \alias{rho_httr2_http_client}
-\title{Worker-owned httr2 implementation of the Rho HTTP contract}
+\title{Worker-owned httr2 and curl implementation of the Rho HTTP contract}
 \description{
-\code{rho_httr2_http_client()} constructs an \code{HttpClient} whose httr2 connection
-lives in a compute worker. The worker sends a typed response head, raw body
-chunks, completion, or an error value over a private localhost NNG socket.
-The calling process receives those values through \code{RhoTask} and \code{RhoStream}
-without parsing HTTP or waiting for httr2's synchronous response-head open.
+\code{rho_httr2_http_client()} constructs an \code{HttpClient} owned by a compute
+worker. Complete requests use httr2. For a streaming request, the worker
+uses curl's native multi event loop, captures the final response head before
+relaying its first body chunk, and sends typed head, raw chunk, completion,
+or error values over a private localhost NNG socket. The calling process
+receives those values through \code{RhoTask} and \code{RhoStream} without blocking its
+R event loop.
 }
 \details{
 Complete requests also execute through the selected compute backend. Closing

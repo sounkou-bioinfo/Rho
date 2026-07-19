@@ -119,18 +119,40 @@ rho_http_contract_read_until_terminal <- function(stream, timeout_ms) {
   for (index in seq_len(100L)) {
     item <- rho.async::rho_stream_next(stream) |>
       rho.async::rho_await(timeout = timeout_ms)
+    if (S7::S7_inherits(item, rho.async::RhoAsyncError)) {
+      return(list(values = values, terminal = item))
+    }
     if (S7::S7_inherits(item, rho.async::RhoStreamEnd)) {
       return(list(values = values, terminal = item))
     }
     if (!S7::S7_inherits(item, rho.async::RhoStreamValue)) {
-      stop("HTTP body stream returned an invalid item")
+      expect_true(FALSE)
+      return(list(values = values, terminal = item))
     }
     values[[length(values) + 1L]] <- item@value
     if (S7::S7_inherits(item@value, rho.http::RhoHttpError)) {
       return(list(values = values, terminal = item@value))
     }
   }
-  stop("HTTP body stream did not reach a terminal value")
+  expect_true(FALSE)
+  list(values = values, terminal = NULL)
+}
+
+rho_http_contract_stream_value <- function(item) {
+  expect_true(S7::S7_inherits(item, rho.async::RhoStreamValue))
+  if (!S7::S7_inherits(item, rho.async::RhoStreamValue)) {
+    return(NULL)
+  }
+  item@value
+}
+
+rho_http_contract_expect_sse_data <- function(item, expected) {
+  event <- rho_http_contract_stream_value(item)
+  expect_true(S7::S7_inherits(event, rho.http::RhoSseEvent))
+  if (S7::S7_inherits(event, rho.http::RhoSseEvent)) {
+    expect_equal(event@data, expected)
+  }
+  invisible(event)
 }
 
 rho_http_contract_open_execution <- function(
@@ -228,7 +250,10 @@ rho_http_contract_fixed_body <- function(client_factory, timeout_ms) {
     rho.async::rho_await(timeout = timeout_ms)
   repeated_end <- rho.async::rho_stream_next(stream) |>
     rho.async::rho_await(timeout = timeout_ms)
-  expect_equal(rawToChar(do.call(c, chunks)), "fixed body")
+  expect_true(is.list(chunks))
+  if (is.list(chunks)) {
+    expect_equal(rawToChar(do.call(c, chunks)), "fixed body")
+  }
   expect_true(S7::S7_inherits(ending, rho.async::RhoStreamEnd))
   expect_true(S7::S7_inherits(repeated_end, rho.async::RhoStreamEnd))
 
@@ -421,7 +446,7 @@ rho_http_contract_incremental_sse <- function(client_factory, timeout_ms) {
   )
   first <- rho.async::rho_stream_next(events) |>
     rho.async::rho_await(timeout = timeout_ms)
-  expect_equal(first@value@data, "first")
+  rho_http_contract_expect_sse_data(first, "first")
 
   expect_equal(
     server_connection$send(nanonext::format_sse(data = "second")),
@@ -429,7 +454,7 @@ rho_http_contract_incremental_sse <- function(client_factory, timeout_ms) {
   )
   second <- rho.async::rho_stream_next(events) |>
     rho.async::rho_await(timeout = timeout_ms)
-  expect_equal(second@value@data, "second")
+  rho_http_contract_expect_sse_data(second, "second")
 
   expect_equal(server_connection$close(), 0L)
   ending <- rho.async::rho_stream_next(events) |>
@@ -477,7 +502,7 @@ rho_http_contract_receive_cancellation <- function(client_factory, timeout_ms) {
   )
   ready <- rho.async::rho_stream_next(events) |>
     rho.async::rho_await(timeout = timeout_ms)
-  expect_equal(ready@value@data, "ready")
+  rho_http_contract_expect_sse_data(ready, "ready")
 
   pending <- rho.async::rho_stream_next(events)
   expect_true(rho.async::rho_cancel(pending, "contract cancellation"))
@@ -528,13 +553,13 @@ rho_http_contract_receive_timeout <- function(client_factory, timeout_ms) {
   )
   ready <- rho.async::rho_stream_next(events) |>
     rho.async::rho_await(timeout = timeout_ms)
-  expect_equal(ready@value@data, "ready")
+  rho_http_contract_expect_sse_data(ready, "ready")
 
   timed <- rho.async::rho_stream_next(events, timeout = 50L) |>
     rho.async::rho_await(timeout = timeout_ms)
-  expect_true(S7::S7_inherits(timed, rho.async::RhoStreamValue))
+  timed_value <- rho_http_contract_stream_value(timed)
   expect_true(S7::S7_inherits(
-    timed@value,
+    timed_value,
     rho.http::RhoHttpTransportError
   ))
   ending <- rho.async::rho_stream_next(events) |>
@@ -577,14 +602,16 @@ rho_http_contract_status_body <- function(client_factory, timeout_ms) {
   )
   item <- rho.async::rho_stream_next(events) |>
     rho.async::rho_await(timeout = timeout_ms)
-  expect_true(S7::S7_inherits(item, rho.async::RhoStreamValue))
+  status_error <- rho_http_contract_stream_value(item)
   expect_true(S7::S7_inherits(
-    item@value,
+    status_error,
     rho.http::RhoHttpStatusError
   ))
-  expect_equal(item@value@status, 429L)
-  expect_equal(rawToChar(item@value@body), "12345678")
-  expect_true(item@value@body_truncated)
+  if (S7::S7_inherits(status_error, rho.http::RhoHttpStatusError)) {
+    expect_equal(status_error@status, 429L)
+    expect_equal(rawToChar(status_error@body), "12345678")
+    expect_true(status_error@body_truncated)
+  }
 }
 
 rho_http_contract_open_cancellation <- function(client_factory, timeout_ms) {

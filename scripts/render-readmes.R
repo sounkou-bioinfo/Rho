@@ -55,7 +55,8 @@ for (readme in readmes) {
     input = readme,
     output_format = "github_document",
     quiet = TRUE,
-    envir = new.env(parent = globalenv())
+    envir = new.env(parent = globalenv()),
+    intermediates_dir = tempdir()
   )
   markdown <- sub("\\.Rmd$", ".md", readme)
   lines <- readLines(markdown, warn = FALSE, encoding = "UTF-8")

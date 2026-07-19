@@ -67,6 +67,24 @@ rho_httr2_stop_operation <- function(operation, reason = NULL) {
   invisible(TRUE)
 }
 
+rho_httr2_finish_operation <- function(operation) {
+  if (isTRUE(operation@state$closed)) {
+    return(invisible(FALSE))
+  }
+  operation@state$closed <- TRUE
+  operation@state$active_receive <- NULL
+  rho_httr2_close_socket(operation)
+  rho_httr2_unregister_operation(operation)
+  invisible(TRUE)
+}
+
+rho_httr2_finish_after_worker <- function(operation, item) {
+  rho.async::rho_then(operation@state$worker, function(result) {
+    rho_httr2_finish_operation(operation)
+    item
+  })
+}
+
 rho_httr2_owned_task <- function(operation, task, label) {
   settled <- rho.async::rho_then(
     task,
@@ -116,8 +134,8 @@ rho_httr2_compute_result <- function(result, url) {
 S7::method(rho_http_open_execution, RhoHttr2HttpClient) <- function(client, ...) {
   rho.http::RhoHttpWorkerOpen(
     reason = paste(
-      "httr2 opens the connection and response head in the selected",
-      "rho.compute worker"
+      "curl's multi callback in the selected rho.compute worker relays the",
+      "response head before its first body chunk"
     )
   )
 }
@@ -258,8 +276,10 @@ S7::method(rho_httr2_open_message, RhoHttr2ErrorMessage) <- function(
   operation,
   ...
 ) {
-  rho_httr2_stop_operation(operation, message@message)
-  rho_httr2_transport_error(operation@url, message@message, message)
+  rho_httr2_finish_after_worker(
+    operation,
+    rho_httr2_transport_error(operation@url, message@message, message)
+  )
 }
 
 S7::method(rho_httr2_open_message, rho.http::RhoHttpTransportError) <- function(
@@ -374,8 +394,7 @@ S7::method(rho_httr2_stream_message, RhoHttr2EndMessage) <- function(
   ...
 ) {
   operation@state$active_receive <- NULL
-  rho_httr2_stop_operation(operation, "httr2 response completed")
-  rho.async::rho_stream_end()
+  rho_httr2_finish_after_worker(operation, rho.async::rho_stream_end())
 }
 
 S7::method(rho_httr2_stream_message, RhoHttr2ErrorMessage) <- function(
@@ -384,12 +403,14 @@ S7::method(rho_httr2_stream_message, RhoHttr2ErrorMessage) <- function(
   ...
 ) {
   operation@state$active_receive <- NULL
-  rho_httr2_stop_operation(operation, message@message)
-  rho.async::rho_stream_value(rho_httr2_transport_error(
-    operation@url,
-    message@message,
-    message
-  ))
+  rho_httr2_finish_after_worker(
+    operation,
+    rho.async::rho_stream_value(rho_httr2_transport_error(
+      operation@url,
+      message@message,
+      message
+    ))
+  )
 }
 
 S7::method(rho_httr2_stream_message, rho.http::RhoHttpTransportError) <- function(

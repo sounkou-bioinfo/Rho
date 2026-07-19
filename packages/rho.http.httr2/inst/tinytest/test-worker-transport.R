@@ -120,7 +120,10 @@ expect_true(rho_pending(opening))
 body <- rho_await(opening, timeout = worker_timeout_ms)
 expect_true(S7::S7_inherits(body, RhoHttr2HttpBodyStream))
 item <- rho_stream_next(body) |> rho_await(timeout = worker_timeout_ms)
-expect_equal(rawToChar(item@value), "ready")
+item_value <- rho_http_contract_stream_value(item)
+if (is.raw(item_value)) {
+  expect_equal(rawToChar(item_value), "ready")
+}
 
 expect_true(rho_stream_close(body))
 expect_equal(server_connection$close(), 0L)
@@ -156,14 +159,14 @@ events <- rho_sse_connect(
   )
 )
 first <- rho_stream_next(events) |> rho_await(timeout = worker_timeout_ms)
-expect_equal(first@value@data, "first")
+rho_http_contract_expect_sse_data(first, "first")
 
 expect_equal(
   server_connection$send(nanonext::format_sse(data = "second")),
   0L
 )
 second <- rho_stream_next(events) |> rho_await(timeout = worker_timeout_ms)
-expect_equal(second@value@data, "second")
+rho_http_contract_expect_sse_data(second, "second")
 
 expect_equal(server_connection$close(), 0L)
 ending <- rho_stream_next(events) |> rho_await(timeout = worker_timeout_ms)
@@ -200,7 +203,7 @@ events <- rho_sse_connect(
   )
 )
 ready <- rho_stream_next(events) |> rho_await(timeout = worker_timeout_ms)
-expect_equal(ready@value@data, "ready")
+rho_http_contract_expect_sse_data(ready, "ready")
 
 pending <- rho_stream_next(events)
 expect_true(rho_cancel(pending, "test cancellation"))

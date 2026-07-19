@@ -1,15 +1,15 @@
 Package: rho.http.httr2
 Type: Package
 Depends: R (>= 4.4.0)
-Title: Httr2 Worker Transport for Rho HTTP
+Title: Httr2 and Curl Worker Transport for Rho HTTP
 Version: 0.0.1.9001
 Authors@R:
     person(given = "Sounkou Mahamane", family = "Toure",
            email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
-Description: Implements the Rho HTTP client contract with httr2 connections
-    owned by mirai workers. Response heads and body chunks are relayed over NNG
-    so HTTP parsing remains in httr2 and the calling R event loop stays
-    responsive.
+Description: Implements the Rho HTTP client contract in mirai workers.
+    Complete requests use httr2. Streaming requests use curl's multi event
+    loop to capture a response head and relay body chunks over NNG without
+    blocking the calling R event loop.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

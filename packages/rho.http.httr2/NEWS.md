@@ -1,11 +1,9 @@
 # rho.http.httr2 0.0.1.9001
 
-- Gives the worker transport contract a finite 20-second cold-worker deadline
-  in place of a CI-sensitive five-second deadline, with an explicit scoped
-  mirai worker pool rather than an implicit ephemeral worker.
-- Reads streaming response bodies in the owning worker instead of bridging an
-  already-ready `httr2` file descriptor through the main R event loop; the
-  worker now advances its own libcurl event loop while it awaits body data.
+- Keeps complete requests on httr2 and implements streaming through curl's
+  native multi event loop in the owning worker. The worker relays a typed final
+  response head before its first body chunk, then propagates completion,
+  cancellation, and typed transport errors through the shared HTTP contract.
 
 # rho.http.httr2 0.0.1.9000
 

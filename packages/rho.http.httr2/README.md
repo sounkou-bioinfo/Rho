@@ -10,15 +10,15 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 [`rho.http.httr2`](https://sounkou-bioinfo.github.io/Rho/rho.http.httr2/)
 implements the
 [`rho.http`](https://sounkou-bioinfo.github.io/Rho/rho.http/) client
-interface with httr2 connections owned by compute workers.
+interface in compute workers. Complete requests use httr2. Streaming
+requests use curl’s native multi event loop because httr2’s public
+connection API is a pull interface rather than an event driver.
 
-httr2 exposes a pull connection that parses response status, headers,
-transfer framing, and body bytes. Opening that connection waits for the
-response head, so the adapter does not run it on the calling R event
-loop. A worker owns the connection and relays typed head, chunk,
-completion, and error values over a private localhost NNG pair socket.
-The socket supplies backpressure, and closing or cancelling the Rho
-stream cancels the worker.
+The worker captures the final response head before relaying the first
+raw body chunk over a private localhost NNG pair socket. The socket
+provides backpressure; closing or cancelling the Rho stream cancels the
+worker. The calling R event loop does not parse HTTP or wait for network
+I/O.
 
 ``` r
 library(rho.http.httr2)
