@@ -1,7 +1,8 @@
 # rho.http.httr2 0.0.1.9001
 
 - Gives the worker transport contract a finite 20-second cold-worker deadline
-  in place of a CI-sensitive five-second deadline.
+  in place of a CI-sensitive five-second deadline, with an explicit scoped
+  mirai worker pool rather than an implicit ephemeral worker.
 
 # rho.http.httr2 0.0.1.9000
 

@@ -10,6 +10,10 @@ source(
 )
 
 worker_timeout_ms <- 20000L
+worker_profile <- paste0("rho-http-httr2-", Sys.getpid())
+mirai::daemons(1L, .compute = worker_profile)
+on.exit(mirai::daemons(0L, .compute = worker_profile), add = TRUE)
+worker_compute <- rho.compute::rho_mirai_backend(compute = worker_profile)
 
 rho_http_client_contract(
   client_factory = function(
@@ -20,7 +24,8 @@ rho_http_client_contract(
     rho_httr2_http_client(
       timeout_ms = timeout_ms,
       stream_buffer_size = stream_buffer_size,
-      max_error_body_bytes = max_error_body_bytes
+      max_error_body_bytes = max_error_body_bytes,
+      compute = worker_compute
     )
   },
   expected_open_execution = RhoHttpWorkerOpen,
@@ -43,7 +48,10 @@ server <- nanonext::http_server(
 )
 expect_equal(server$start(), 0L)
 
-client <- rho_httr2_http_client(timeout_ms = worker_timeout_ms)
+client <- rho_httr2_http_client(
+  timeout_ms = worker_timeout_ms,
+  compute = worker_compute
+)
 expect_true(s7contract::implements(client, HttpClient))
 request <- rho_http_request(
   "POST",
@@ -78,7 +86,10 @@ server <- nanonext::http_server(
 )
 expect_equal(server$start(), 0L)
 
-client <- rho_httr2_http_client(timeout_ms = worker_timeout_ms)
+client <- rho_httr2_http_client(
+  timeout_ms = worker_timeout_ms,
+  compute = worker_compute
+)
 opening <- rho_http_open_stream(
   client,
   rho_http_request(
@@ -117,7 +128,8 @@ expect_equal(server$start(), 0L)
 
 client <- rho_httr2_http_client(
   timeout_ms = worker_timeout_ms,
-  stream_buffer_size = 65536L
+  stream_buffer_size = 65536L,
+  compute = worker_compute
 )
 events <- rho_sse_connect(
   client,
@@ -159,7 +171,10 @@ server <- nanonext::http_server(
 )
 expect_equal(server$start(), 0L)
 
-client <- rho_httr2_http_client(timeout_ms = worker_timeout_ms)
+client <- rho_httr2_http_client(
+  timeout_ms = worker_timeout_ms,
+  compute = worker_compute
+)
 events <- rho_sse_connect(
   client,
   rho_http_request(
