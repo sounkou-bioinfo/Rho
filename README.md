@@ -165,6 +165,7 @@ checkout:
 git clone git@github.com:sounkou-bioinfo/Rho.git
 cd Rho
 make deps
+make hooks
 make install
 ```
 
@@ -179,6 +180,7 @@ make rd           # roxygen2
 make purl-tests   # Rmd tests -> executable tinytest files
 make rdm          # rebuild package READMEs
 make check-publication
+make check-secrets # Gitleaks over history and working tree
 make test
 make check        # every package must report Status: OK
 make public-ready # complete publication gate

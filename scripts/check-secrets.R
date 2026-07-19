@@ -8,6 +8,17 @@ if (!nzchar(gitleaks)) {
   )
 }
 
+gitleaks_version <- trimws(system2(gitleaks, "version", stdout = TRUE))
+if (!identical(gitleaks_version, "8.30.1")) {
+  stop(
+    sprintf(
+      "Gitleaks 8.30.1 is required; found `%s`",
+      paste(gitleaks_version, collapse = " ")
+    ),
+    call. = FALSE
+  )
+}
+
 scans <- list(
   c("git", "--no-banner", "--no-color", "--redact", "--exit-code", "1", "."),
   c("dir", "--no-banner", "--no-color", "--redact", "--exit-code", "1", ".")

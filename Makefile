@@ -1,9 +1,12 @@
 # Monorepo driver. Package installation and checks run in dependency order.
 # Each package also includes ../../tools/package.mk for focused work.
 
-.PHONY: all deps install purl-tests check-purled-tests models update-models update-copilot-models check-models format check-format check-style check-version check-publication check-parity check-secrets public-ready test check rd rdm rdm-codex site clean tarball
+.PHONY: all deps hooks install purl-tests check-purled-tests models update-models update-copilot-models check-models format check-format check-style check-version check-publication check-parity check-secrets public-ready test check rd rdm rdm-codex site clean tarball
 
 all: test
+
+hooks:
+	git config core.hooksPath .githooks
 
 purl-tests:
 	Rscript scripts/purl-tests.R

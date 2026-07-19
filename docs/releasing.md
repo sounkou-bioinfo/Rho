@@ -19,6 +19,11 @@ x86-64 release archive has SHA-256 digest
 CI installs that exact artifact; local runs must provide the same `gitleaks`
 executable on `PATH`.
 
+Run `make hooks` once in each clone to configure the checked-in pre-push hook.
+It runs the same `make check-secrets` scan before every push, over the local
+Git history and working tree. Git never transfers hook configuration with a
+clone, so this is deliberately an explicit setup step.
+
 Before changing repository visibility:
 
 1. Run `make rd` and `make rdm`, then commit the generated namespaces,
