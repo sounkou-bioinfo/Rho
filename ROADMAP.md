@@ -1,9 +1,10 @@
 # Rho roadmap
 
 Rho has a working provider and agent substrate. The next work is to make its
-execution, storage, and transport semantics as complete as its provider surface.
-This roadmap orders that work; [the parity ledger](docs/pi-parity.md) records
-only behavior already supported by an executable fixture.
+execution and transport semantics as complete as its provider surface, while
+keeping storage engines and application policy downstream. This roadmap orders
+that work; [the parity ledger](docs/pi-parity.md) records only behavior already
+supported by an executable fixture.
 
 ## Current foundation
 
@@ -28,6 +29,10 @@ only behavior already supported by an executable fixture.
   errors, and repeated close.
 - Typed operations separate a semantic request from its local, provider-hosted,
   extension, worker, or remote implementation.
+- `rho.agent` closes over the structural `SessionJournal` interface. Its
+  in-memory implementation proves compare-and-append, snapshot synchronization,
+  typed failure, terminal-only assistant entries, and reset without erasing
+  journal history.
 
 ## 1. Publication integrity
 
@@ -38,8 +43,9 @@ only behavior already supported by an executable fixture.
   package link reproducible from the checkout.
 - Make the package check, publication check, parity ledger, generated-file
   check, model-catalog check, and secret scan required release evidence.
-- Correct any ledger wording that implies durable state before a durable session
-  store exists. In-memory compaction and durable replay are different features.
+- Correct any ledger wording that implies durable state before a durable journal
+  implementation exists. In-memory compaction and durable replay are different
+  features.
 
 ## 2. Transport correctness
 
@@ -63,16 +69,32 @@ only behavior already supported by an executable fixture.
 
 ## 3. Durable sessions and artifacts
 
-- Define an open `RhoSessionStore` interface for appending entries, reading a
-  transcript, saving checkpoints, and replaying after process failure.
+- Keep only the open storage protocols in the provider and agent substrate.
+  Filesystem layouts, content-addressed storage, database schemas, retention,
+  and provenance policy belong to downstream implementations.
+- Extend the open `SessionJournal` interface from its exercised typed append
+  request and snapshot methods to cursors and branching only as those consumers
+  land. The agent receives a journal explicitly; it does not construct a
+  filesystem layout.
+- Keep an in-memory implementation for embedding and exercise JSONL as one
+  coding-host adapter. Exercise the same contract through an NNG-owned service
+  before treating any method set or deployment topology as settled. Provider
+  and bio packages do not learn filesystem session layouts.
 - Give session entries stable identifiers and define atomic append and
-  checkpoint rules before choosing a file or database implementation.
+  checkpoint rules before choosing a file or database implementation. The
+  current compare-and-append position is the first atomic rule; durable adapters
+  must prove it under restart and concurrent writers.
+- Emit typed session-start, compaction, switch/fork, and shutdown events only
+  after the corresponding session mutation commits. Extension handlers receive
+  the session identity, lineage, committed sequence, and a journal cursor or
+  snapshot capability; shutdown awaits their required flush work.
 - Make compaction write an ordinary typed session entry through that interface.
   Keep provider-native compaction, extension compaction, and the default Rho
   compactor as dispatchable implementations.
-- Define one artifact-store interface shared by graphics, tool output, and bio
-  resources. Content hashes identify immutable bytes; metadata and provenance
-  remain typed values.
+- Define the minimal artifact-reference and admission protocols shared by
+  graphics, tool output, and bio resources. Concrete stores remain optional
+  downstream packages. Content hashes identify immutable bytes; metadata and
+  provenance remain typed values.
 - Resolve [oversized tool results](https://github.com/sounkou-bioinfo/Rho/issues/3)
   by storing the complete result and returning a bounded model-facing view with
   an artifact reference.
@@ -89,10 +111,18 @@ only behavior already supported by an executable fixture.
   schedules tasks but does not choose a worker on the tool's behalf.
 - Preserve source-order results while allowing genuinely independent calls to
   run concurrently.
+- Replace the Boolean tool-overlap decision with typed resource claims. Calls
+  may overlap only when their declared resources and access modes are
+  compatible; unrelated calls should not be serialized merely because one tool
+  can also write a database.
 - Move credential-file access, coding filesystem operations, and long DuckDB
   work off the main R process when their selected implementation can block.
 - Add remote execution fixtures that cover disconnects, cancellation, repeated
   delivery, and receipt verification before the bio agent depends on them.
+- Exercise a blackboard port with both environment/condition-variable and
+  remote NNG or SQL implementations. A Fugu-shaped worker receives only its
+  declared upstream notes and resources; no multi-agent scheduler enters core
+  merely to produce that topology.
 
 ## 5. Coding-agent completeness
 
@@ -111,6 +141,15 @@ only behavior already supported by an executable fixture.
 
 ## 6. Provider and agent completion
 
+- Bind `rho.ext` to an agent explicitly from the host. Registered tools enter
+  that agent, lifecycle handlers receive typed event values, context and tool
+  decisions compose through the corresponding agent generics, and extension
+  entries append through the selected session journal. The extension runtime does
+  not maintain a second transcript or infer lifecycle from string event names.
+- Define event-specific delivery rules: context and policy decisions are
+  awaited before the run proceeds, committed-session notifications are ordered,
+  and shutdown awaits required projection and cleanup work. Observational work
+  that may lag carries an explicit queue and flush contract.
 - Add native Ollama NDJSON decoding instead of relying on an SSE-shaped path.
 - Exercise image input for each catalog profile that declares image support and
   reject unsupported content before request transmission.
@@ -124,16 +163,44 @@ only behavior already supported by an executable fixture.
 
 ## 7. Downstream R applications
 
-- Finish the shared artifact layer before expanding `rho.graphics` into
-  previews, comparison, alternative text, and interactive display.
+- Derive opt-in tools from installed R packages through typed package catalogs.
+  S7 contracts are the primary schema; function formals and package
+  documentation supplement them. A catalog declares the package, selected
+  exports, execution placement, and authority. It never advertises every
+  installed export implicitly or converts returned R objects to console text.
+- Let `rho.bio.agent` specialize those catalogs for bioinformatics packages,
+  manifests, and operations. `rho.agent` continues to see ordinary tools and
+  operations; it does not acquire package discovery or bio-specific behavior.
+- Finish the downstream artifact implementation before expanding
+  `rho.graphics` into previews, comparison, alternative text, and interactive
+  display.
 - Build an R-native terminal interface as a client of agent events, not as agent
   policy. Graphics display and user input remain replaceable interfaces.
-- Re-implement `pi-bio-agent` concepts only after the session, artifact,
-  compute, and operation contracts above are stable. Use R-native relational
-  composition, DuckDB, mirai, NNG, and `targets` where their semantics fit.
+- Re-implement `pi-bio-agent` as the first demanding downstream application of
+  the session, artifact, compute, and operation protocols. Use R-native
+  relational composition, DuckDB, mirai, NNG, and `targets` where their
+  semantics fit; do not move its ledger, CAS, resolver, or durability policy
+  into the agent substrate.
+- Follow `pi-bio-agent`'s extension composition: the authoritative agent session
+  remains in the host session journal. At committed session lifecycle events,
+  `rho.bio.agent` retains a snapshot in CAS and idempotently projects messages,
+  tool calls, artifacts, and lineage into its DuckDB ledger. The projection is
+  rebuildable and a failed projection never corrupts or replaces the session.
+- Correct DuckDB ownership before putting a durable bio ledger on it. One owner
+  process creates one database instance per canonical file and derives its
+  connections from that instance. Schema initialization is serialized per
+  store. Multiple processes do not independently write the same local file;
+  they use one remote owner or receive a typed busy result before persistence.
+- Cover the failure reported in
+  [pi-bio-agent issue #3](https://github.com/sounkou-bioinfo/pi-bio-agent/issues/3):
+  concurrent calls must not publish a successful run before its ledger receipt
+  commits, a native DuckDB or extension version mismatch must be rejected before
+  opening the store, and a database-owner crash must not corrupt the agent
+  process or turn a partially persisted run into success.
 - Treat DuckDB extension ABI support as its own release concern: build against
-  declared DuckDB header versions, carry documented patches only where needed,
-  and test each supported ABI.
+  declared DuckDB header versions, select an exact compatible artifact at
+  runtime, carry documented patches only where needed, and test each supported
+  ABI.
 
 ## Release evidence
 

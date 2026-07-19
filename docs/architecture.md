@@ -12,6 +12,27 @@ rho.async -> rho.bio -> rho.duckdb -> rho.bio.agent
 The central rule is that effectful public APIs return `RhoTask` or `RhoStream`.
 Synchronous waiting is explicit through `rho.async::rho_await()` and test helpers.
 
+## Functional OOP contracts
+
+Ordinary S7 generics and methods own dispatch. Semantic alternatives are class
+values rather than strings interpreted by a central manager. Reusable field
+constraints are S7 properties attached directly to class definitions, so
+constructors and helper predicates do not repeat validation or invent competing
+error messages.
+
+`s7contract` interfaces bundle the generics required by a consumer. They are
+structural: an implementation satisfies an interface through its ordinary S7
+methods and does not join another inheritance hierarchy. Interfaces are small
+and defined from the consuming side, such as `HttpClient`, `Provider`, `Tool`,
+`CredentialStore`, and `AgentPolicy`. Progressive argument and return contracts
+are applied at important package and asynchronous boundaries. Explicit traits
+are reserved for a demonstrated need for opt-in conformance, default methods,
+or associated metadata.
+
+The detailed design and the distinction between properties, interfaces,
+traits, and progressive checks are in
+[Functional OOP in R](https://github.com/sounkou-bioinfo/Rho/blob/main/dev-notes/design/functional-oop.md).
+
 ## Tool scheduling and execution
 
 Agent scheduling does not decide where code runs. `rho.agent` opens tool tasks,
@@ -142,11 +163,50 @@ primitive is one possible binding of that semantic operation, not the owner of
 the policy.
 
 `rho.ai` defines `RhoCompactionOperation`, the provider-binding point, and typed
-unsupported defaults. `rho.agent` owns the append-only session, stable cut point,
-semantic summary, durable compaction entry, threshold trigger, provider-input
-recovery, and before/after policy methods. An application may provide another
-compactor or specialize the public generics without replacing the loop. A
-provider-encrypted item is an input optimization, not a durable semantic summary.
+unsupported defaults. `rho.agent` owns the session-entry protocol, stable cut
+point, semantic summary entry, threshold trigger, provider-input recovery, and
+before/after policy methods. The agent closes over a structural `SessionJournal`
+supplied by the host. The shipped implementation is process-local memory with
+compare-and-append and full snapshots. A stale writer fails before mutation,
+and an idle agent may asynchronously synchronize an existing snapshot into the
+committed projection used for context and compaction. An application may
+provide another compactor or specialize the public generics without replacing
+the loop. A provider-encrypted item is an input optimization, not a durable
+semantic summary.
+
+## Session persistence and extension projections
+
+The authoritative conversation is a logical append-only agent session. A
+host-selected journal persists its typed entries and exposes stable session
+identity, lineage, committed cursors, optional snapshots, and lifecycle events.
+The agent substrate depends only on that protocol. Memory, JSONL, a database,
+or an NNG-owned service may implement it. JSONL is one coding-host adapter, not
+the definition of durability.
+
+The first exercised journal contract is deliberately smaller: a typed
+compare-and-append request and a full snapshot. The in-memory implementation
+returns typed commits and snapshots, and journal failure is an operational
+value. Assistant partials stay inside the active turn; only a terminal assistant
+message is appended. Reset is also an entry, so it begins a new active context
+without deleting prior history. Snapshot synchronization rebuilds an idle
+agent's projection; durable recovery, branch identity, and remote cursors remain
+refinements rather than methods added in anticipation.
+
+Extensions consume the same session lifecycle. They may append typed custom
+entries or derive another representation from committed entries, a cursor, or
+a snapshot. A derived representation is not a replacement session journal. In
+particular, `rho.bio.agent` may retain immutable payloads in CAS and project
+messages, tool calls, artifacts, and lineage into DuckDB. That projection must
+be idempotent and rebuildable from the authoritative session after a lock,
+connection loss, or database-owner restart.
+
+CAS and the journal have different jobs. CAS establishes the identity of
+immutable bytes. Session order, blackboard notes, jobs, leases, and observations
+are changing coordination facts and remain behind their own open protocols.
+Sub-agents and remote workers may share those capabilities over NNG without
+sharing a filesystem or moving topology policy into the agent loop. The
+current synthesis and unresolved proofs are recorded in
+[Current synthesis](synthesis.html) and [Refinements](refinements.html).
 
 ## Authentication
 

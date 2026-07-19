@@ -75,9 +75,12 @@ rho_append_agent_messages <- function(agent, messages) {
   rho.async::rho_coro_task(
     function() {
       for (message in messages) {
-        coro::await(rho.async::rho_as_promise(
+        commit <- coro::await(rho.async::rho_as_promise(
           rho_record_agent_message(agent, message)
         ))
+        if (S7::S7_inherits(commit, RhoSessionJournalErrorValue)) {
+          return(commit)
+        }
         coro::await(rho.async::rho_as_promise(
           rho_emit_agent_event(agent, rho_message_start_event(message))
         ))
@@ -164,9 +167,14 @@ rho_run_agent_loop <- function(
           rho_emit_agent_event(agent, rho_turn_start_event(turn))
         ))
         if (length(pending)) {
-          coro::await(rho.async::rho_as_promise(
+          appended <- coro::await(rho.async::rho_as_promise(
             rho_append_agent_messages(agent, pending)
           ))
+          if (S7::S7_inherits(appended, RhoSessionJournalErrorValue)) {
+            run_status <- "error"
+            run_error <- appended
+            break
+          }
           pending <- list()
         }
 
@@ -244,10 +252,20 @@ rho_run_agent_loop <- function(
           break
         }
 
+        journal_error <- NULL
         for (message in batch@messages) {
-          coro::await(rho.async::rho_as_promise(
+          commit <- coro::await(rho.async::rho_as_promise(
             rho_record_agent_message(agent, message)
           ))
+          if (S7::S7_inherits(commit, RhoSessionJournalErrorValue)) {
+            journal_error <- commit
+            break
+          }
+        }
+        if (!is.null(journal_error)) {
+          run_status <- "error"
+          run_error <- journal_error
+          break
         }
         tool_results <- c(tool_results, batch@messages)
         coro::await(rho.async::rho_as_promise(

@@ -19,6 +19,14 @@
 \alias{RhoSessionMessageEntry}
 \alias{RhoSessionCompactionEntry}
 \alias{RhoSessionContextExclusionEntry}
+\alias{RhoSessionResetEntry}
+\alias{RhoSessionAppend}
+\alias{RhoSessionCommit}
+\alias{RhoSessionSnapshot}
+\alias{RhoMemorySessionJournal}
+\alias{RhoSessionJournalErrorValue}
+\alias{RhoSessionConflictErrorValue}
+\alias{SessionJournal}
 \alias{RhoCompactionPreparation}
 \alias{RhoCompactionCheckpoint}
 \alias{RhoCompactionCut}
@@ -39,7 +47,14 @@
 \alias{rho_compact}
 \alias{rho_state_entries}
 \alias{rho_append_session_entry}
+\alias{rho_commit_session_entry}
 \alias{rho_build_agent_context}
+\alias{rho_memory_session_journal}
+\alias{rho_session_snapshot}
+\alias{rho_sync_session}
+\alias{rho_apply_session_snapshot}
+\alias{rho_session_journal_error}
+\alias{rho_session_conflict}
 \alias{rho_project_session_entry}
 \alias{rho_estimate_tokens}
 \alias{rho_context_usage}
@@ -52,13 +67,22 @@
 \alias{rho_compaction_message_cut_allowed}
 \alias{rho_compaction_text}
 \alias{rho_error_requests_compaction}
-\title{Session context and compaction contracts}
+\title{Session journal, context, and compaction contracts}
 \description{
-The session transcript is append-only. Message entries retain the complete
-interaction, while \code{\link[=rho_build_agent_context]{rho_build_agent_context()}} projects the active provider
-context through the latest compaction entry and any explicit exclusions.
+A \code{SessionJournal} is the consumer-defined structural interface for committed
+session compare-and-append and snapshots. \code{\link[=rho_memory_session_journal]{rho_memory_session_journal()}} is
+the process-local implementation. \code{\link[=rho_agent]{rho_agent()}} receives a journal
+explicitly; \code{\link[=rho_sync_session]{rho_sync_session()}} asynchronously projects an existing
+snapshot into an idle agent. Assistant streaming state remains in
+\code{RhoAssistantTurn} and only its terminal message is committed.
 }
 \details{
+The journal is append-only. Compare-and-append rejects a stale committed
+position before mutation. Message entries retain the complete interaction,
+reset entries begin a new active context without erasing history, and
+\code{\link[=rho_build_agent_context]{rho_build_agent_context()}} projects through the latest compaction entry and
+any explicit exclusions.
+
 \code{\link[=rho_compact]{rho_compact()}} prepares a stable cut point, runs an asynchronous compactor,
 appends a semantic checkpoint, and invokes before/after policy methods.
 Automatic threshold compaction and one bounded provider-input recovery use the

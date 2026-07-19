@@ -1,5 +1,13 @@
 # rho.agent 0.0.1.9001
 
+- Adds the structural `SessionJournal` contract and an in-memory implementation.
+  Assistant partials remain in the active turn and only terminal messages enter
+  the append-only journal; reset is represented by a committed entry instead of
+  erasing history.
+- Adds asynchronous session synchronization and compare-and-append positions.
+  An idle agent can rebuild its projection from an existing journal, while a
+  stale writer receives `RhoSessionConflictErrorValue` before journal mutation.
+
 - Uses only counted usage observations when projecting context usage; an
   unavailable provider observation is estimated from message content instead.
 

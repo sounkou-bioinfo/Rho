@@ -36,3 +36,18 @@ AgentPolicy <- s7contract::new_interface(
     rho_prepare_next_turn = rho_prepare_next_turn
   )
 )
+
+SessionJournal <- s7contract::new_interface(
+  "SessionJournal",
+  generics = list(
+    rho_commit_session_entry = s7contract::interface_requirement(
+      rho_commit_session_entry,
+      args = list(append = RhoSessionAppend),
+      returns = rho.async::RhoTask
+    ),
+    rho_session_snapshot = s7contract::interface_requirement(
+      rho_session_snapshot,
+      returns = rho.async::RhoTask
+    )
+  )
+)

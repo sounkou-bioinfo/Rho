@@ -119,6 +119,26 @@ rho_append_session_entry <- S7::new_generic(
   c("agent", "entry"),
   function(agent, entry, ...) S7::S7_dispatch()
 )
+rho_commit_session_entry <- S7::new_generic(
+  "rho_commit_session_entry",
+  c("journal", "append"),
+  function(journal, append, ...) S7::S7_dispatch()
+)
+rho_session_snapshot <- S7::new_generic(
+  "rho_session_snapshot",
+  "journal",
+  function(journal, ...) S7::S7_dispatch()
+)
+rho_apply_session_snapshot <- S7::new_generic(
+  "rho_apply_session_snapshot",
+  c("agent", "snapshot"),
+  function(agent, snapshot, ...) S7::S7_dispatch()
+)
+rho_sync_session <- S7::new_generic(
+  "rho_sync_session",
+  "agent",
+  function(agent, ...) S7::S7_dispatch()
+)
 rho_build_agent_context <- S7::new_generic(
   "rho_build_agent_context",
   "agent",
@@ -198,6 +218,24 @@ rho_agent_error <- function(message, kind = "agent", retryable = FALSE, details 
     kind = kind,
     message = message,
     retryable = isTRUE(retryable),
+    details = details
+  )
+}
+
+rho_session_journal_error <- function(message, details = list()) {
+  RhoSessionJournalErrorValue(
+    kind = "session_journal",
+    message = message,
+    retryable = TRUE,
+    details = details
+  )
+}
+
+rho_session_conflict <- function(message, details = list()) {
+  RhoSessionConflictErrorValue(
+    kind = "session_conflict",
+    message = message,
+    retryable = FALSE,
     details = details
   )
 }
@@ -373,12 +411,14 @@ rho_agent <- function(
   policy = RhoDefaultAgentPolicy(),
   compaction = rho_compaction_settings(),
   compactor = RhoSummaryCompactor(),
+  journal = rho_memory_session_journal(),
   stream_options = list()
 ) {
   state <- rho_new_state(
     messages = list(),
     entries = list(),
     entry_sequence = 0L,
+    journal_position = 0L,
     tools = rho_tool_registry(tools),
     listeners = list(),
     steering_queue = list(),
@@ -396,6 +436,7 @@ rho_agent <- function(
   )
   RhoAgent(
     state = state,
+    journal = journal,
     options = RhoAgentOptions(
       provider = provider,
       model = model,
@@ -515,16 +556,26 @@ S7::method(rho_reset, RhoAgent) <- function(agent, ...) {
   if (!identical(agent@state$phase, "idle")) {
     return(rho.async::rho_task(rho_agent_error("Cannot reset a running agent", "busy")))
   }
-  agent@state$messages <- list()
-  agent@state$entries <- list()
-  agent@state$entry_sequence <- 0L
-  agent@state$events <- list()
-  agent@state$steering_queue <- list()
-  agent@state$follow_up_queue <- list()
-  agent@state$pending_tool_calls <- character()
-  agent@state$cancelled <- FALSE
-  agent@state$cancel_reason <- NULL
-  rho.async::rho_task(NULL)
+  entry <- RhoSessionResetEntry(
+    id = rho_next_session_entry_id(agent),
+    timestamp = as.double(Sys.time())
+  )
+  rho.async::rho_then(
+    rho_append_session_entry(agent, entry),
+    function(commit) {
+      if (S7::S7_inherits(commit, RhoSessionJournalErrorValue)) {
+        return(commit)
+      }
+      agent@state$messages <- list()
+      agent@state$events <- list()
+      agent@state$steering_queue <- list()
+      agent@state$follow_up_queue <- list()
+      agent@state$pending_tool_calls <- character()
+      agent@state$cancelled <- FALSE
+      agent@state$cancel_reason <- NULL
+      NULL
+    }
+  )
 }
 
 S7::method(rho_prompt, RhoAgent) <- function(

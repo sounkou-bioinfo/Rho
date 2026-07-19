@@ -11,8 +11,8 @@ rho_assistant_turn <- function(agent) {
   RhoAssistantTurn(
     state = rho_new_state(
       agent = agent,
-      message_index = 0L,
-      entry_index = 0L,
+      started = FALSE,
+      commit = NULL,
       message = NULL,
       terminal = FALSE,
       error = NULL
@@ -23,30 +23,35 @@ rho_assistant_turn <- function(agent) {
 rho_store_assistant_message <- function(turn, message) {
   agent <- turn@state$agent
   turn@state$message <- message
-  if (turn@state$message_index == 0L) {
-    return(rho.async::rho_then(
-      rho_record_agent_message(agent, message),
-      function(recorded) {
-        turn@state$message_index <- length(agent@state$messages)
-        turn@state$entry_index <- length(agent@state$entries)
-        rho_emit_agent_event(agent, rho_message_start_event(message))
-      }
-    ))
+  if (!turn@state$started) {
+    turn@state$started <- TRUE
+    return(rho_emit_agent_event(agent, rho_message_start_event(message)))
   }
-  rho_replace_agent_message(
-    agent,
-    turn@state$message_index,
-    turn@state$entry_index,
-    message
-  )
+  rho.async::rho_task(message)
 }
 
 rho_end_assistant_turn <- function(turn, message, error = NULL) {
-  rho.async::rho_then(rho_store_assistant_message(turn, message), function(ignored) {
-    turn@state$terminal <- TRUE
-    turn@state$error <- error
-    rho_emit_agent_event(turn@state$agent, rho_message_end_event(message))
-  })
+  rho.async::rho_then(
+    rho_store_assistant_message(turn, message),
+    function(ignored) {
+      rho.async::rho_then(
+        rho_record_agent_message(turn@state$agent, message),
+        function(commit) {
+          turn@state$terminal <- TRUE
+          if (S7::S7_inherits(commit, RhoSessionJournalErrorValue)) {
+            turn@state$error <- commit
+            return(commit)
+          }
+          turn@state$commit <- commit
+          turn@state$error <- error
+          rho_emit_agent_event(
+            turn@state$agent,
+            rho_message_end_event(message)
+          )
+        }
+      )
+    }
+  )
 }
 
 rho_fail_assistant_turn <- function(turn, error) {
@@ -61,10 +66,15 @@ rho_fail_assistant_turn <- function(turn, error) {
 }
 
 rho_assistant_response <- function(turn, error = turn@state$error) {
+  entry_id <- if (is.null(turn@state$commit)) {
+    ""
+  } else {
+    turn@state$commit@entry@id
+  }
   RhoAssistantResponse(
     message = turn@state$message,
     error = error,
-    entry_id = turn@state$agent@state$entries[[turn@state$entry_index]]@id
+    entry_id = entry_id
   )
 }
 

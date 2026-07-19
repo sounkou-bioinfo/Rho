@@ -60,6 +60,129 @@ expect_equal(
 )
 expect_true(s7contract::implements(RhoDefaultAgentPolicy, AgentPolicy))
 
+journal <- rho_memory_session_journal()
+expect_true(s7contract::implements(RhoMemorySessionJournal, SessionJournal))
+expect_error(
+  rho_agent(rho_faux_provider(), rho_model("faux", "faux"), journal = list()),
+  "Can't find method"
+)
+
+agent <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  journal = journal
+)
+result <- rho_prompt(agent, "journal") |> rho_await(timeout = 5000L)
+snapshot <- rho_session_snapshot(journal) |> rho_await(timeout = 1000L)
+
+expect_true(S7::S7_inherits(snapshot, RhoSessionSnapshot))
+expect_equal(snapshot@position, 2L)
+expect_equal(snapshot@entries, result@entries)
+assistant_entries <- Filter(
+  function(entry) {
+    S7::S7_inherits(entry, RhoSessionMessageEntry) &&
+      S7::S7_inherits(entry@message, AssistantMessage)
+  },
+  snapshot@entries
+)
+expect_equal(length(assistant_entries), 1L)
+expect_equal(assistant_entries[[1L]]@message, result@messages[[2L]])
+
+rho_reset(agent) |> rho_await(timeout = 1000L)
+reset_snapshot <- rho_session_snapshot(journal) |> rho_await(timeout = 1000L)
+expect_equal(reset_snapshot@position, 3L)
+expect_true(S7::S7_inherits(
+  reset_snapshot@entries[[3L]],
+  RhoSessionResetEntry
+))
+expect_equal(length(rho_state_messages(agent)), 0L)
+expect_equal(length(rho_build_agent_context(agent)@messages), 0L)
+
+duplicate <- reset_snapshot@entries[[3L]]
+expect_error(
+  RhoSessionSnapshot(entries = list(duplicate, duplicate), position = 2L),
+  "unique identifiers"
+)
+expect_error(
+  RhoSessionAppend(entry = duplicate, after = -1L),
+  "non-negative integer"
+)
+
+journal <- rho_memory_session_journal()
+writer <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  journal = journal
+)
+rho_prompt(writer, "committed before restart") |> rho_await(timeout = 5000L)
+rho_reset(writer) |> rho_await(timeout = 1000L)
+
+reader <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  journal = journal
+)
+expect_equal(length(rho_state_entries(reader)), 0L)
+expect_identical(rho_sync_session(reader) |> rho_await(timeout = 1000L), reader)
+expect_equal(length(rho_state_entries(reader)), 3L)
+expect_equal(length(rho_state_messages(reader)), 0L)
+expect_equal(length(rho_build_agent_context(reader)@messages), 0L)
+
+rho_prompt(reader, "after restart") |> rho_await(timeout = 5000L)
+snapshot <- rho_session_snapshot(journal) |> rho_await(timeout = 1000L)
+ids <- vapply(snapshot@entries, function(entry) entry@id, character(1))
+expect_equal(snapshot@position, 5L)
+expect_equal(anyDuplicated(ids), 0L)
+
+journal <- rho_memory_session_journal()
+first <- rho_agent(rho_faux_provider(), rho_model("faux", "faux"), journal = journal)
+second <- rho_agent(rho_faux_provider(), rho_model("faux", "faux"), journal = journal)
+
+rho_sync_session(first) |> rho_await(timeout = 1000L)
+rho_sync_session(second) |> rho_await(timeout = 1000L)
+rho_prompt(first, "wins the position") |> rho_await(timeout = 5000L)
+conflicted <- rho_prompt(second, "uses a stale position") |> rho_await(timeout = 5000L)
+snapshot <- rho_session_snapshot(journal) |> rho_await(timeout = 1000L)
+
+expect_equal(conflicted@status, "error")
+expect_true(S7::S7_inherits(conflicted@error, RhoSessionConflictErrorValue))
+expect_equal(snapshot@position, 2L)
+expect_equal(length(rho_state_entries(second)), 0L)
+
+rho_sync_session(second) |> rho_await(timeout = 1000L)
+expect_equal(length(rho_state_entries(second)), 2L)
+
+RhoFailingSessionJournal <- S7::new_class("RhoFailingSessionJournal")
+S7::method(
+  rho_commit_session_entry,
+  list(RhoFailingSessionJournal, RhoSessionAppend)
+) <- function(journal, append, ...) {
+  rho_task(rho_session_journal_error("fixture journal is unavailable"))
+}
+S7::method(
+  rho_session_snapshot,
+  RhoFailingSessionJournal
+) <- function(journal, ...) {
+  rho_task(rho_session_journal_error("fixture journal cannot be read"))
+}
+
+expect_true(s7contract::implements(RhoFailingSessionJournal, SessionJournal))
+agent <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  journal = RhoFailingSessionJournal()
+)
+result <- rho_prompt(agent, "cannot commit") |> rho_await(timeout = 5000L)
+
+expect_equal(result@status, "error")
+expect_true(S7::S7_inherits(result@error, RhoSessionJournalErrorValue))
+expect_equal(length(result@messages), 0L)
+expect_equal(length(result@entries), 0L)
+
+synced <- rho_sync_session(agent) |> rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(synced, RhoSessionJournalErrorValue))
+expect_equal(synced@message, "fixture journal cannot be read")
+
 provider <- rho_scripted_agent_provider(list(
   rho_scripted_tool_turn(list(ToolCall(
     id = "call_1",

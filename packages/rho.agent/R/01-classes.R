@@ -257,6 +257,112 @@ RhoSessionContextExclusionEntry <- S7::new_class(
   )
 )
 
+RhoSessionResetEntry <- S7::new_class(
+  "RhoSessionResetEntry",
+  parent = RhoSessionEntry
+)
+
+rho_session_entry_list <- S7::new_property(
+  S7::class_list,
+  validator = function(value) {
+    invalid <- Filter(
+      function(entry) !S7::S7_inherits(entry, RhoSessionEntry),
+      value
+    )
+    if (length(invalid)) {
+      "must contain only RhoSessionEntry values"
+    }
+  }
+)
+
+RhoSessionCommit <- S7::new_class(
+  "RhoSessionCommit",
+  properties = list(
+    entry = RhoSessionEntry,
+    position = rho_positive_integer
+  )
+)
+
+RhoSessionAppend <- S7::new_class(
+  "RhoSessionAppend",
+  properties = list(
+    entry = RhoSessionEntry,
+    after = rho_nonnegative_integer
+  )
+)
+
+RhoSessionSnapshot <- S7::new_class(
+  "RhoSessionSnapshot",
+  properties = list(
+    entries = rho_session_entry_list,
+    position = rho_nonnegative_integer
+  ),
+  validator = function(self) {
+    if (length(self@entries) != self@position) {
+      return("@position must equal the number of committed entries")
+    }
+    ids <- vapply(self@entries, function(entry) entry@id, character(1))
+    if (anyDuplicated(ids)) {
+      "@entries must have unique identifiers"
+    }
+  }
+)
+
+RhoMemorySessionJournal <- S7::new_class(
+  "RhoMemorySessionJournal",
+  properties = list(state = S7::class_environment),
+  validator = function(self) {
+    required <- c("entries", "position")
+    missing <- setdiff(required, ls(self@state, all.names = TRUE))
+    if (length(missing)) {
+      return(sprintf(
+        "@state missing field(s): %s",
+        paste(missing, collapse = ", ")
+      ))
+    }
+    invalid <- Filter(
+      function(entry) !S7::S7_inherits(entry, RhoSessionEntry),
+      self@state$entries
+    )
+    if (length(invalid)) {
+      return("@state$entries must contain only RhoSessionEntry values")
+    }
+    ids <- vapply(self@state$entries, function(entry) entry@id, character(1))
+    if (anyDuplicated(ids)) {
+      return("@state$entries must have unique identifiers")
+    }
+    if (
+      !is.integer(self@state$position) ||
+        length(self@state$position) != 1L ||
+        is.na(self@state$position) ||
+        self@state$position < 0L ||
+        self@state$position != length(self@state$entries)
+    ) {
+      "@state$position must equal the number of committed entries"
+    }
+  }
+)
+
+rho_session_journal <- S7::new_property(
+  S7::class_any,
+  validator = function(value) {
+    if (!s7contract::implements(value, SessionJournal)) {
+      missing <- s7contract::missing_requirements(value, SessionJournal)
+      paste(missing$message[!missing$ok], collapse = "; ")
+    }
+  }
+)
+
+rho_optional_session_entry_id <- S7::new_property(
+  S7::class_character,
+  default = "",
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value)) {
+      "must be one non-missing string"
+    }
+  }
+)
+
 RhoAgentPolicy <- S7::new_class("RhoAgentPolicy", abstract = TRUE)
 RhoDefaultAgentPolicy <- S7::new_class("RhoDefaultAgentPolicy", parent = RhoAgentPolicy)
 
@@ -279,12 +385,17 @@ RhoAgentOptions <- S7::new_class(
 
 RhoAgent <- S7::new_class(
   "RhoAgent",
-  properties = list(state = S7::class_environment, options = RhoAgentOptions),
+  properties = list(
+    state = S7::class_environment,
+    options = RhoAgentOptions,
+    journal = rho_session_journal
+  ),
   validator = function(self) {
     required <- c(
       "messages",
       "entries",
       "entry_sequence",
+      "journal_position",
       "tools",
       "listeners",
       "steering_queue",
@@ -374,6 +485,16 @@ RhoAgentErrorValue <- S7::new_class(
   )
 )
 
+RhoSessionJournalErrorValue <- S7::new_class(
+  "RhoSessionJournalErrorValue",
+  parent = RhoAgentErrorValue
+)
+
+RhoSessionConflictErrorValue <- S7::new_class(
+  "RhoSessionConflictErrorValue",
+  parent = RhoSessionJournalErrorValue
+)
+
 RhoCompactionErrorValue <- S7::new_class(
   "RhoCompactionErrorValue",
   parent = RhoAgentErrorValue
@@ -426,8 +547,8 @@ RhoAssistantTurn <- S7::new_class(
   validator = function(self) {
     required <- c(
       "agent",
-      "message_index",
-      "entry_index",
+      "started",
+      "commit",
       "message",
       "terminal",
       "error"
@@ -442,7 +563,7 @@ RhoAssistantResponse <- S7::new_class(
   properties = list(
     message = rho.ai::AssistantMessage,
     error = S7::class_any,
-    entry_id = rho_non_empty_string
+    entry_id = rho_optional_session_entry_id
   )
 )
 

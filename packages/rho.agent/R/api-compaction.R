@@ -1,8 +1,17 @@
-#' Session context and compaction contracts
+#' Session journal, context, and compaction contracts
 #'
-#' The session transcript is append-only. Message entries retain the complete
-#' interaction, while [rho_build_agent_context()] projects the active provider
-#' context through the latest compaction entry and any explicit exclusions.
+#' A `SessionJournal` is the consumer-defined structural interface for committed
+#' session compare-and-append and snapshots. [rho_memory_session_journal()] is
+#' the process-local implementation. [rho_agent()] receives a journal
+#' explicitly; [rho_sync_session()] asynchronously projects an existing
+#' snapshot into an idle agent. Assistant streaming state remains in
+#' `RhoAssistantTurn` and only its terminal message is committed.
+#'
+#' The journal is append-only. Compare-and-append rejects a stale committed
+#' position before mutation. Message entries retain the complete interaction,
+#' reset entries begin a new active context without erasing history, and
+#' [rho_build_agent_context()] projects through the latest compaction entry and
+#' any explicit exclusions.
 #'
 #' [rho_compact()] prepares a stable cut point, runs an asynchronous compactor,
 #' appends a semantic checkpoint, and invokes before/after policy methods.
@@ -18,7 +27,12 @@
 #' @aliases RhoCompactionOutcome RhoCompactionSkipped
 #' @aliases RhoCompactionSettings RhoContextUsage RhoSessionEntry
 #' @aliases RhoSessionMessageEntry RhoSessionCompactionEntry
-#' @aliases RhoSessionContextExclusionEntry RhoCompactionPreparation
+#' @aliases RhoSessionContextExclusionEntry RhoSessionResetEntry
+#' @aliases RhoSessionAppend RhoSessionCommit RhoSessionSnapshot
+#' @aliases RhoMemorySessionJournal
+#' @aliases RhoSessionJournalErrorValue RhoSessionConflictErrorValue
+#' @aliases SessionJournal
+#' @aliases RhoCompactionPreparation
 #' @aliases RhoCompactionCheckpoint RhoCompactionCut RhoCompactionResult
 #' @aliases RhoCompactionErrorValue RhoNothingToCompact
 #' @aliases RhoCompactionCancelled RhoCompactionFailure RhoCompactionBusy
@@ -26,7 +40,11 @@
 #' @aliases RhoAfterCompactionContext RhoCompactionStartEvent
 #' @aliases RhoCompactionEndEvent rho_compaction_settings
 #' @aliases rho_before_compaction_decision rho_compaction_result rho_compact
-#' @aliases rho_state_entries rho_append_session_entry rho_build_agent_context
+#' @aliases rho_state_entries rho_append_session_entry rho_commit_session_entry
+#' @aliases rho_build_agent_context
+#' @aliases rho_memory_session_journal rho_session_snapshot rho_sync_session
+#' @aliases rho_apply_session_snapshot rho_session_journal_error
+#' @aliases rho_session_conflict
 #' @aliases rho_project_session_entry rho_estimate_tokens rho_context_usage
 #' @aliases rho_should_compact rho_prepare_compaction rho_compact_preparation
 #' @aliases rho_before_compaction rho_after_compaction
@@ -49,6 +67,14 @@
 #' @export RhoSessionMessageEntry
 #' @export RhoSessionCompactionEntry
 #' @export RhoSessionContextExclusionEntry
+#' @export RhoSessionResetEntry
+#' @export RhoSessionAppend
+#' @export RhoSessionCommit
+#' @export RhoSessionSnapshot
+#' @export RhoMemorySessionJournal
+#' @export RhoSessionJournalErrorValue
+#' @export RhoSessionConflictErrorValue
+#' @export SessionJournal
 #' @export RhoCompactionPreparation
 #' @export RhoCompactionCheckpoint
 #' @export RhoCompactionCut
@@ -69,6 +95,13 @@
 #' @export rho_compact
 #' @export rho_state_entries
 #' @export rho_append_session_entry
+#' @export rho_commit_session_entry
+#' @export rho_memory_session_journal
+#' @export rho_session_snapshot
+#' @export rho_sync_session
+#' @export rho_apply_session_snapshot
+#' @export rho_session_journal_error
+#' @export rho_session_conflict
 #' @export rho_build_agent_context
 #' @export rho_project_session_entry
 #' @export rho_estimate_tokens

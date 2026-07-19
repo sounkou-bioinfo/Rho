@@ -124,10 +124,11 @@ S7::method(
 }
 
 rho_compaction_active_entries <- function(agent) {
+  entries <- rho_active_session_entries(agent@state$entries)
   excluded <- vapply(
     Filter(
       function(entry) S7::S7_inherits(entry, RhoSessionContextExclusionEntry),
-      agent@state$entries
+      entries
     ),
     function(entry) entry@target_entry_id,
     character(1)
@@ -137,7 +138,7 @@ rho_compaction_active_entries <- function(agent) {
       !S7::S7_inherits(entry, RhoSessionMessageEntry) ||
         !entry@id %in% excluded
     },
-    agent@state$entries
+    entries
   )
 }
 
@@ -661,9 +662,21 @@ rho_run_compaction <- function(
         reason = reason,
         will_retry = will_retry
       )
-      coro::await(rho.async::rho_as_promise(
+      commit <- coro::await(rho.async::rho_as_promise(
         rho_append_session_entry(agent, entry)
       ))
+      if (S7::S7_inherits(commit, RhoSessionJournalErrorValue)) {
+        error <- rho_compaction_error(
+          RhoCompactionFailure,
+          commit@message,
+          details = list(journal = commit)
+        )
+        coro::await(rho.async::rho_as_promise(rho_emit_agent_event(
+          agent,
+          rho_compaction_end_event(reason, will_retry, error = error)
+        )))
+        return(error)
+      }
       after_context <- RhoAfterCompactionContext(
         agent = agent,
         entry = entry,
