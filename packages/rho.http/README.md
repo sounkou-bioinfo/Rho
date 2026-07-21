@@ -7,8 +7,8 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-[`rho.http`](https://rgenomicsetl.github.io/Rho/rho.http/) gives Rho
-one typed HTTP contract. Provider implementations build `RhoHttpRequest`
+[`rho.http`](https://rgenomicsetl.github.io/Rho/rho.http/) gives Rho one
+typed HTTP contract. Provider implementations build `RhoHttpRequest`
 values and receive tasks or SSE streams; request encoding, TLS, and
 connection handling remain in this package.
 
@@ -58,7 +58,6 @@ SSE values feed typed provider decoders in
 [`rho.ai`](https://rgenomicsetl.github.io/Rho/rho.ai/).
 
 See the [`rho.http`
-reference](https://rgenomicsetl.github.io/Rho/rho.http/reference/)
-and the underlying
-[`rho.async`](https://rgenomicsetl.github.io/Rho/rho.async/)
-contract.
+reference](https://rgenomicsetl.github.io/Rho/rho.http/reference/) and
+the underlying
+[`rho.async`](https://rgenomicsetl.github.io/Rho/rho.async/) contract.

@@ -39,9 +39,8 @@ extension perform I/O, ask for permission, or consult policy without
 turning the agent loop into a synchronous callback system.
 
 See the [`rho.ext`
-reference](https://rgenomicsetl.github.io/Rho/rho.ext/reference/),
-the upstream
-[`rho.agent`](https://rgenomicsetl.github.io/Rho/rho.agent/)
+reference](https://rgenomicsetl.github.io/Rho/rho.ext/reference/), the
+upstream [`rho.agent`](https://rgenomicsetl.github.io/Rho/rho.agent/)
 lifecycle, and the downstream
 [`rho.bio.agent`](https://rgenomicsetl.github.io/Rho/rho.bio.agent/)
 application.

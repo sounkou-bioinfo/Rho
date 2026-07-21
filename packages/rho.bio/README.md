@@ -7,10 +7,10 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-[`rho.bio`](https://rgenomicsetl.github.io/Rho/rho.bio/) is the
-typed, agent-independent substrate for declared bioinformatics
-resources. Manifests name resolvers and operations; resolution produces
-a receipt that keeps source observations and provenance separate from
+[`rho.bio`](https://rgenomicsetl.github.io/Rho/rho.bio/) is the typed,
+agent-independent substrate for declared bioinformatics resources.
+Manifests name resolvers and operations; resolution produces a receipt
+that keeps source observations and provenance separate from
 model-authored text.
 
 ## Declare and resolve a resource

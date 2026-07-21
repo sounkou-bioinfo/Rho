@@ -50,5 +50,4 @@ executable tinytest files and checks that generated files are current.
 See the [`rho.testkit`
 reference](https://rgenomicsetl.github.io/Rho/rho.testkit/reference/)
 and the base
-[`rho.async`](https://rgenomicsetl.github.io/Rho/rho.async/)
-contracts.
+[`rho.async`](https://rgenomicsetl.github.io/Rho/rho.async/) contracts.

@@ -10,8 +10,8 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 [`rho.bio.agent`](https://rgenomicsetl.github.io/Rho/rho.bio.agent/)
 exposes declared bioinformatics resources to an agent through the
 ordinary [`rho.ext`](https://rgenomicsetl.github.io/Rho/rho.ext/) and
-[`rho.ai`](https://rgenomicsetl.github.io/Rho/rho.ai/) tool
-contracts. It is downstream of the provider and agent core.
+[`rho.ai`](https://rgenomicsetl.github.io/Rho/rho.ai/) tool contracts.
+It is downstream of the provider and agent core.
 
 ## Register and call a bio tool
 

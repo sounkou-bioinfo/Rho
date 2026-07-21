@@ -7,11 +7,10 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-[`rho.coding`](https://rgenomicsetl.github.io/Rho/rho.coding/)
-supplies coding tools with explicit execution semantics: file
-operations, Bash with a typed cross-platform resolution, isolated R
-evaluation in mirai, and opt-in evaluation in a caller-supplied
-current-session environment.
+[`rho.coding`](https://rgenomicsetl.github.io/Rho/rho.coding/) supplies
+coding tools with explicit execution semantics: file operations, Bash
+with a typed cross-platform resolution, isolated R evaluation in mirai,
+and opt-in evaluation in a caller-supplied current-session environment.
 
 ## Isolated R evaluation
 
@@ -99,6 +98,6 @@ export can be added as another codec once session identity and branch
 lineage are exercised by Rho consumers.
 
 See the [`rho.coding`
-reference](https://rgenomicsetl.github.io/Rho/rho.coding/reference/)
-and its worker substrate,
+reference](https://rgenomicsetl.github.io/Rho/rho.coding/reference/) and
+its worker substrate,
 [`rho.compute`](https://rgenomicsetl.github.io/Rho/rho.compute/).

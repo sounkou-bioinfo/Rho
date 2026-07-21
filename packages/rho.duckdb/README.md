@@ -39,6 +39,6 @@ point, leaving room for other SQL backends without changing manifests or
 agent tools.
 
 See the [`rho.duckdb`
-reference](https://rgenomicsetl.github.io/Rho/rho.duckdb/reference/)
-and the upstream
-[`rho.bio`](https://rgenomicsetl.github.io/Rho/rho.bio/) contracts.
+reference](https://rgenomicsetl.github.io/Rho/rho.duckdb/reference/) and
+the upstream [`rho.bio`](https://rgenomicsetl.github.io/Rho/rho.bio/)
+contracts.

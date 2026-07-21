@@ -9,9 +9,9 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 
 [`rho.ai`](https://rgenomicsetl.github.io/Rho/rho.ai/) defines the
 provider surface shared by the rest of
-[Rho](https://rgenomicsetl.github.io/Rho/): typed messages and
-content, model capabilities, tool contracts, credentials, provider
-operations, and normalized assistant event streams.
+[Rho](https://rgenomicsetl.github.io/Rho/): typed messages and content,
+model capabilities, tool contracts, credentials, provider operations,
+and normalized assistant event streams.
 
 ## One stream protocol
 
