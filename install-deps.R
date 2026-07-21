@@ -7,7 +7,7 @@ repos <- c(
 )
 repos <- repos[!duplicated(unname(repos))]
 
-nanonext_commit <- "1abe4489e2a081d41c9cc07b4dbc5e8adc2d1646"
+nanonext_commit <- "5302ac39732477aafbd042ab61e314d763220658"
 nanonext_source <- sprintf(
   "https://github.com/RGenomicsETL/nanonext/archive/%s.tar.gz",
   nanonext_commit
