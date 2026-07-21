@@ -118,6 +118,7 @@ rho_assistant_message <- function(
   model = "faux",
   stop_reason = "stop",
   usage = NULL,
+  context_revision = NULL,
   response_id = "",
   timestamp = as.numeric(Sys.time())
 ) {
@@ -131,6 +132,7 @@ rho_assistant_message <- function(
         provider,
         "No usage observation was supplied"
       ),
+    context_revision = context_revision,
     response_id = response_id,
     timestamp = timestamp
   )

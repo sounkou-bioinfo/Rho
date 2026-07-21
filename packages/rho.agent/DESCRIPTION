@@ -18,10 +18,10 @@ Imports:
 Suggests:
     tinytest, knitr, rho.http (>= 0.0.1.9001), yyjsonr
 Remotes:
-    sounkou-bioinfo/Rho/packages/rho.async,
-    sounkou-bioinfo/Rho/packages/rho.http,
-    sounkou-bioinfo/Rho/packages/rho.ai
-URL: https://github.com/sounkou-bioinfo/Rho,
-    https://sounkou-bioinfo.github.io/Rho/rho.agent/
-BugReports: https://github.com/sounkou-bioinfo/Rho/issues
+    RGenomicsETL/Rho/packages/rho.async,
+    RGenomicsETL/Rho/packages/rho.http,
+    RGenomicsETL/Rho/packages/rho.ai
+URL: https://github.com/RGenomicsETL/Rho,
+    https://rgenomicsetl.github.io/Rho/rho.agent/
+BugReports: https://github.com/RGenomicsETL/Rho/issues
 Config/roxygen2/version: 8.0.0

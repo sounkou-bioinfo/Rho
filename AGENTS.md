@@ -54,7 +54,9 @@ linked test, executable Rmd, or integration run.
    mutation goes through named functions or generics.
 4. Protocols carry typed values. Character strings belong at provider wires,
    serialization, user input, and other real boundaries, not in runtime class
-   switches.
+   switches. A durable schema declares stable semantic tags and fields; it must
+   not reflect package names, S7 class names, or the current property layout
+   into stored data.
 5. Effectful public APIs return `RhoTask`, `RhoStream`, or `RhoDuplex`.
    Synchronous waiting is visible at `rho_await()`, a CLI boundary, or a test
    helper. Operational failure is a typed value.

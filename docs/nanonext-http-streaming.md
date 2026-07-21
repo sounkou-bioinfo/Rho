@@ -101,9 +101,9 @@ response head. A body-receive timeout is supplied separately to `recv_aio()`.
 ## 3. What the current fork proves
 
 The Rho fork added `ncurl_stream_aio()` and `ncurl_stream_recv()`
-([public R additions](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/R/ncurl.R#L283-L368)),
+([public R additions](https://github.com/RGenomicsETL/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/R/ncurl.R#L283-L368)),
 plus `is_ncurl_stream()`
-([validator](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/R/utils.R#L191-L204)).
+([validator](https://github.com/RGenomicsETL/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/R/utils.R#L191-L204)).
 It proves that nanonext can:
 
 - return a response head while the body remains open;
@@ -117,20 +117,20 @@ It proves that nanonext can:
 Its lifecycle tests cover an early SSE event, a later event, end-of-stream,
 repeated end-of-stream, opening cancellation, receive cancellation, concurrent
 receive rejection, and timeout
-([fork tests](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/tests/tests.R#L1444-L1571)).
+([fork tests](https://github.com/RGenomicsETL/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/tests/tests.R#L1444-L1571)).
 
 For a response framed by connection close, the fork treats both NNG's ordinary
 closed value and its connection-shutdown value as end-of-body. It does not apply
 that rule to fixed-length or chunked responses: a peer closing those before
 their declared framing completes remains a transport error
-([receive completion](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L574-L674)).
+([receive completion](https://github.com/RGenomicsETL/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L574-L674)).
 
 The fork's public shape is not the desired final shape. Its opening resolves to
 `list(status, headers, stream)`, and its special receive resolves to
 `list(data, complete)`
-([native result construction](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L1086-L1164)).
+([native result construction](https://github.com/RGenomicsETL/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L1086-L1164)).
 The stream has only the `ncurlStream` class
-([object construction](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L1242-L1265)),
+([object construction](https://github.com/RGenomicsETL/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L1242-L1265)),
 so ordinary `recv_aio()` does not recognize it. The maintainer's proposal removes
 those extra result shapes and body methods.
 
@@ -151,7 +151,7 @@ return the ordinary unsupported-operation value because the stream is read-only.
 
 The fork already has a nanonext-owned HTTP state object for fixed-length,
 chunked, connection-ended, and bodyless responses
-([state definitions](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L205-L253)).
+([state definitions](https://github.com/RGenomicsETL/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L205-L253)).
 That state machine is the useful implementation core to adapt to the ordinary
 stream interface.
 
@@ -165,8 +165,8 @@ request, read a response head, read raw bytes, and close the connection
 ([public HTTP connection API](https://github.com/r-lib/nanonext/blob/2573ee2ebdc32388ce5c1a2e0c81a8fcedc91888/src/nng/include/nng/supplemental/http/http.h#L155-L177),
 [public client API](https://github.com/r-lib/nanonext/blob/2573ee2ebdc32388ce5c1a2e0c81a8fcedc91888/src/nng/include/nng/supplemental/http/http.h#L251-L269)).
 The fork uses those public calls for opening and reading
-([open sequence](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L524-L570),
-[body read](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L574-L674)).
+([open sequence](https://github.com/RGenomicsETL/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L524-L570),
+[body read](https://github.com/RGenomicsETL/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L574-L674)).
 
 Reading private source answers two important questions:
 
@@ -217,11 +217,11 @@ still says that HTTP/2 is not supported
 
 Rho's HTTP interface already requires every client to implement
 `rho_http_send()` and `rho_http_open_stream()`
-([interface](https://github.com/sounkou-bioinfo/Rho/blob/899b9ff6ad3240c6d44066ebbf4b0ae00c6ccf88/packages/rho.http/R/02-interfaces.R#L1-L16)).
+([interface](https://github.com/RGenomicsETL/Rho/blob/899b9ff6ad3240c6d44066ebbf4b0ae00c6ccf88/packages/rho.http/R/02-interfaces.R#L1-L16)).
 The current nanonext method calls only the fork's opener
-([opening adapter](https://github.com/sounkou-bioinfo/Rho/blob/899b9ff6ad3240c6d44066ebbf4b0ae00c6ccf88/packages/rho.http/R/02-http.R#L100-L143))
+([opening adapter](https://github.com/RGenomicsETL/Rho/blob/899b9ff6ad3240c6d44066ebbf4b0ae00c6ccf88/packages/rho.http/R/02-http.R#L100-L143))
 and its body stream calls only the fork's receive function
-([receive adapter](https://github.com/sounkou-bioinfo/Rho/blob/899b9ff6ad3240c6d44066ebbf4b0ae00c6ccf88/packages/rho.http/R/04-streams.R#L1-L53)).
+([receive adapter](https://github.com/RGenomicsETL/Rho/blob/899b9ff6ad3240c6d44066ebbf4b0ae00c6ccf88/packages/rho.http/R/04-streams.R#L1-L53)).
 
 The upstream migration is narrow:
 
@@ -236,7 +236,7 @@ interfaces do not change.
 
 The limitation is opening. `rho_task_from_function()` records a closure for
 later execution but does not assign it to a worker
-([task construction](https://github.com/sounkou-bioinfo/Rho/blob/899b9ff6ad3240c6d44066ebbf4b0ae00c6ccf88/packages/rho.async/R/03-tasks.R#L116-L133)).
+([task construction](https://github.com/RGenomicsETL/Rho/blob/899b9ff6ad3240c6d44066ebbf4b0ae00c6ccf88/packages/rho.async/R/03-tasks.R#L116-L133)).
 When a synchronous `ncurl_stream()` eventually runs, it still occupies the main
 R process until the response head arrives. A later `ncurl_stream_aio()` could
 resolve to the same ordinary stream and remove that limitation without adding a
@@ -271,7 +271,7 @@ The upstream implementation should cover:
 
 Two details in the fork deserve explicit tests during the rewrite. It currently
 accepts `chunked` anywhere in `Transfer-Encoding`
-([body selection](https://github.com/sounkou-bioinfo/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L352-L384)),
+([body selection](https://github.com/RGenomicsETL/nanonext/blob/cf24957d95ae7d48e1f0e06df75d1d02d197b56a/src/ncurl.c#L352-L384)),
 and it treats every `1xx` head as a bodyless completed response. Transfer coding
 order and interim response handling should be settled deliberately rather than
 inherited from the prototype.

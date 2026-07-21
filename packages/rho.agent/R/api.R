@@ -15,7 +15,8 @@
 #' @aliases RhoAgentPolicy RhoDefaultAgentPolicy AgentPolicy AgentEventListener
 #' @aliases RhoToolExecutionMode RhoParallelToolExecution
 #' @aliases RhoSequentialToolExecution RhoQueueMode RhoOneAtATimeQueue
-#' @aliases RhoAllQueue RhoBeforeToolCallDecision RhoAfterToolCallDecision
+#' @aliases RhoAllQueue RhoAgentPhase RhoAgentIdle RhoAgentRunning
+#' @aliases RhoAgentCompacting RhoBeforeToolCallDecision RhoAfterToolCallDecision
 #' @aliases RhoRunContext RhoToolContext RhoCompletedToolContext
 #' @aliases RhoNextTurnDecision RhoAssistantTurn RhoAssistantResponse RhoToolBatch
 #' @aliases RhoAgentEvent RhoAgentStartEvent RhoAgentEndEvent
@@ -46,6 +47,10 @@
 #' @export RhoQueueMode
 #' @export RhoOneAtATimeQueue
 #' @export RhoAllQueue
+#' @export RhoAgentPhase
+#' @export RhoAgentIdle
+#' @export RhoAgentRunning
+#' @export RhoAgentCompacting
 #' @export RhoBeforeToolCallDecision
 #' @export RhoAfterToolCallDecision
 #' @export RhoRunContext

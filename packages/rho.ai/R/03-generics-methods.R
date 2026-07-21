@@ -80,6 +80,26 @@ rho_content_text <- S7::new_generic(
   "x",
   function(x, ...) S7::S7_dispatch()
 )
+rho_context_signature <- S7::new_generic(
+  "rho_context_signature",
+  "x",
+  function(x, ...) S7::S7_dispatch()
+)
+rho_context_revision <- S7::new_generic(
+  "rho_context_revision",
+  c("context", "model"),
+  function(context, model, ...) S7::S7_dispatch()
+)
+rho_usage_observations <- S7::new_generic(
+  "rho_usage_observations",
+  "x",
+  function(x, ...) S7::S7_dispatch()
+)
+rho_summarize_usage <- S7::new_generic(
+  "rho_summarize_usage",
+  "x",
+  function(x, ...) S7::S7_dispatch()
+)
 rho_validate_model_input <- S7::new_generic(
   "rho_validate_model_input",
   c("model", "context"),
@@ -468,20 +488,6 @@ S7::method(rho_complete, list(S7::class_any, Model, Context)) <- function(
 }
 
 S7::method(rho_validate_tool_args, list(ToolSpec, S7::class_list)) <- function(tool, args, ...) {
-  if (!is.null(tool@prepare_arguments)) {
-    prepared <- tryCatch(tool@prepare_arguments(args), error = identity)
-    if (inherits(prepared, "error")) {
-      return(rho_tool_error_result(
-        content = list(rho_text(conditionMessage(prepared))),
-        details = list(
-          kind = "arguments",
-          tool_name = tool@name,
-          source = prepared
-        )
-      ))
-    }
-    args <- prepared
-  }
   required <- tool@parameters$required %||% character()
   missing <- setdiff(required, names(args))
   if (length(missing)) {
@@ -499,6 +505,20 @@ S7::method(rho_validate_tool_args, list(ToolSpec, S7::class_list)) <- function(t
       )
     ))
   }
+  if (!is.null(tool@prepare_arguments)) {
+    prepared <- tryCatch(tool@prepare_arguments(args), error = identity)
+    if (inherits(prepared, "error")) {
+      return(rho_tool_error_result(
+        content = list(rho_text(conditionMessage(prepared))),
+        details = list(
+          kind = "arguments",
+          tool_name = tool@name,
+          source = prepared
+        )
+      ))
+    }
+    args <- prepared
+  }
   args
 }
 
@@ -510,7 +530,10 @@ S7::method(rho_execute_tool, list(ToolSpec, ToolCall, S7::class_any)) <- functio
   on_update = NULL,
   ...
 ) {
-  args <- rho_validate_tool_args(tool, call@arguments)
+  args <- call@arguments
+  if (!call@arguments_prepared) {
+    args <- rho_validate_tool_args(tool, args)
+  }
   if (S7::S7_inherits(args, ToolErrorResult)) {
     return(rho.async::rho_task(args))
   }

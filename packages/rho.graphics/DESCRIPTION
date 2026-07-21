@@ -18,9 +18,9 @@ Imports:
 Suggests:
     tinytest, knitr, ggplot2, svglite, ragg
 Remotes:
-    sounkou-bioinfo/Rho/packages/rho.async,
-    sounkou-bioinfo/Rho/packages/rho.compute
-URL: https://github.com/sounkou-bioinfo/Rho,
-    https://sounkou-bioinfo.github.io/Rho/rho.graphics/
-BugReports: https://github.com/sounkou-bioinfo/Rho/issues
+    RGenomicsETL/Rho/packages/rho.async,
+    RGenomicsETL/Rho/packages/rho.compute
+URL: https://github.com/RGenomicsETL/Rho,
+    https://rgenomicsetl.github.io/Rho/rho.graphics/
+BugReports: https://github.com/RGenomicsETL/Rho/issues
 Config/roxygen2/version: 8.0.0

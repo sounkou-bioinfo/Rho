@@ -3,7 +3,7 @@
 
 <!-- badges: start -->
 
-[![R-CMD-check](https://github.com/sounkou-bioinfo/Rho/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sounkou-bioinfo/Rho/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/RGenomicsETL/Rho/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/RGenomicsETL/Rho/actions/workflows/R-CMD-check.yaml)
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
@@ -110,8 +110,6 @@ codex_example <- data.frame(
   result = result
 )
 codex_example
-#>                 model    status tool     result
-#> 1 gpt-5.3-codex-spark completed    r [1] 338350
 ```
 
 Rebuild this example by supplying the credential file explicitly:
@@ -128,29 +126,30 @@ reference site.
 
 | package | role | documentation |
 |---|---|---|
-| **rho.async** | tasks, streams, cancellation, timeouts, and composition | [guide](https://sounkou-bioinfo.github.io/Rho/rho.async/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.async/reference/) |
-| **rho.http** | transport-neutral HTTP requests, response bodies, and SSE decoding, with a nanonext client | [guide](https://sounkou-bioinfo.github.io/Rho/rho.http/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.http/reference/) |
-| **rho.http.httr2** | worker-owned httr2 implementation of the HTTP client contract | [guide](https://sounkou-bioinfo.github.io/Rho/rho.http.httr2/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.http.httr2/reference/) |
-| **rho.ai** | messages, models, capabilities, credentials, providers, and tools | [guide](https://sounkou-bioinfo.github.io/Rho/rho.ai/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.ai/reference/) |
-| **rho.agent** | multi-turn execution, session compaction, tool scheduling, queues, cancellation, and events | [guide](https://sounkou-bioinfo.github.io/Rho/rho.agent/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.agent/reference/) |
-| **rho.ext** | asynchronous extension handlers and capability registration | [guide](https://sounkou-bioinfo.github.io/Rho/rho.ext/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.ext/reference/) |
-| **rho.compute** | typed mirai expression and function-call tasks | [guide](https://sounkou-bioinfo.github.io/Rho/rho.compute/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.compute/reference/) |
-| **rho.graphics** | declared graphics devices and hashed artifacts | [guide](https://sounkou-bioinfo.github.io/Rho/rho.graphics/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.graphics/reference/) |
-| **rho.coding** | Bash, file, isolated-worker R, and explicit current-session R tools | [guide](https://sounkou-bioinfo.github.io/Rho/rho.coding/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.coding/reference/) |
-| **rho.bio** | manifests, resolvers, receipts, and database-neutral SQL contracts | [guide](https://sounkou-bioinfo.github.io/Rho/rho.bio/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.bio/reference/) |
-| **rho.duckdb** | DuckDB implementation of the asynchronous SQL contracts | [guide](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/reference/) |
-| **rho.bio.agent** | bioinformatics tools registered through the extension API | [guide](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/reference/) |
-| **rho.testkit** | bounded assertions for asynchronous tests | [guide](https://sounkou-bioinfo.github.io/Rho/rho.testkit/) · [reference](https://sounkou-bioinfo.github.io/Rho/rho.testkit/reference/) |
+| **rho.async** | tasks, streams, cancellation, timeouts, and composition | [guide](https://rgenomicsetl.github.io/Rho/rho.async/) · [reference](https://rgenomicsetl.github.io/Rho/rho.async/reference/) |
+| **rho.http** | transport-neutral HTTP requests, response bodies, and SSE decoding, with a nanonext client | [guide](https://rgenomicsetl.github.io/Rho/rho.http/) · [reference](https://rgenomicsetl.github.io/Rho/rho.http/reference/) |
+| **rho.http.httr2** | worker-owned httr2 implementation of the HTTP client contract | [guide](https://rgenomicsetl.github.io/Rho/rho.http.httr2/) · [reference](https://rgenomicsetl.github.io/Rho/rho.http.httr2/reference/) |
+| **rho.ai** | messages, models, capabilities, credentials, providers, and tools | [guide](https://rgenomicsetl.github.io/Rho/rho.ai/) · [reference](https://rgenomicsetl.github.io/Rho/rho.ai/reference/) |
+| **rho.agent** | multi-turn execution, session compaction, tool scheduling, queues, cancellation, and events | [guide](https://rgenomicsetl.github.io/Rho/rho.agent/) · [reference](https://rgenomicsetl.github.io/Rho/rho.agent/reference/) |
+| **rho.ext** | asynchronous extension handlers and capability registration | [guide](https://rgenomicsetl.github.io/Rho/rho.ext/) · [reference](https://rgenomicsetl.github.io/Rho/rho.ext/reference/) |
+| **rho.compute** | typed mirai expression and function-call tasks | [guide](https://rgenomicsetl.github.io/Rho/rho.compute/) · [reference](https://rgenomicsetl.github.io/Rho/rho.compute/reference/) |
+| **rho.graphics** | declared graphics devices and hashed artifacts | [guide](https://rgenomicsetl.github.io/Rho/rho.graphics/) · [reference](https://rgenomicsetl.github.io/Rho/rho.graphics/reference/) |
+| **rho.coding** | Bash, file, isolated-worker R, and explicit current-session R tools | [guide](https://rgenomicsetl.github.io/Rho/rho.coding/) · [reference](https://rgenomicsetl.github.io/Rho/rho.coding/reference/) |
+| **rho.bio** | manifests, resolvers, receipts, and database-neutral SQL contracts | [guide](https://rgenomicsetl.github.io/Rho/rho.bio/) · [reference](https://rgenomicsetl.github.io/Rho/rho.bio/reference/) |
+| **rho.duckdb** | DuckDB implementation of the asynchronous SQL contracts | [guide](https://rgenomicsetl.github.io/Rho/rho.duckdb/) · [reference](https://rgenomicsetl.github.io/Rho/rho.duckdb/reference/) |
+| **rho.bio.agent** | bioinformatics tools registered through the extension API | [guide](https://rgenomicsetl.github.io/Rho/rho.bio.agent/) · [reference](https://rgenomicsetl.github.io/Rho/rho.bio.agent/reference/) |
+| **rho.testkit** | bounded assertions for asynchronous tests | [guide](https://rgenomicsetl.github.io/Rho/rho.testkit/) · [reference](https://rgenomicsetl.github.io/Rho/rho.testkit/reference/) |
 
 Provider implementations with no independent dependency or ABI
 constraint live in `rho.ai`. OpenAI Codex, GitHub Copilot, Z.ai, OpenAI,
 Anthropic, Ollama, and the deterministic faux provider therefore share
 one typed provider surface without a package per API. The [Pi parity
-ledger](https://sounkou-bioinfo.github.io/Rho/docs/pi-parity.html) distinguishes complete wire adapters from
-request translators whose normalized stream is not yet complete. OpenAI,
-OpenAI Codex, GitHub Copilot, Z.ai, and Anthropic have executable
-normalized-stream fixtures; the ledger records the executable and
-external-account evidence for each adapter.
+ledger](https://rgenomicsetl.github.io/Rho/docs/pi-parity.html)
+distinguishes complete wire adapters from request translators whose
+normalized stream is not yet complete. OpenAI, OpenAI Codex, GitHub
+Copilot, Z.ai, and Anthropic have executable normalized-stream fixtures;
+the ledger records the executable and external-account evidence for each
+adapter.
 
 Bioinformatics remains downstream: `rho.bio`, `rho.duckdb`, and
 `rho.bio.agent` consume the provider and agent substrate but do not
@@ -162,7 +161,7 @@ Rho targets R 4.4 or newer. Install the development monorepo from a
 checkout:
 
 ``` bash
-git clone git@github.com:sounkou-bioinfo/Rho.git
+git clone git@github.com:RGenomicsETL/Rho.git
 cd Rho
 make deps
 make hooks
@@ -186,12 +185,14 @@ make check        # every package must report Status: OK
 make public-ready # complete publication gate
 ```
 
-The [Pi parity ledger](https://sounkou-bioinfo.github.io/Rho/docs/pi-parity.html) records behavioral contracts
-and the fixtures that verify them. Public release and addition to the
-[sounkou-bioinfo R-universe](https://sounkou-bioinfo.r-universe.dev)
-follow green package checks, live provider checks, documentation, and
-secret scanning. The exact sequence is recorded in the [publishing
-guide](https://sounkou-bioinfo.github.io/Rho/docs/releasing.html).
+The [Pi parity
+ledger](https://rgenomicsetl.github.io/Rho/docs/pi-parity.html) records
+behavioral contracts and the fixtures that verify them. Public release
+and addition to the [RGenomicsETL
+R-universe](https://rgenomicsetl.r-universe.dev) follow green package
+checks, live provider checks, documentation, and secret scanning. The
+exact sequence is recorded in the [publishing
+guide](https://rgenomicsetl.github.io/Rho/docs/releasing.html).
 
 ## License
 

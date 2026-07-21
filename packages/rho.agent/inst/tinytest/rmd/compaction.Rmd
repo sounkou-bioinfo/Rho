@@ -114,6 +114,107 @@ expect_equal(usage@tokens, 60)
 expect_equal(usage@last_usage_index, 1L)
 ```
 
+## Complete request accounting includes stable prompt material
+
+```{r complete-context-accounting}
+accounting_model <- rho_model("fixture", "accounting")
+accounting_tool <- rho_tool_spec(
+  name = "lookup",
+  description = paste(rep("tool schema", 20L), collapse = " "),
+  parameters = list(
+    type = "object",
+    properties = list(query = list(type = "string")),
+    required = "query"
+  ),
+  execute = function(tool_call_id, params, signal, on_update, ctx) {
+    rho_task(rho_tool_result())
+  }
+)
+accounting_context <- rho_context(
+  system_prompt = paste(rep("stable instruction", 30L), collapse = " "),
+  messages = list(rho_user_message("question", timestamp = 1)),
+  tools = list(accounting_tool),
+  operations = list(rho_web_search())
+)
+message_only <- rho_context_usage(accounting_context@messages)
+complete <- rho_context_usage(accounting_context, model = accounting_model)
+
+expect_true(complete@tokens > message_only@tokens)
+expect_equal(complete@usage_tokens, 0)
+expect_equal(complete@trailing_tokens, complete@tokens)
+```
+
+## Provider counts belong to one request-context revision
+
+```{r context-revision-accounting}
+revision <- rho_context_revision(accounting_context, accounting_model)
+accounted_assistant <- rho_assistant_message(
+  content = list(rho_text("accounted response")),
+  usage = rho_provider_usage(provider = "fixture", input = 40, output = 10),
+  context_revision = revision,
+  timestamp = 2
+)
+trailing <- rho_user_message(paste(rep("z", 40L), collapse = ""), timestamp = 3)
+continued_context <- rho_context(
+  system_prompt = accounting_context@system_prompt,
+  messages = c(accounting_context@messages, list(accounted_assistant, trailing)),
+  tools = accounting_context@tools,
+  operations = accounting_context@operations
+)
+continued <- rho_context_usage(continued_context, model = accounting_model)
+
+expect_equal(continued@usage_tokens, 50)
+expect_equal(continued@trailing_tokens, 10)
+expect_equal(continued@tokens, 60)
+
+changed_context <- rho_context(
+  system_prompt = paste0(accounting_context@system_prompt, " changed"),
+  messages = continued_context@messages,
+  tools = accounting_context@tools,
+  operations = accounting_context@operations
+)
+changed <- rho_context_usage(changed_context, model = accounting_model)
+
+expect_equal(changed@usage_tokens, 0)
+expect_equal(changed@tokens, rho_estimate_tokens(changed_context))
+```
+
+## Assistant usage records the request context it measured
+
+```{r assistant-context-revision}
+revision_provider <- rho_compaction_fixture_provider(list(
+  rho_assistant_message(
+    content = list(rho_text("revision recorded")),
+    provider = "fixture",
+    model = "fixture",
+    usage = rho_provider_usage(provider = "fixture", input = 5, output = 2)
+  )
+))
+revision_agent <- rho_agent(
+  revision_provider,
+  rho_model("fixture", "fixture"),
+  system_prompt = "stable prefix",
+  compaction = rho_compaction_settings(FALSE, 100L, 100L)
+)
+revision_run <- rho_prompt(revision_agent, "record the request") |>
+  rho_await(timeout = 5000L)
+revision_messages <- rho_state_messages(revision_agent)
+revision_assistant <- revision_messages[[length(revision_messages)]]
+sent_context <- revision_provider@state$contexts[[1L]]
+
+expect_true(S7::S7_inherits(
+  revision_assistant@context_revision,
+  RhoContextRevision
+))
+expect_identical(
+  revision_assistant@context_revision,
+  rho_context_revision(sent_context, revision_agent@options@model)
+)
+expect_equal(revision_run@usage@input, 5)
+expect_equal(revision_run@usage@output, 2)
+expect_true(revision_run@usage@complete)
+```
+
 ## Manual compaction preserves the transcript and projects a checkpoint
 
 ```{r generated-compaction}
@@ -458,11 +559,13 @@ agent <- rho_agent(
 entries <- list(
   RhoSessionMessageEntry(
     id = "user-1",
+    parent_id = "",
     timestamp = 1,
     message = rho_user_message(rho_long_fixture_text("a"), timestamp = 1)
   ),
   RhoSessionMessageEntry(
     id = "assistant-1",
+    parent_id = "user-1",
     timestamp = 2,
     message = rho_assistant_message(
       content = list(ToolCall(
@@ -475,6 +578,7 @@ entries <- list(
   ),
   RhoSessionMessageEntry(
     id = "tool-1",
+    parent_id = "assistant-1",
     timestamp = 3,
     message = rho_tool_result_message(
       "call-1",
@@ -485,6 +589,7 @@ entries <- list(
   ),
   RhoSessionMessageEntry(
     id = "user-2",
+    parent_id = "tool-1",
     timestamp = 4,
     message = rho_user_message("continue", timestamp = 4)
   )
@@ -497,4 +602,73 @@ preparation <- rho_prepare_compaction(agent, agent@options@compaction)
 expect_true(S7::S7_inherits(preparation, RhoCompactionPreparation))
 expect_false(identical(preparation@first_kept_entry_id, "tool-1"))
 expect_true(preparation@first_kept_entry_id %in% c("assistant-1", "user-2"))
+```
+
+## A compaction cut belongs to the selected branch
+
+```{r branch-cut}
+branch_agent <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  compaction = rho_compaction_settings(FALSE, 100L, 5L)
+)
+branch_entries <- list(
+  RhoSessionMessageEntry(
+    id = "branch-root",
+    parent_id = "",
+    timestamp = 1,
+    message = rho_user_message("root", timestamp = 1)
+  ),
+  RhoSessionMessageEntry(
+    id = "branch-point",
+    parent_id = "branch-root",
+    timestamp = 2,
+    message = rho_assistant_message(
+      content = list(rho_text("choose")),
+      timestamp = 2
+    )
+  ),
+  RhoSessionMessageEntry(
+    id = "abandoned-user",
+    parent_id = "branch-point",
+    timestamp = 3,
+    message = rho_user_message("abandoned", timestamp = 3)
+  )
+)
+for (entry in branch_entries) {
+  rho_append_session_entry(branch_agent, entry) |> rho_await(timeout = 1000L)
+}
+rho_move_session_leaf(branch_agent, "branch-point") |> rho_await(timeout = 1000L)
+rho_append_session_entry(
+  branch_agent,
+  RhoSessionMessageEntry(
+    id = "selected-user",
+    parent_id = "branch-point",
+    timestamp = 4,
+    message = rho_user_message("selected", timestamp = 4)
+  )
+) |>
+  rho_await(timeout = 1000L)
+
+abandoned_cut <- rho_compaction_result(
+  summary = "wrong branch",
+  first_kept_entry_id = "abandoned-user",
+  tokens_before = 4,
+  source = RhoProvidedCompaction()
+)
+selected_cut <- rho_compaction_result(
+  summary = "selected branch",
+  first_kept_entry_id = "selected-user",
+  tokens_before = 4,
+  source = RhoProvidedCompaction()
+)
+
+expect_true(S7::S7_inherits(
+  rho.agent:::rho_validate_compaction_result(branch_agent, abandoned_cut),
+  RhoCompactionFailure
+))
+expect_identical(
+  rho.agent:::rho_validate_compaction_result(branch_agent, selected_cut),
+  selected_cut
+)
 ```

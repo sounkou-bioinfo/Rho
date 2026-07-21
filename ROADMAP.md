@@ -8,7 +8,7 @@ supported by an executable fixture.
 
 ## Current foundation
 
-- Thirteen packages share version `0.0.1.9000` and pass the monorepo package
+- Thirteen packages share version `0.0.1.9001` and pass the monorepo package
   checks.
 - `rho.async`, `rho.http`, `rho.ai`, and `rho.agent` provide the task, stream,
   provider, and multi-turn agent contracts.
@@ -31,16 +31,27 @@ supported by an executable fixture.
   extension, worker, or remote implementation.
 - `rho.agent` closes over the structural `SessionJournal` interface. Its
   in-memory implementation proves compare-and-append, snapshot synchronization,
-  typed failure, terminal-only assistant entries, and reset without erasing
-  journal history.
+  typed failure, stable identity, parent-linked branches, explicit leaf
+  movement, terminal-only assistant entries, and reset without erasing journal
+  history.
 - `rho.coding` implements that interface as locked, worker-backed JSONL. Its
-  fixtures prove lossless S7 entry replay after restart, stale-writer rejection,
-  and refusal to read or append after a partial final record.
+  fixtures prove lossless semantic-entry and selected-branch replay after
+  restart, stale-writer rejection, and refusal to read or append after a partial
+  final record. Explicit adapters isolate the wire schema from the
+  current S7 package layout.
+- `rho.coding` also provides the structural `MemoryStore` interface and typed
+  `remember`, `recall`, `edit_memory`, `forget`, and `memory_history` tools. Its
+  reference store keeps append-only attributed revisions and tombstones, and
+  uses expected revision identity to reject stale mutation.
+- Agent usage summaries preserve reported, estimated, unavailable, and unpriced
+  observations. Context-window accounting covers the transformed prompt,
+  transcript, tools, operations, and activation state under a stable request
+  revision.
 
 ## 1. Publication integrity
 
 - Register `rho.http.httr2` beside the other twelve packages in the
-  sounkou-bioinfo R-universe manifest, then require successful builds in
+  RGenomicsETL R-universe manifest, then require successful builds in
   dependency order.
 - Keep every package README, reference site, `NEWS.md`, lifecycle badge, and
   package link reproducible from the checkout.
@@ -83,16 +94,14 @@ supported by an executable fixture.
   implementation as one coding-host adapter. Exercise the same contract through
   an NNG-owned service before treating any method set or deployment topology as
   settled. Provider and bio packages do not learn filesystem session layouts.
-- Give session entries stable identifiers and define atomic append and
-  checkpoint rules before choosing a file or database implementation. The
-  current compare-and-append position is the first atomic rule; the JSONL
-  adapter proves it across independent writers in one host. It deliberately
-  detects and refuses a torn final record; it does not yet claim recovery,
-  `fsync()` durability, session identity, or branching.
-- Rho JSONL is not Pi JSONL. Pi version 3 has a session header and tree entries
-  with stable IDs and parent links; Rho currently records linear typed S7
-  entries at committed positions. Add Pi import/export as a separate codec only
-  when identity and lineage are consumed by the Rho journal contract.
+- Keep the defined atomic append and leaf-movement rules independent of a file
+  or database implementation. The JSONL adapter proves compare-and-append
+  across independent writers in one host. It deliberately detects and refuses
+  a torn final record; it does not yet claim recovery or `fsync()` durability.
+- Rho JSONL is not Pi JSONL. Both have session identity and parent-linked trees,
+  but Rho uses stable semantic records and explicit leaf-movement
+  records. Add Pi import/export as a separate codec rather than conditionals in
+  the native journal.
 - Emit typed session-start, compaction, switch/fork, and shutdown events only
   after the corresponding session mutation commits. Extension handlers receive
   the session identity, lineage, committed sequence, and a journal cursor or
@@ -100,11 +109,16 @@ supported by an executable fixture.
 - Make compaction write an ordinary typed session entry through that interface.
   Keep provider-native compaction, extension compaction, and the default Rho
   compactor as dispatchable implementations.
+- Keep the authored-memory generics and typed tool commands independent of the
+  process-local reference store. Implement a durable DuckDB/NNG observation
+  adapter and derive a small agent-level context-contribution generic. Pin that
+  composed plan for a run; compaction already summarizes only transcript while
+  accounting for the complete transformed request and its plan revision.
 - Define the minimal artifact-reference and admission protocols shared by
   graphics, tool output, and bio resources. Concrete stores remain optional
   downstream packages. Content hashes identify immutable bytes; metadata and
   provenance remain typed values.
-- Resolve [oversized tool results](https://github.com/sounkou-bioinfo/Rho/issues/3)
+- Resolve [oversized tool results](https://github.com/RGenomicsETL/Rho/issues/3)
   by storing the complete result and returning a bounded model-facing view with
   an artifact reference.
 - Compare the resulting dependency and invalidation semantics with `targets`
@@ -139,7 +153,7 @@ supported by an executable fixture.
   complete output through the artifact store.
 - Resolve Bash explicitly on every supported platform and report the selected
   executable. Do not translate Bash syntax into another shell language.
-- Implement [portable typed text search](https://github.com/sounkou-bioinfo/Rho/issues/4)
+- Implement [portable typed text search](https://github.com/RGenomicsETL/Rho/issues/4)
   with a native R implementation and an explicitly selected external engine
   where available.
 - Complete file, edit, search, and process tools with typed operational results,

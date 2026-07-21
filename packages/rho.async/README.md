@@ -7,9 +7,9 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-[`rho.async`](https://sounkou-bioinfo.github.io/Rho/rho.async/) is the
+[`rho.async`](https://rgenomicsetl.github.io/Rho/rho.async/) is the
 small asynchronous contract at the base of
-[Rho](https://sounkou-bioinfo.github.io/Rho/). A `RhoTask` represents
+[Rho](https://rgenomicsetl.github.io/Rho/). A `RhoTask` represents
 one eventual value; a `RhoStream` represents an asynchronous sequence.
 Both are open S7 protocols, so transports and worker systems can add
 methods without changing callers.
@@ -67,6 +67,6 @@ remains the I/O substrate; the bridge only improves progress at
 interactive R safe points.
 
 Continue with
-[`rho.http`](https://sounkou-bioinfo.github.io/Rho/rho.http/), or see
+[`rho.http`](https://rgenomicsetl.github.io/Rho/rho.http/), or see
 the [`rho.async`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.async/reference/).
+reference](https://rgenomicsetl.github.io/Rho/rho.async/reference/).

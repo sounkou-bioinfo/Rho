@@ -34,6 +34,114 @@ ledger. CAS does not carry session order or mutable blackboard state. Shared
 collection requires roots or leases supplied by an authority that can see the
 live references.
 
+## Authored memory and prompt composition
+
+An agent-authored memory note is a temporal observation, not a hidden message
+and not a mutation of the agent's base system prompt. The write is an ordinary
+tool or operation with an explicit observation store. Its receipt connects the
+session tool call, the authored revision, its source, and any typed links. The
+tool result is committed to the session journal; the memory revision is owned by
+the observation store. Neither store substitutes for the other.
+
+The concrete coding-host protocol distinguishes mutation rather than hiding it
+behind an upsert. `rho_remember()` creates a live slot and refuses to replace an
+existing note. `rho_edit_memory()` receives a typed edit plus the expected
+current revision; the shipped `RhoMemoryReplacement` stores a complete new note
+and names the revision it supersedes. `rho_forget()` requires the same expected
+revision and appends a tombstone. A stale request returns
+`RhoMemoryConflict`. Revisions remain ordered and queryable, and every link
+removed by an edit or tombstone is carried as an explicit retraction. Another
+store can implement these generics without inheriting the in-memory layout.
+
+Prompt composition has three distinct inputs:
+
+1. The host supplies the base system prompt and its authority.
+2. An extension may supply stable orientation about capabilities and operating
+   rules.
+3. A memory policy may select a bounded index of current note identities and
+   retrieval hooks at a declared instant.
+
+Full note bodies do not enter every prompt. The model recalls one through a
+tool, graph walk, or other bounded query, and that result then becomes visible
+in the session. This preserves the useful two-stage retrieval exercised by
+`pi-bio-agent` without treating a complete graph neighborhood as prompt text.
+
+Prompt composition must also preserve provider prefix caches. Layers are
+ordered from least to most volatile:
+
+1. the host base prompt;
+2. stable extension orientation;
+3. a memory index pinned to an explicit revision set for the session or run;
+4. turn-local material.
+
+The first three layers may form the provider's system or instruction prefix.
+Their rendering is canonical: source order, separators, and text remain
+byte-for-byte stable, while timestamps, receipts, and digests stay in metadata.
+Agent-authored writes do not mutate the pinned index during the active run. A
+host activates a new memory revision set at an explicit refresh, accepting the
+corresponding cache change. Turn-local recall belongs in a tool result or other
+late transcript entry, not in a rewritten system prompt.
+
+This ordering is semantic rather than a provider flag. A provider method may
+lower the same layers to automatic prefix caching, explicit cache-control
+breakpoints, or no cache facility at all. Reported cache reads and writes remain
+usage observations; they can verify the expected placement but never define
+the memory policy.
+
+A dynamic prompt layer needs a receipt containing its source revisions,
+selection instant, ordering, limits, and rendered digest. A live-current policy
+and a session-pinned policy are different implementations. Failure to obtain a
+layer is a typed policy result: the host decides whether the run may continue
+without it. An adapter must not silently omit memory and call that equivalent
+behavior.
+
+The first authored-memory implementation belongs to the coding host. It owns
+the note schema, discovery rules, tools, and selected observation store. The
+agent substrate owns only an open context-contribution generic and the typed
+plan produced by composing contributions. A coding-memory object or an
+extension-defined object can implement that generic through an S7 method; the
+agent loop does not switch on extension names or storage types.
+
+The existing context-transform policy is the lifecycle point at which the
+contributions are awaited. It must not remain an unconstrained whole-context
+replacement API. The exercised memory implementation should derive the
+smaller contract: a contribution carries its authority, cache stability,
+selected revisions, rendered content, and receipt. The composed plan is pinned
+in the run context and is the value seen by provider lowering and context
+accounting.
+
+## Compaction and contributed context
+
+Compaction belongs to the generic agent harness because every model-backed
+agent has a finite context window. A coding host may supply a richer compactor,
+but it does not own the session operation.
+
+Compaction walks the selected session trajectory, finds a safe cut, summarizes
+the older transcript, and appends a `RhoSessionCompactionEntry`. It never
+deletes the original nodes. Future provider context projects the compaction
+summary, the retained recent nodes, and later descendants. Moving to an
+ancestor branch naturally removes a compaction entry that is not on that path.
+
+Contributed context is not part of the text selected for summarization. The
+base prompt, extension orientation, and pinned memory index remain unchanged;
+recalled note bodies that appeared as tool results are ordinary transcript and
+may be summarized. Their durable authored revisions remain in the observation
+store, and the original tool calls and receipts remain in the journal.
+
+The effective context budget must nevertheless include every contribution,
+tool definition, provider operation, and transcript node. A provider usage
+observation is reusable for later accounting only when it identifies the same
+pinned context-plan revision. After a memory refresh, tool-plan change, model
+change, or compaction, accounting either uses usage reported for the new plan or
+estimates the complete plan. It must not combine an old provider count with a
+new prefix.
+
+A provider-native compaction method and a generated-summary compactor are
+implementations of the same compactor generic. Both must return a semantic
+compaction result that can be committed to the session. An opaque provider
+handle may accompany that result as provider-specific detail; it cannot replace
+the durable summary and cut identity.
+
 ## Sub-agents and recursive models
 
 A sub-agent is an execution binding of the same Rho agent substrate. It carries

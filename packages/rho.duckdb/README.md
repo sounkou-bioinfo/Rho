@@ -7,9 +7,9 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-[`rho.duckdb`](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/)
+[`rho.duckdb`](https://rgenomicsetl.github.io/Rho/rho.duckdb/)
 implements the database-neutral
-[`rho.bio`](https://sounkou-bioinfo.github.io/Rho/rho.bio/) SQL generics
+[`rho.bio`](https://rgenomicsetl.github.io/Rho/rho.bio/) SQL generics
 for DuckDB. Queries return tasks, and declared read-only paths are
 checked before execution.
 
@@ -39,6 +39,6 @@ point, leaving room for other SQL backends without changing manifests or
 agent tools.
 
 See the [`rho.duckdb`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/reference/)
+reference](https://rgenomicsetl.github.io/Rho/rho.duckdb/reference/)
 and the upstream
-[`rho.bio`](https://sounkou-bioinfo.github.io/Rho/rho.bio/) contracts.
+[`rho.bio`](https://rgenomicsetl.github.io/Rho/rho.bio/) contracts.

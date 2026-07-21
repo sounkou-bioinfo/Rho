@@ -115,7 +115,7 @@ for (index in seq_along(package_dirs)) {
     character()
   }
   expected_remotes <- sprintf(
-    "sounkou-bioinfo/Rho/packages/%s",
+    "RGenomicsETL/Rho/packages/%s",
     internal_dependencies
   )
   for (remote in setdiff(expected_remotes, remotes)) {

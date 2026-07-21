@@ -40,7 +40,8 @@ ToolCall <- S7::new_class(
   properties = list(
     id = rho_non_empty_string,
     name = rho_non_empty_string,
-    arguments = S7::class_list
+    arguments = S7::class_list,
+    arguments_prepared = S7::new_property(S7::class_logical, default = FALSE)
   )
 )
 
@@ -220,6 +221,124 @@ UsageUnavailable <- S7::new_class(
   )
 )
 
+rho_usage_observation_list <- S7::new_property(
+  S7::class_list,
+  validator = function(value) {
+    valid <- vapply(
+      value,
+      S7::S7_inherits,
+      logical(1),
+      class = UsageObservation
+    )
+    if (!all(valid)) "must contain only UsageObservation values"
+  }
+)
+
+rho_provider_usage_list <- S7::new_property(
+  S7::class_list,
+  validator = function(value) {
+    valid <- vapply(value, S7::S7_inherits, logical(1), class = ProviderUsage)
+    if (!all(valid)) "must contain only ProviderUsage values"
+  }
+)
+
+rho_estimated_usage_list <- S7::new_property(
+  S7::class_list,
+  validator = function(value) {
+    valid <- vapply(value, S7::S7_inherits, logical(1), class = EstimatedUsage)
+    if (!all(valid)) "must contain only EstimatedUsage values"
+  }
+)
+
+rho_unavailable_usage_list <- S7::new_property(
+  S7::class_list,
+  validator = function(value) {
+    valid <- vapply(value, S7::S7_inherits, logical(1), class = UsageUnavailable)
+    if (!all(valid)) "must contain only UsageUnavailable values"
+  }
+)
+
+rho_counted_usage_list <- S7::new_property(
+  S7::class_list,
+  validator = function(value) {
+    valid <- vapply(value, S7::S7_inherits, logical(1), class = Usage)
+    if (!all(valid)) "must contain only Usage values"
+  }
+)
+
+rho_optional_usage_rate <- S7::new_property(
+  S7::class_any,
+  default = NULL,
+  validator = function(value) {
+    if (
+      !is.null(value) &&
+        (!is.double(value) ||
+          length(value) != 1L ||
+          is.na(value) ||
+          value < 0 ||
+          value > 1)
+    ) {
+      "must be NULL or one proportion between zero and one"
+    }
+  }
+)
+
+rho_usage_complete <- S7::new_property(
+  S7::class_logical,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value)) {
+      "must be one non-missing logical value"
+    }
+  }
+)
+
+UsageSummary <- S7::new_class(
+  "UsageSummary",
+  properties = list(
+    observations = rho_usage_observation_list,
+    reported = rho_provider_usage_list,
+    estimated = rho_estimated_usage_list,
+    unavailable = rho_unavailable_usage_list,
+    unpriced = rho_counted_usage_list,
+    input = rho_nonnegative_double,
+    output = rho_nonnegative_double,
+    cache_read = rho_nonnegative_double,
+    cache_write = rho_nonnegative_double,
+    total = rho_nonnegative_double,
+    nominal_cost = NominalUsageCost,
+    complete = rho_usage_complete,
+    cost_complete = rho_usage_complete,
+    latest_cache_hit_rate = rho_optional_usage_rate
+  ),
+  validator = function(self) {
+    tokens <- self@input + self@output + self@cache_read + self@cache_write
+    if (!isTRUE(all.equal(self@total, tokens))) {
+      return("@total must equal the sum of the token components")
+    }
+    if (self@complete && length(self@unavailable)) {
+      return("@complete cannot be true when usage is unavailable")
+    }
+    if (self@cost_complete && (!self@complete || length(self@unpriced))) {
+      "@cost_complete requires complete and priced observations"
+    }
+  }
+)
+
+RhoContextRevision <- S7::new_class(
+  "RhoContextRevision",
+  properties = list(digest = rho_non_empty_string)
+)
+
+rho_optional_context_revision <- S7::new_property(
+  S7::class_any,
+  default = NULL,
+  validator = function(value) {
+    if (!is.null(value) && !S7::S7_inherits(value, RhoContextRevision)) {
+      "must be NULL or a RhoContextRevision value"
+    }
+  }
+)
+
 UserMessage <- S7::new_class(
   "UserMessage",
   properties = list(content = S7::class_any, timestamp = S7::class_double)
@@ -232,6 +351,7 @@ AssistantMessage <- S7::new_class(
     model = S7::class_character,
     stop_reason = S7::class_character,
     usage = UsageObservation,
+    context_revision = rho_optional_context_revision,
     response_id = S7::new_property(S7::class_character, default = ""),
     timestamp = S7::class_double
   )

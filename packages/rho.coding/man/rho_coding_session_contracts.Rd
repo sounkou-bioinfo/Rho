@@ -3,29 +3,34 @@
 \name{rho_coding_session_contracts}
 \alias{rho_coding_session_contracts}
 \alias{RhoJsonSessionCodec}
+\alias{RhoJsonSemanticAdapter}
 \alias{RhoSessionCodecErrorValue}
 \alias{RhoJsonlSessionJournal}
 \alias{RhoJsonlSessionJournalErrorValue}
+\alias{rho_json_semantic_adapter}
 \alias{rho_json_session_codec}
 \alias{rho_jsonl_session_journal}
 \alias{rho_encode_session_value}
 \alias{rho_decode_session_value}
 \title{JSON session documents and the coding-host JSONL journal}
 \description{
-\code{\link[=rho_json_session_codec]{rho_json_session_codec()}} derives an allowlist of session-reachable S7
-classes from \code{rho.agent} and \code{rho.ai}. \code{\link[=rho_encode_session_value]{rho_encode_session_value()}} and
-\code{\link[=rho_decode_session_value]{rho_decode_session_value()}} preserve S7 class identity, properties, R atomic
-storage modes, list names, missing values, and arbitrary JSON-compatible tool
-arguments. Hosts can supply additional S7 classes explicitly or specialize
-the codec generics for another document representation. JSON tags are
-normalized once into validated internal S7 document classes; recursive
-decoding proceeds by S7 dispatch.
+\code{\link[=rho_json_session_codec]{rho_json_session_codec()}} contains an explicit registry of stable semantic
+record types. A \link{RhoJsonSemanticAdapter} maps one stable wire tag and field
+set to the current in-memory S7 class. Package names, S7 class names, and
+reflected property sets are never written to the journal. An extension adds
+a value by supplying \code{\link[=rho_json_semantic_adapter]{rho_json_semantic_adapter()}} with its own stable tag
+and explicit fields.
 }
 \details{
+\code{\link[=rho_encode_session_value]{rho_encode_session_value()}} and \code{\link[=rho_decode_session_value]{rho_decode_session_value()}} retain R atomic
+storage modes, list names, missing values, and registered semantic values.
+Unknown S7 objects resolve to \code{RhoSessionCodecErrorValue} rather than acquiring
+an accidental storage schema from the current package namespace.
+
 \code{\link[=rho_jsonl_session_journal]{rho_jsonl_session_journal()}} implements the \code{SessionJournal} interface as a
 coding-host adapter. File reads, locking, validation, and append run in mirai
-workers. Each LF-delimited record carries a schema version, committed
-position, and typed entry document. A file lock and the append request's
+workers. Each LF-delimited entry record carries a committed position and
+typed entry document. A file lock and the append request's
 expected position reject stale writers before mutation. A missing final LF,
-malformed record, or invalid S7 document resolves to a typed error value.
+malformed record, or invalid semantic document resolves to a typed error value.
 }

@@ -7,10 +7,11 @@ rho_error_assistant_message <- function(agent, stop_reason = "error") {
   )
 }
 
-rho_assistant_turn <- function(agent) {
+rho_assistant_turn <- function(agent, context_revision) {
   RhoAssistantTurn(
     state = rho_new_state(
       agent = agent,
+      context_revision = context_revision,
       started = FALSE,
       commit = NULL,
       message = NULL,
@@ -31,6 +32,7 @@ rho_store_assistant_message <- function(turn, message) {
 }
 
 rho_end_assistant_turn <- function(turn, message, error = NULL) {
+  message@context_revision <- turn@state$context_revision
   rho.async::rho_then(
     rho_store_assistant_message(turn, message),
     function(ignored) {
@@ -131,32 +133,14 @@ S7::method(
 rho_receive_assistant <- function(agent, context) {
   rho.async::rho_coro_task(
     function() {
-      turn <- rho_assistant_turn(agent)
-      transformed <- tryCatch(
-        coro::await(rho.async::rho_as_promise(
-          rho_transform_agent_context(agent@options@policy, agent, context)
-        )),
-        error = function(error) error
-      )
-      if (inherits(transformed, "error")) {
-        error <- rho_agent_error(conditionMessage(transformed), "policy")
-        coro::await(rho.async::rho_as_promise(rho_fail_assistant_turn(turn, error)))
-        return(rho_assistant_response(turn, error))
-      }
-      if (!S7::S7_inherits(transformed, rho.ai::Context)) {
-        error <- rho_agent_error(
-          "Agent context policy did not return a Context",
-          "policy"
-        )
-        coro::await(rho.async::rho_as_promise(rho_fail_assistant_turn(turn, error)))
-        return(rho_assistant_response(turn, error))
-      }
+      revision <- rho.ai::rho_context_revision(context, agent@options@model)
+      turn <- rho_assistant_turn(agent, revision)
 
       stream <- tryCatch(
         rho.ai::rho_stream(
           agent@options@provider,
           agent@options@model,
-          transformed,
+          context,
           options = agent@options@stream_options
         ),
         error = function(error) error

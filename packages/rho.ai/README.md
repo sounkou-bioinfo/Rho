@@ -7,9 +7,9 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-[`rho.ai`](https://sounkou-bioinfo.github.io/Rho/rho.ai/) defines the
+[`rho.ai`](https://rgenomicsetl.github.io/Rho/rho.ai/) defines the
 provider surface shared by the rest of
-[Rho](https://sounkou-bioinfo.github.io/Rho/): typed messages and
+[Rho](https://rgenomicsetl.github.io/Rho/): typed messages and
 content, model capabilities, tool contracts, credentials, provider
 operations, and normalized assistant event streams.
 
@@ -244,6 +244,6 @@ caching, and reasoning. Codex defaults are methods on
 tool-input behavior comes from a typed model capability profile.
 
 Continue with the
-[`rho.agent`](https://sounkou-bioinfo.github.io/Rho/rho.agent/) loop, or
+[`rho.agent`](https://rgenomicsetl.github.io/Rho/rho.agent/) loop, or
 see the [`rho.ai`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.ai/reference/).
+reference](https://rgenomicsetl.github.io/Rho/rho.ai/reference/).

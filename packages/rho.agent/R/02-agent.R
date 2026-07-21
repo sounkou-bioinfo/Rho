@@ -119,6 +119,11 @@ rho_append_session_entry <- S7::new_generic(
   c("agent", "entry"),
   function(agent, entry, ...) S7::S7_dispatch()
 )
+rho_move_session_leaf <- S7::new_generic(
+  "rho_move_session_leaf",
+  "agent",
+  function(agent, target_entry_id = "", ...) S7::S7_dispatch()
+)
 rho_commit_session_entry <- S7::new_generic(
   "rho_commit_session_entry",
   c("journal", "append"),
@@ -128,6 +133,11 @@ rho_session_snapshot <- S7::new_generic(
   "rho_session_snapshot",
   "journal",
   function(journal, ...) S7::S7_dispatch()
+)
+rho_session_trajectory <- S7::new_generic(
+  "rho_session_trajectory",
+  "snapshot",
+  function(snapshot, leaf_id = snapshot@leaf_id, ...) S7::S7_dispatch()
 )
 rho_apply_session_snapshot <- S7::new_generic(
   "rho_apply_session_snapshot",
@@ -157,7 +167,7 @@ rho_estimate_tokens <- S7::new_generic(
 rho_context_usage <- S7::new_generic(
   "rho_context_usage",
   "messages",
-  function(messages, after = -Inf, ...) S7::S7_dispatch()
+  function(messages, after = -Inf, model = NULL, ...) S7::S7_dispatch()
 )
 rho_should_compact <- S7::new_generic(
   "rho_should_compact",
@@ -167,7 +177,7 @@ rho_should_compact <- S7::new_generic(
 rho_prepare_compaction <- S7::new_generic(
   "rho_prepare_compaction",
   c("agent", "settings"),
-  function(agent, settings, ...) S7::S7_dispatch()
+  function(agent, settings, context = NULL, ...) S7::S7_dispatch()
 )
 rho_compact_preparation <- S7::new_generic(
   "rho_compact_preparation",
@@ -417,13 +427,15 @@ rho_agent <- function(
   state <- rho_new_state(
     messages = list(),
     entries = list(),
-    entry_sequence = 0L,
+    session_id = "",
+    parent_session_id = "",
+    leaf_id = "",
     journal_position = 0L,
     tools = rho_tool_registry(tools),
     listeners = list(),
     steering_queue = list(),
     follow_up_queue = list(),
-    phase = "idle",
+    phase = RhoAgentIdle(),
     pending_tool_calls = character(),
     events = list(),
     event_sequence = 0L,
@@ -498,7 +510,7 @@ rho_agent_message <- function(message) {
 }
 
 S7::method(rho_steer, RhoAgent) <- function(agent, message, ...) {
-  if (identical(agent@state$phase, "idle")) {
+  if (S7::S7_inherits(agent@state$phase, RhoAgentIdle)) {
     return(rho.async::rho_task(rho_agent_error("Cannot steer an idle agent", "invalid_state")))
   }
   agent@state$steering_queue[[length(agent@state$steering_queue) + 1L]] <- rho_agent_message(
@@ -514,7 +526,7 @@ S7::method(rho_steer, RhoAgent) <- function(agent, message, ...) {
 }
 
 S7::method(rho_follow_up, RhoAgent) <- function(agent, message, ...) {
-  if (identical(agent@state$phase, "idle")) {
+  if (S7::S7_inherits(agent@state$phase, RhoAgentIdle)) {
     return(rho.async::rho_task(rho_agent_error(
       "Cannot queue a follow-up on an idle agent",
       "invalid_state"
@@ -542,7 +554,7 @@ S7::method(rho_abort_agent, RhoAgent) <- function(agent, reason = NULL, ...) {
 }
 
 S7::method(rho_wait_for_idle, RhoAgent) <- function(agent, ...) {
-  if (identical(agent@state$phase, "idle")) {
+  if (S7::S7_inherits(agent@state$phase, RhoAgentIdle)) {
     return(rho.async::rho_task(NULL))
   }
   waiter_id <- paste0("waiter-", length(agent@state$idle_waiters) + 1L)
@@ -553,11 +565,12 @@ S7::method(rho_wait_for_idle, RhoAgent) <- function(agent, ...) {
 }
 
 S7::method(rho_reset, RhoAgent) <- function(agent, ...) {
-  if (!identical(agent@state$phase, "idle")) {
+  if (!S7::S7_inherits(agent@state$phase, RhoAgentIdle)) {
     return(rho.async::rho_task(rho_agent_error("Cannot reset a running agent", "busy")))
   }
   entry <- RhoSessionResetEntry(
     id = rho_next_session_entry_id(agent),
+    parent_id = agent@state$leaf_id,
     timestamp = as.double(Sys.time())
   )
   rho.async::rho_then(

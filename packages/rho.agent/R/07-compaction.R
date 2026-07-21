@@ -36,27 +36,59 @@ S7::method(rho_estimate_tokens, rho.ai::AssistantMessage) <- function(x, ...) {
 }
 
 S7::method(rho_estimate_tokens, rho.ai::ToolResultMessage) <- function(x, ...) {
-  rho_estimate_tokens(x@content)
+  rho_estimate_tokens(c(x@content, x@added_tool_names))
 }
 
-rho_assistant_usage_is_current <- function(message, after) {
-  S7::S7_inherits(message, rho.ai::AssistantMessage) &&
-    message@timestamp > after &&
+S7::method(rho_estimate_tokens, rho.ai::ToolSpec) <- function(x, ...) {
+  rho_estimate_tokens(c(
+    x@name,
+    x@label,
+    x@description,
+    paste(deparse(x@parameters, width.cutoff = 500L), collapse = "")
+  ))
+}
+
+S7::method(rho_estimate_tokens, rho.ai::RhoOperation) <- function(x, ...) {
+  rho_estimate_tokens(paste(
+    deparse(rho.ai::rho_context_signature(x), width.cutoff = 500L),
+    collapse = ""
+  ))
+}
+
+S7::method(rho_estimate_tokens, rho.ai::Context) <- function(x, ...) {
+  rho_estimate_tokens(c(
+    x@system_prompt,
+    x@messages,
+    x@tools,
+    x@operations
+  ))
+}
+
+rho_assistant_usage_is_current <- function(message, after, revision = NULL) {
+  if (!S7::S7_inherits(message, rho.ai::AssistantMessage)) {
+    return(FALSE)
+  }
+  revision_matches <- is.null(revision) ||
+    (!is.null(message@context_revision) &&
+      identical(message@context_revision@digest, revision@digest))
+  message@timestamp > after &&
     !message@stop_reason %in% c("aborted", "error") &&
     S7::S7_inherits(message@usage, rho.ai::Usage) &&
-    message@usage@total > 0
+    message@usage@total > 0 &&
+    revision_matches
 }
 
-S7::method(rho_context_usage, S7::class_list) <- function(
+rho_message_context_usage <- function(
   messages,
   after = -Inf,
-  ...
+  revision = NULL
 ) {
   usage_indexes <- which(vapply(
     messages,
     rho_assistant_usage_is_current,
     logical(1),
-    after = after
+    after = after,
+    revision = revision
   ))
   if (!length(usage_indexes)) {
     tokens <- rho_estimate_tokens(messages)
@@ -80,6 +112,48 @@ S7::method(rho_context_usage, S7::class_list) <- function(
     usage_tokens = as.double(usage_tokens),
     trailing_tokens = as.double(trailing),
     last_usage_index = as.integer(last_usage_index)
+  )
+}
+
+S7::method(rho_context_usage, S7::class_list) <- function(
+  messages,
+  after = -Inf,
+  model = NULL,
+  ...
+) {
+  rho_message_context_usage(messages, after = after)
+}
+
+S7::method(rho_context_usage, rho.ai::Context) <- function(
+  messages,
+  after = -Inf,
+  model = NULL,
+  ...
+) {
+  if (is.null(model)) {
+    tokens <- rho_estimate_tokens(messages)
+    return(RhoContextUsage(
+      tokens = tokens,
+      usage_tokens = 0,
+      trailing_tokens = tokens,
+      last_usage_index = NULL
+    ))
+  }
+  revision <- rho.ai::rho_context_revision(messages, model)
+  usage <- rho_message_context_usage(
+    messages@messages,
+    after = after,
+    revision = revision
+  )
+  if (usage@usage_tokens > 0) {
+    return(usage)
+  }
+  tokens <- rho_estimate_tokens(messages)
+  RhoContextUsage(
+    tokens = tokens,
+    usage_tokens = 0,
+    trailing_tokens = tokens,
+    last_usage_index = NULL
   )
 }
 
@@ -124,7 +198,10 @@ S7::method(
 }
 
 rho_compaction_active_entries <- function(agent) {
-  entries <- rho_active_session_entries(agent@state$entries)
+  entries <- rho_active_session_entries(
+    agent@state$entries,
+    agent@state$leaf_id
+  )
   excluded <- vapply(
     Filter(
       function(entry) S7::S7_inherits(entry, RhoSessionContextExclusionEntry),
@@ -223,7 +300,7 @@ rho_compaction_checkpoint <- function(entries) {
 S7::method(
   rho_prepare_compaction,
   list(RhoAgent, RhoCompactionSettings)
-) <- function(agent, settings, ...) {
+) <- function(agent, settings, context = NULL, ...) {
   entries <- rho_compaction_active_entries(agent)
   if (!length(entries)) {
     return(rho_nothing_to_compact(
@@ -258,8 +335,14 @@ S7::method(
     ))
   }
 
-  context <- rho_build_agent_context(agent)
-  usage <- rho_context_usage(context@messages, after = checkpoint@timestamp)
+  if (is.null(context)) {
+    context <- rho_build_agent_context(agent)
+  }
+  usage <- rho_context_usage(
+    context,
+    after = checkpoint@timestamp,
+    model = agent@options@model
+  )
   RhoCompactionPreparation(
     first_kept_entry_id = entries[[cut@first_kept]]@id,
     messages = messages,
@@ -526,9 +609,10 @@ rho_validate_compaction_result <- function(agent, result) {
       "A compactor must return a RhoCompactionResult"
     ))
   }
+  active_entries <- rho_compaction_active_entries(agent)
   entry <- Filter(
     function(candidate) identical(candidate@id, result@first_kept_entry_id),
-    agent@state$entries
+    active_entries
   )
   if (
     length(entry) != 1L ||
@@ -570,9 +654,14 @@ rho_run_compaction <- function(
   agent,
   reason,
   custom_instructions = "",
-  will_retry = FALSE
+  will_retry = FALSE,
+  context = NULL
 ) {
-  preparation <- rho_prepare_compaction(agent, agent@options@compaction)
+  preparation <- rho_prepare_compaction(
+    agent,
+    agent@options@compaction,
+    context = context
+  )
   if (
     S7::S7_inherits(preparation, RhoCompactionSkipped) ||
       S7::S7_inherits(preparation, RhoCompactionErrorValue)
@@ -657,6 +746,7 @@ rho_run_compaction <- function(
 
       entry <- RhoSessionCompactionEntry(
         id = rho_next_session_entry_id(agent),
+        parent_id = agent@state$leaf_id,
         timestamp = as.double(Sys.time()),
         result = result,
         reason = reason,
@@ -716,21 +806,28 @@ S7::method(rho_compact, RhoAgent) <- function(
   will_retry = FALSE,
   ...
 ) {
-  if (!identical(agent@state$phase, "idle")) {
+  if (!S7::S7_inherits(agent@state$phase, RhoAgentIdle)) {
     return(rho.async::rho_task(rho_compaction_error(
       RhoCompactionBusy,
       "Compaction requires an idle agent"
     )))
   }
-  agent@state$phase <- "compaction"
+  agent@state$phase <- RhoAgentCompacting()
   rho.async::rho_coro_task(
     function() {
       on.exit(rho_set_agent_idle(agent), add = TRUE)
+      context <- coro::await(rho.async::rho_as_promise(
+        rho_transform_model_context(agent, rho_build_agent_context(agent))
+      ))
+      if (S7::S7_inherits(context, RhoAgentErrorValue)) {
+        return(context)
+      }
       coro::await(rho.async::rho_as_promise(rho_run_compaction(
         agent,
         reason,
         custom_instructions,
-        will_retry
+        will_retry,
+        context
       )))
     },
     label = "manual-session-compaction"
@@ -760,23 +857,79 @@ S7::method(
 }
 
 rho_context_after_threshold_compaction <- function(agent) {
-  context <- rho_build_agent_context(agent)
-  compaction <- rho_latest_compaction_entry(agent)
-  after <- if (is.null(compaction)) -Inf else compaction@timestamp
-  usage <- rho_context_usage(context@messages, after = after)
-  if (!rho_should_compact(agent@options@compaction, usage, agent@options@model)) {
-    return(rho.async::rho_task(context))
-  }
-  rho.async::rho_then(
-    rho_run_compaction(agent, RhoThresholdCompaction()),
-    function(result) {
+  rho.async::rho_coro_task(
+    function() {
+      context <- coro::await(rho.async::rho_as_promise(
+        rho_transform_model_context(agent, rho_build_agent_context(agent))
+      ))
+      if (S7::S7_inherits(context, RhoAgentErrorValue)) {
+        return(context)
+      }
+
+      compaction <- rho_latest_compaction_entry(agent)
+      after <- -Inf
+      if (!is.null(compaction)) {
+        after <- compaction@timestamp
+      }
+      usage <- rho_context_usage(
+        context,
+        after = after,
+        model = agent@options@model
+      )
+      if (
+        !rho_should_compact(
+          agent@options@compaction,
+          usage,
+          agent@options@model
+        )
+      ) {
+        return(context)
+      }
+
+      result <- coro::await(rho.async::rho_as_promise(rho_run_compaction(
+        agent,
+        RhoThresholdCompaction(),
+        context = context
+      )))
       if (S7::S7_inherits(result, RhoCompactionResult)) {
-        return(rho_build_agent_context(agent))
+        compacted_context <- coro::await(rho.async::rho_as_promise(
+          rho_transform_model_context(agent, rho_build_agent_context(agent))
+        ))
+        return(compacted_context)
       }
       if (S7::S7_inherits(result, RhoCompactionSkipped)) {
         return(context)
       }
       result
-    }
+    },
+    label = "context-after-threshold-compaction"
+  )
+}
+
+rho_transform_model_context <- function(agent, context) {
+  rho.async::rho_coro_task(
+    function() {
+      transformed <- tryCatch(
+        coro::await(rho.async::rho_as_promise(rho.async::rho_as_task(
+          rho_transform_agent_context(
+            agent@options@policy,
+            agent,
+            context
+          )
+        ))),
+        error = function(error) error
+      )
+      if (inherits(transformed, "error")) {
+        return(rho_agent_error(conditionMessage(transformed), "policy"))
+      }
+      if (!S7::S7_inherits(transformed, rho.ai::Context)) {
+        return(rho_agent_error(
+          "Agent context policy did not return a Context",
+          "policy"
+        ))
+      }
+      transformed
+    },
+    label = "transform-model-context"
   )
 }

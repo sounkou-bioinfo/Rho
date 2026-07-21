@@ -12,7 +12,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-[`rho.agent`](https://sounkou-bioinfo.github.io/Rho/rho.agent/) is Rho's
+[`rho.agent`](https://rgenomicsetl.github.io/Rho/rho.agent/) is Rho's
 provider-neutral, multi-turn agent loop. It turns provider streams into an
 ordered lifecycle, schedules typed tools, drains steering and follow-up queues,
 and propagates cancellation without placing coding or bioinformatics policy in
@@ -51,5 +51,5 @@ while retaining the complete transcript, and `rho_build_agent_context()`
 projects the messages sent to a provider. Threshold compaction and one retry for
 a typed provider input-limit value use the same compactor and policy generics.
 
-Extensions build on this lifecycle in [`rho.ext`](https://sounkou-bioinfo.github.io/Rho/rho.ext/). See
-the [`rho.agent` reference](https://sounkou-bioinfo.github.io/Rho/rho.agent/reference/).
+Extensions build on this lifecycle in [`rho.ext`](https://rgenomicsetl.github.io/Rho/rho.ext/). See
+the [`rho.agent` reference](https://rgenomicsetl.github.io/Rho/rho.agent/reference/).

@@ -7,7 +7,7 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-[`rho.bio`](https://sounkou-bioinfo.github.io/Rho/rho.bio/) is the
+[`rho.bio`](https://rgenomicsetl.github.io/Rho/rho.bio/) is the
 typed, agent-independent substrate for declared bioinformatics
 resources. Manifests name resolvers and operations; resolution produces
 a receipt that keeps source observations and provenance separate from
@@ -77,7 +77,7 @@ list(
 The registry fails closed when a resource, resolver declaration, or
 resolver implementation is absent. Database implementations are
 separate; the generic SQL contract is implemented for DuckDB by
-[`rho.duckdb`](https://sounkou-bioinfo.github.io/Rho/rho.duckdb/).
+[`rho.duckdb`](https://rgenomicsetl.github.io/Rho/rho.duckdb/).
 
 See the [`rho.bio`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.bio/reference/).
+reference](https://rgenomicsetl.github.io/Rho/rho.bio/reference/).

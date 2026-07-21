@@ -1,25 +1,142 @@
+rho_new_session_id <- function() {
+  paste0("session-", nanonext::random(16L))
+}
+
+rho_session_identity <- function(id = rho_new_session_id(), parent_id = "") {
+  RhoSessionIdentity(id = id, parent_id = parent_id)
+}
+
 rho_next_session_entry_id <- function(agent) {
   used <- vapply(agent@state$entries, function(entry) entry@id, character(1))
   repeat {
-    agent@state$entry_sequence <- agent@state$entry_sequence + 1L
-    candidate <- sprintf("entry-%08d", agent@state$entry_sequence)
+    candidate <- paste0("entry-", nanonext::random(16L))
     if (!candidate %in% used) {
       return(candidate)
     }
   }
 }
 
+rho_replay_session_entries <- function(entries) {
+  node_ids <- character()
+  record_ids <- character()
+  leaf_id <- ""
+
+  for (position in seq_along(entries)) {
+    entry <- entries[[position]]
+    if (!S7::S7_inherits(entry, RhoSessionEntry)) {
+      return(sprintf("@entries[[%d]] must be a RhoSessionEntry", position))
+    }
+    if (entry@id %in% record_ids) {
+      return("@entries must have unique identifiers")
+    }
+
+    if (S7::S7_inherits(entry, RhoSessionNodeEntry)) {
+      if (nzchar(entry@parent_id) && !entry@parent_id %in% node_ids) {
+        return(sprintf(
+          "@entries[[%d]] refers to an unknown parent node",
+          position
+        ))
+      }
+      if (!identical(entry@parent_id, leaf_id)) {
+        return(sprintf(
+          paste0(
+            "@entries[[%d]] does not descend from the selected leaf; ",
+            "record a RhoSessionLeafEntry before appending a branch"
+          ),
+          position
+        ))
+      }
+      node_ids <- c(node_ids, entry@id)
+      leaf_id <- entry@id
+    } else if (S7::S7_inherits(entry, RhoSessionLeafEntry)) {
+      if (!identical(entry@previous_leaf_id, leaf_id)) {
+        return(sprintf(
+          "@entries[[%d]] does not move from the selected leaf",
+          position
+        ))
+      }
+      if (nzchar(entry@target_leaf_id) && !entry@target_leaf_id %in% node_ids) {
+        return(sprintf(
+          "@entries[[%d]] moves to an unknown session node",
+          position
+        ))
+      }
+      leaf_id <- entry@target_leaf_id
+    } else {
+      return(sprintf(
+        "@entries[[%d]] must be a session node or leaf-movement entry",
+        position
+      ))
+    }
+    record_ids <- c(record_ids, entry@id)
+  }
+
+  RhoSessionReplay(leaf_id = leaf_id, node_ids = node_ids)
+}
+
+rho_session_replay <- function(entries) {
+  replay <- rho_replay_session_entries(entries)
+  if (is.character(replay)) {
+    return(rho_session_conflict(replay))
+  }
+  replay
+}
+
+rho_session_path_entries <- function(entries, leaf_id) {
+  if (!nzchar(leaf_id)) {
+    return(list())
+  }
+  nodes <- Filter(
+    function(entry) S7::S7_inherits(entry, RhoSessionNodeEntry),
+    entries
+  )
+  by_id <- stats::setNames(nodes, vapply(nodes, function(entry) entry@id, character(1)))
+  if (!leaf_id %in% names(by_id)) {
+    return(rho_session_conflict(
+      "The requested session leaf does not identify a session node",
+      details = list(leaf_id = leaf_id)
+    ))
+  }
+
+  path <- list()
+  current <- leaf_id
+  visited <- character()
+  while (nzchar(current)) {
+    if (current %in% visited || !current %in% names(by_id)) {
+      return(rho_session_conflict(
+        "The session parent graph is cyclic or incomplete",
+        details = list(entry_id = current)
+      ))
+    }
+    entry <- by_id[[current]]
+    path <- c(list(entry), path)
+    visited <- c(visited, current)
+    current <- entry@parent_id
+  }
+  path
+}
+
 rho_session_message_entry <- function(agent, message) {
   RhoSessionMessageEntry(
     id = rho_next_session_entry_id(agent),
+    parent_id = agent@state$leaf_id,
     timestamp = message@timestamp,
     message = message
   )
 }
 
-rho_memory_session_journal <- function() {
+rho_memory_session_journal <- function(
+  identity = rho_session_identity()
+) {
   RhoMemorySessionJournal(
-    state = rho_new_state(entries = list(), position = 0L)
+    state = rho_new_state(
+      current = RhoSessionSnapshot(
+        identity = identity,
+        entries = list(),
+        position = 0L,
+        leaf_id = ""
+      )
+    )
   )
 }
 
@@ -27,14 +144,14 @@ S7::method(
   rho_commit_session_entry,
   list(RhoMemorySessionJournal, RhoSessionAppend)
 ) <- function(journal, append, ...) {
-  state <- journal@state
-  if (!identical(append@after, state$position)) {
+  snapshot <- journal@state$current
+  if (!identical(append@after, snapshot@position)) {
     return(rho.async::rho_task(rho_session_conflict(
       "The session journal has advanced beyond the expected position",
-      details = list(expected = append@after, current = state$position)
+      details = list(expected = append@after, current = snapshot@position)
     )))
   }
-  ids <- vapply(state$entries, function(committed) committed@id, character(1))
+  ids <- vapply(snapshot@entries, function(committed) committed@id, character(1))
   if (append@entry@id %in% ids) {
     return(rho.async::rho_task(rho_session_conflict(
       "A session entry with this identifier is already committed",
@@ -44,12 +161,27 @@ S7::method(
       )
     )))
   }
-  position <- state$position + 1L
-  state$entries[[position]] <- append@entry
-  state$position <- position
+  entries <- c(snapshot@entries, list(append@entry))
+  replay <- rho_replay_session_entries(entries)
+  if (is.character(replay)) {
+    return(rho.async::rho_task(rho_session_conflict(
+      replay,
+      details = list(position = snapshot@position + 1L)
+    )))
+  }
+  position <- snapshot@position + 1L
+  next_snapshot <- RhoSessionSnapshot(
+    identity = snapshot@identity,
+    entries = entries,
+    position = position,
+    leaf_id = replay@leaf_id
+  )
+  journal@state$current <- next_snapshot
   rho.async::rho_task(RhoSessionCommit(
+    identity = next_snapshot@identity,
     entry = append@entry,
-    position = position
+    position = position,
+    leaf_id = next_snapshot@leaf_id
   ))
 }
 
@@ -57,17 +189,31 @@ S7::method(
   rho_session_snapshot,
   RhoMemorySessionJournal
 ) <- function(journal, ...) {
-  rho.async::rho_task(RhoSessionSnapshot(
-    entries = journal@state$entries,
-    position = journal@state$position
-  ))
+  rho.async::rho_task(journal@state$current)
 }
 
-rho_project_session_messages <- function(entries) {
+S7::method(rho_session_trajectory, RhoSessionSnapshot) <- function(
+  snapshot,
+  leaf_id = snapshot@leaf_id,
+  ...
+) {
+  entries <- rho_session_path_entries(snapshot@entries, leaf_id)
+  if (S7::S7_inherits(entries, RhoSessionJournalErrorValue)) {
+    return(entries)
+  }
+  RhoSessionTrajectory(
+    identity = snapshot@identity,
+    source_position = snapshot@position,
+    leaf_id = leaf_id,
+    entries = entries
+  )
+}
+
+rho_project_session_messages <- function(entries, leaf_id) {
   lapply(
     Filter(
       function(entry) S7::S7_inherits(entry, RhoSessionMessageEntry),
-      rho_active_session_entries(entries)
+      rho_active_session_entries(entries, leaf_id)
     ),
     function(entry) entry@message
   )
@@ -77,7 +223,7 @@ S7::method(
   rho_apply_session_snapshot,
   list(RhoAgent, RhoSessionSnapshot)
 ) <- function(agent, snapshot, ...) {
-  if (!identical(agent@state$phase, "idle")) {
+  if (!S7::S7_inherits(agent@state$phase, RhoAgentIdle)) {
     return(rho.async::rho_task(rho_session_conflict(
       "A running agent cannot synchronize its session"
     )))
@@ -110,18 +256,33 @@ S7::method(
     )))
   }
 
+  if (
+    nzchar(agent@state$session_id) &&
+      !identical(agent@state$session_id, snapshot@identity@id)
+  ) {
+    return(rho.async::rho_task(rho_session_conflict(
+      "The session snapshot belongs to a different session",
+      details = list(
+        agent_session_id = agent@state$session_id,
+        snapshot_session_id = snapshot@identity@id
+      )
+    )))
+  }
+
   agent@state$entries <- snapshot@entries
-  agent@state$messages <- rho_project_session_messages(snapshot@entries)
-  agent@state$journal_position <- snapshot@position
-  agent@state$entry_sequence <- max(
-    agent@state$entry_sequence,
-    snapshot@position
+  agent@state$session_id <- snapshot@identity@id
+  agent@state$parent_session_id <- snapshot@identity@parent_id
+  agent@state$leaf_id <- snapshot@leaf_id
+  agent@state$messages <- rho_project_session_messages(
+    snapshot@entries,
+    snapshot@leaf_id
   )
+  agent@state$journal_position <- snapshot@position
   rho.async::rho_task(agent)
 }
 
 S7::method(rho_sync_session, RhoAgent) <- function(agent, ...) {
-  if (!identical(agent@state$phase, "idle")) {
+  if (!S7::S7_inherits(agent@state$phase, RhoAgentIdle)) {
     return(rho.async::rho_task(rho_session_conflict(
       "A running agent cannot synchronize its session"
     )))
@@ -160,11 +321,37 @@ rho_apply_session_commit <- function(agent, commit) {
       )
     ))
   }
+  if (
+    nzchar(agent@state$session_id) &&
+      !identical(commit@identity@id, agent@state$session_id)
+  ) {
+    return(rho_session_conflict(
+      "The session journal commit belongs to a different session",
+      details = list(
+        agent_session_id = agent@state$session_id,
+        commit_session_id = commit@identity@id
+      )
+    ))
+  }
   agent@state$journal_position <- commit@position
   agent@state$entries[[length(agent@state$entries) + 1L]] <- commit@entry
-  if (S7::S7_inherits(commit@entry, RhoSessionMessageEntry)) {
-    agent@state$messages[[length(agent@state$messages) + 1L]] <- commit@entry@message
+  replay <- rho_replay_session_entries(agent@state$entries)
+  if (is.character(replay) || !identical(replay@leaf_id, commit@leaf_id)) {
+    return(rho_session_conflict(
+      "The session journal commit has an invalid selected leaf",
+      details = list(
+        commit_leaf_id = commit@leaf_id,
+        replay = if (is.character(replay)) replay else replay@leaf_id
+      )
+    ))
   }
+  agent@state$session_id <- commit@identity@id
+  agent@state$parent_session_id <- commit@identity@parent_id
+  agent@state$leaf_id <- commit@leaf_id
+  agent@state$messages <- rho_project_session_messages(
+    agent@state$entries,
+    agent@state$leaf_id
+  )
   commit
 }
 
@@ -184,6 +371,44 @@ S7::method(
   )
 }
 
+S7::method(rho_move_session_leaf, RhoAgent) <- function(
+  agent,
+  target_entry_id = "",
+  ...
+) {
+  if (!S7::S7_inherits(agent@state$phase, RhoAgentIdle)) {
+    return(rho.async::rho_task(rho_session_conflict(
+      "A running agent cannot move its session leaf"
+    )))
+  }
+  target_entry_id <- as.character(target_entry_id)
+  if (length(target_entry_id) != 1L || is.na(target_entry_id)) {
+    rho.async::rho_signal_contract_violation(
+      "`target_entry_id` must be one non-missing entry identifier or the empty root identifier"
+    )
+  }
+  nodes <- Filter(
+    function(entry) S7::S7_inherits(entry, RhoSessionNodeEntry),
+    agent@state$entries
+  )
+  node_ids <- vapply(nodes, function(entry) entry@id, character(1))
+  if (nzchar(target_entry_id) && !target_entry_id %in% node_ids) {
+    return(rho.async::rho_task(rho_session_conflict(
+      "The requested session leaf does not identify a committed session node",
+      details = list(target_entry_id = target_entry_id)
+    )))
+  }
+  rho_append_session_entry(
+    agent,
+    RhoSessionLeafEntry(
+      id = rho_next_session_entry_id(agent),
+      timestamp = as.double(Sys.time()),
+      previous_leaf_id = agent@state$leaf_id,
+      target_leaf_id = target_entry_id
+    )
+  )
+}
+
 rho_record_agent_message <- function(agent, message) {
   entry <- rho_session_message_entry(agent, message)
   rho_append_session_entry(agent, entry)
@@ -192,6 +417,7 @@ rho_record_agent_message <- function(agent, message) {
 rho_exclude_session_entry <- function(agent, target_entry_id, reason) {
   entry <- RhoSessionContextExclusionEntry(
     id = rho_next_session_entry_id(agent),
+    parent_id = agent@state$leaf_id,
     timestamp = as.double(Sys.time()),
     target_entry_id = target_entry_id,
     reason = reason
@@ -209,12 +435,19 @@ rho_latest_compaction_index <- function(entries) {
 }
 
 rho_latest_compaction_entry <- function(agent) {
-  entries <- rho_active_session_entries(agent@state$entries)
+  entries <- rho_active_session_entries(
+    agent@state$entries,
+    agent@state$leaf_id
+  )
   index <- rho_latest_compaction_index(entries)
   if (is.null(index)) NULL else entries[[index]]
 }
 
-rho_active_session_entries <- function(entries) {
+rho_active_session_entries <- function(entries, leaf_id) {
+  entries <- rho_session_path_entries(entries, leaf_id)
+  if (S7::S7_inherits(entries, RhoSessionJournalErrorValue)) {
+    rho.async::rho_signal_contract_violation(entries@message)
+  }
   resets <- which(vapply(
     entries,
     function(entry) S7::S7_inherits(entry, RhoSessionResetEntry),
@@ -228,7 +461,10 @@ rho_active_session_entries <- function(entries) {
 }
 
 rho_session_context_entries <- function(agent) {
-  entries <- rho_active_session_entries(agent@state$entries)
+  entries <- rho_active_session_entries(
+    agent@state$entries,
+    agent@state$leaf_id
+  )
   compaction_index <- rho_latest_compaction_index(entries)
   selected <- entries
 

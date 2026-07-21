@@ -7,7 +7,7 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-[`rho.agent`](https://sounkou-bioinfo.github.io/Rho/rho.agent/) is Rho’s
+[`rho.agent`](https://rgenomicsetl.github.io/Rho/rho.agent/) is Rho’s
 provider-neutral, multi-turn agent loop. It turns provider streams into
 an ordered lifecycle, schedules typed tools, drains steering and
 follow-up queues, and propagates cancellation without placing coding or
@@ -58,6 +58,6 @@ Threshold compaction and one retry for a typed provider input-limit
 value use the same compactor and policy generics.
 
 Extensions build on this lifecycle in
-[`rho.ext`](https://sounkou-bioinfo.github.io/Rho/rho.ext/). See the
+[`rho.ext`](https://rgenomicsetl.github.io/Rho/rho.ext/). See the
 [`rho.agent`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.agent/reference/).
+reference](https://rgenomicsetl.github.io/Rho/rho.agent/reference/).

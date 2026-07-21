@@ -73,17 +73,38 @@ not the only way to consume it.
 The first executable slice keeps the interface narrower than that destination:
 compare-and-append and full snapshot are the methods pulled by the current
 agent and tests. The in-memory and JSONL implementations return typed commit
-positions and reject stale positions before mutation. JSONL replay rebuilds an
-idle agent's active message projection after restart and rejects a partial final
-record rather than guessing at recovery. An assistant partial remains in the
-active turn until its terminal value commits, and reset appends a boundary entry
-rather than erasing history. Storage synchronization, branch identity,
-subscription, and remote cursors enter only with their corresponding topology
-fixtures.
+positions and reject stale positions before mutation. Session nodes retain
+parent identity; explicit leaf movements select a branch; trajectory projection
+reconstructs one root-to-leaf conversation. JSONL replay rebuilds that
+projection after restart from semantic records, independent of S7
+package and class names, and rejects a partial final record rather than guessing
+at recovery. An assistant partial remains in the active turn until its
+terminal value commits, and reset appends a typed entry rather than erasing
+history. Storage synchronization, subscription, and remote cursors enter only
+with their corresponding topology fixtures.
 
 Large immutable entry payloads may move to CAS while the journal retains their
 typed references. The journal itself is not CAS: ordering, branching,
 compaction, cancellation, and shutdown are mutable lifecycle facts.
+
+The journal is also not authored memory. A memory write appends a temporal,
+attributed observation through an explicit coordination or observation port;
+the session records the tool call and its receipt. Prompt-time memory is a
+bounded projection of those observations. The host's base system prompt,
+extension orientation, a memory-index layer, and a recalled note have different
+authority and lifecycles and must not collapse into one mutable string. Full
+note bodies enter context through explicit recall, while a dynamic index layer
+records its as-of instant and source-revision digest. The agent-policy generic
+is the current composition point; memory storage and retrieval policy remain
+downstream.
+
+The prompt order is least volatile first: base prompt, stable extension
+orientation, then a memory index pinned to an explicit revision set. Rendering
+of that prefix is canonical and excludes changing receipts or timestamps.
+Agent-authored writes become visible at an explicit refresh rather than
+rewriting the active run's prefix. Recalled note bodies appear late as tool
+results. Provider methods may lower this structure to automatic prefix caching
+or explicit cache-control blocks without changing which memory is visible.
 
 ## Lazy resources without hidden effects
 

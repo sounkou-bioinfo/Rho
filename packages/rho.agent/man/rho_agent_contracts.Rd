@@ -16,6 +16,10 @@
 \alias{RhoQueueMode}
 \alias{RhoOneAtATimeQueue}
 \alias{RhoAllQueue}
+\alias{RhoAgentPhase}
+\alias{RhoAgentIdle}
+\alias{RhoAgentRunning}
+\alias{RhoAgentCompacting}
 \alias{RhoBeforeToolCallDecision}
 \alias{RhoAfterToolCallDecision}
 \alias{RhoRunContext}

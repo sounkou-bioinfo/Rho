@@ -12,6 +12,14 @@ RhoQueueMode <- S7::new_class("RhoQueueMode", abstract = TRUE)
 RhoOneAtATimeQueue <- S7::new_class("RhoOneAtATimeQueue", parent = RhoQueueMode)
 RhoAllQueue <- S7::new_class("RhoAllQueue", parent = RhoQueueMode)
 
+RhoAgentPhase <- S7::new_class("RhoAgentPhase", abstract = TRUE)
+RhoAgentIdle <- S7::new_class("RhoAgentIdle", parent = RhoAgentPhase)
+RhoAgentRunning <- S7::new_class("RhoAgentRunning", parent = RhoAgentPhase)
+RhoAgentCompacting <- S7::new_class(
+  "RhoAgentCompacting",
+  parent = RhoAgentPhase
+)
+
 rho_agent_run_status <- S7::new_property(
   S7::class_character,
   validator = function(value) {
@@ -159,6 +167,23 @@ RhoSessionEntry <- S7::new_class(
   )
 )
 
+rho_session_parent_id <- S7::new_property(
+  S7::class_character,
+  default = "",
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value)) {
+      "must be one non-missing entry identifier or the empty root identifier"
+    }
+  }
+)
+
+RhoSessionNodeEntry <- S7::new_class(
+  "RhoSessionNodeEntry",
+  parent = RhoSessionEntry,
+  abstract = TRUE,
+  properties = list(parent_id = rho_session_parent_id)
+)
+
 rho_session_message <- S7::new_property(
   S7::class_any,
   validator = function(value) {
@@ -191,7 +216,7 @@ rho_session_messages <- S7::new_property(
 
 RhoSessionMessageEntry <- S7::new_class(
   "RhoSessionMessageEntry",
-  parent = RhoSessionEntry,
+  parent = RhoSessionNodeEntry,
   properties = list(message = rho_session_message)
 )
 
@@ -240,7 +265,7 @@ RhoCompactionResult <- S7::new_class(
 
 RhoSessionCompactionEntry <- S7::new_class(
   "RhoSessionCompactionEntry",
-  parent = RhoSessionEntry,
+  parent = RhoSessionNodeEntry,
   properties = list(
     result = RhoCompactionResult,
     reason = RhoCompactionReason,
@@ -250,7 +275,7 @@ RhoSessionCompactionEntry <- S7::new_class(
 
 RhoSessionContextExclusionEntry <- S7::new_class(
   "RhoSessionContextExclusionEntry",
-  parent = RhoSessionEntry,
+  parent = RhoSessionNodeEntry,
   properties = list(
     target_entry_id = rho_non_empty_string,
     reason = RhoCompactionReason
@@ -259,7 +284,43 @@ RhoSessionContextExclusionEntry <- S7::new_class(
 
 RhoSessionResetEntry <- S7::new_class(
   "RhoSessionResetEntry",
-  parent = RhoSessionEntry
+  parent = RhoSessionNodeEntry
+)
+
+RhoSessionLeafEntry <- S7::new_class(
+  "RhoSessionLeafEntry",
+  parent = RhoSessionEntry,
+  properties = list(
+    previous_leaf_id = rho_session_parent_id,
+    target_leaf_id = rho_session_parent_id
+  )
+)
+
+rho_session_identifier <- S7::new_property(
+  S7::class_character,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value) || !nzchar(value)) {
+      "must be one non-empty session identifier"
+    }
+  }
+)
+
+rho_optional_session_identifier <- S7::new_property(
+  S7::class_character,
+  default = "",
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value)) {
+      "must be one non-missing session identifier or the empty root identifier"
+    }
+  }
+)
+
+RhoSessionIdentity <- S7::new_class(
+  "RhoSessionIdentity",
+  properties = list(
+    id = rho_session_identifier,
+    parent_id = rho_optional_session_identifier
+  )
 )
 
 rho_session_entry_list <- S7::new_property(
@@ -278,8 +339,10 @@ rho_session_entry_list <- S7::new_property(
 RhoSessionCommit <- S7::new_class(
   "RhoSessionCommit",
   properties = list(
+    identity = RhoSessionIdentity,
     entry = RhoSessionEntry,
-    position = rho_positive_integer
+    position = rho_positive_integer,
+    leaf_id = rho_session_parent_id
   )
 )
 
@@ -294,8 +357,10 @@ RhoSessionAppend <- S7::new_class(
 RhoSessionSnapshot <- S7::new_class(
   "RhoSessionSnapshot",
   properties = list(
+    identity = RhoSessionIdentity,
     entries = rho_session_entry_list,
-    position = rho_nonnegative_integer
+    position = rho_nonnegative_integer,
+    leaf_id = rho_session_parent_id
   ),
   validator = function(self) {
     if (length(self@entries) != self@position) {
@@ -303,44 +368,68 @@ RhoSessionSnapshot <- S7::new_class(
     }
     ids <- vapply(self@entries, function(entry) entry@id, character(1))
     if (anyDuplicated(ids)) {
-      "@entries must have unique identifiers"
+      return("@entries must have unique identifiers")
+    }
+    replay <- rho_replay_session_entries(self@entries)
+    if (is.character(replay)) {
+      return(replay)
+    }
+    if (!identical(replay@leaf_id, self@leaf_id)) {
+      "@leaf_id must equal the selected leaf after replaying @entries"
+    }
+  }
+)
+
+RhoSessionReplay <- S7::new_class(
+  "RhoSessionReplay",
+  properties = list(
+    leaf_id = rho_session_parent_id,
+    node_ids = S7::class_character
+  )
+)
+
+RhoSessionTrajectory <- S7::new_class(
+  "RhoSessionTrajectory",
+  properties = list(
+    identity = RhoSessionIdentity,
+    source_position = rho_nonnegative_integer,
+    leaf_id = rho_session_parent_id,
+    entries = rho_session_entry_list
+  ),
+  validator = function(self) {
+    invalid <- Filter(
+      function(entry) !S7::S7_inherits(entry, RhoSessionNodeEntry),
+      self@entries
+    )
+    if (length(invalid)) {
+      return("@entries must contain only context-bearing session nodes")
+    }
+    if (length(self@entries)) {
+      terminal <- self@entries[[length(self@entries)]]@id
+      if (!identical(terminal, self@leaf_id)) {
+        return("@leaf_id must identify the final trajectory entry")
+      }
+    } else if (nzchar(self@leaf_id)) {
+      return("an empty trajectory must have the empty root leaf")
+    }
+  }
+)
+
+rho_memory_session_state <- S7::new_property(
+  S7::class_environment,
+  validator = function(value) {
+    if (
+      !exists("current", value, inherits = FALSE) ||
+        !S7::S7_inherits(value$current, RhoSessionSnapshot)
+    ) {
+      "must contain a validated RhoSessionSnapshot at `current`"
     }
   }
 )
 
 RhoMemorySessionJournal <- S7::new_class(
   "RhoMemorySessionJournal",
-  properties = list(state = S7::class_environment),
-  validator = function(self) {
-    required <- c("entries", "position")
-    missing <- setdiff(required, ls(self@state, all.names = TRUE))
-    if (length(missing)) {
-      return(sprintf(
-        "@state missing field(s): %s",
-        paste(missing, collapse = ", ")
-      ))
-    }
-    invalid <- Filter(
-      function(entry) !S7::S7_inherits(entry, RhoSessionEntry),
-      self@state$entries
-    )
-    if (length(invalid)) {
-      return("@state$entries must contain only RhoSessionEntry values")
-    }
-    ids <- vapply(self@state$entries, function(entry) entry@id, character(1))
-    if (anyDuplicated(ids)) {
-      return("@state$entries must have unique identifiers")
-    }
-    if (
-      !is.integer(self@state$position) ||
-        length(self@state$position) != 1L ||
-        is.na(self@state$position) ||
-        self@state$position < 0L ||
-        self@state$position != length(self@state$entries)
-    ) {
-      "@state$position must equal the number of committed entries"
-    }
-  }
+  properties = list(state = rho_memory_session_state)
 )
 
 rho_session_journal <- S7::new_property(
@@ -394,7 +483,9 @@ RhoAgent <- S7::new_class(
     required <- c(
       "messages",
       "entries",
-      "entry_sequence",
+      "session_id",
+      "parent_session_id",
+      "leaf_id",
       "journal_position",
       "tools",
       "listeners",
@@ -517,7 +608,8 @@ RhoAgentRunResult <- S7::new_class(
     events = S7::class_list,
     status = rho_agent_run_status,
     error = S7::class_any,
-    context = rho_optional_run_context
+    context = rho_optional_run_context,
+    usage = rho.ai::UsageSummary
   )
 )
 

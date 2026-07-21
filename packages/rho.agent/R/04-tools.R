@@ -92,11 +92,21 @@ rho_schedule_tool_call <- function(
         )))
         return(failure)
       }
+      if (S7::S7_inherits(args, rho.ai::ToolErrorResult)) {
+        failure <- coro::await(rho.async::rho_as_promise(rho_finish_tool_call(
+          agent,
+          call,
+          args,
+          TRUE
+        )))
+        return(failure)
+      }
 
       prepared_call <- rho.ai::ToolCall(
         id = call@id,
         name = call@name,
-        arguments = args
+        arguments = args,
+        arguments_prepared = TRUE
       )
       updates <- new.env(parent = emptyenv())
       updates$tasks <- list()

@@ -1,5 +1,11 @@
 # rho.ai 0.0.1.9001
 
+- Adds `UsageSummary` and open usage-observation traversal. Aggregates preserve
+  provider-reported, estimated, unavailable, and unpriced observations while
+  reporting disjoint tokens, cache-hit proportion, and nominal cost.
+- Assistant messages can retain the request-context revision associated with a
+  usage observation. Tool calls explicitly record whether host arguments have
+  already been prepared.
 - Adds explicit encrypted-file and native-keychain credential stores. Portable
   storage uses Argon2id and XChaCha20-Poly1305, authenticates metadata, and
   returns typed values for wrong secrets or altered envelopes. Keychain storage

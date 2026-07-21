@@ -7,7 +7,7 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-[`rho.testkit`](https://sounkou-bioinfo.github.io/Rho/rho.testkit/)
+[`rho.testkit`](https://rgenomicsetl.github.io/Rho/rho.testkit/)
 supplies bounded tinytest assertions for Rho tasks and streams. Every
 assertion has an explicit timeout, so a broken asynchronous path fails
 instead of hanging the test process.
@@ -48,7 +48,7 @@ Authored tests remain R Markdown documents; the monorepo derives
 executable tinytest files and checks that generated files are current.
 
 See the [`rho.testkit`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.testkit/reference/)
+reference](https://rgenomicsetl.github.io/Rho/rho.testkit/reference/)
 and the base
-[`rho.async`](https://sounkou-bioinfo.github.io/Rho/rho.async/)
+[`rho.async`](https://rgenomicsetl.github.io/Rho/rho.async/)
 contracts.

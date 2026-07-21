@@ -16,10 +16,15 @@
 \alias{RhoCompactionSettings}
 \alias{RhoContextUsage}
 \alias{RhoSessionEntry}
+\alias{RhoSessionNodeEntry}
 \alias{RhoSessionMessageEntry}
 \alias{RhoSessionCompactionEntry}
 \alias{RhoSessionContextExclusionEntry}
 \alias{RhoSessionResetEntry}
+\alias{RhoSessionLeafEntry}
+\alias{RhoSessionIdentity}
+\alias{RhoSessionReplay}
+\alias{RhoSessionTrajectory}
 \alias{RhoSessionAppend}
 \alias{RhoSessionCommit}
 \alias{RhoSessionSnapshot}
@@ -48,6 +53,10 @@
 \alias{rho_state_entries}
 \alias{rho_append_session_entry}
 \alias{rho_commit_session_entry}
+\alias{rho_session_identity}
+\alias{rho_session_replay}
+\alias{rho_move_session_leaf}
+\alias{rho_session_trajectory}
 \alias{rho_build_agent_context}
 \alias{rho_memory_session_journal}
 \alias{rho_session_snapshot}

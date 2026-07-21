@@ -11,6 +11,7 @@
 \alias{UserMessage}
 \alias{AssistantMessage}
 \alias{ToolResultMessage}
+\alias{RhoContextRevision}
 \alias{ToolOverlap}
 \alias{ToolMayOverlap}
 \alias{ToolRequiresExclusiveExecution}
@@ -32,6 +33,8 @@
 \alias{rho_validate_tool_args}
 \alias{rho_execute_tool}
 \alias{rho_tool_overlap}
+\alias{rho_context_signature}
+\alias{rho_context_revision}
 \title{Message content and tool contracts}
 \description{
 Messages contain typed content objects rather than discriminator strings.

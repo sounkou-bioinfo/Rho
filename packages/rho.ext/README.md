@@ -7,8 +7,8 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-[`rho.ext`](https://sounkou-bioinfo.github.io/Rho/rho.ext/) is the open
-extension runtime for [Rho](https://sounkou-bioinfo.github.io/Rho/).
+[`rho.ext`](https://rgenomicsetl.github.io/Rho/rho.ext/) is the open
+extension runtime for [Rho](https://rgenomicsetl.github.io/Rho/).
 Extensions register handlers, tools, commands, and providers through an
 explicit API object; they do not patch package globals.
 
@@ -39,9 +39,9 @@ extension perform I/O, ask for permission, or consult policy without
 turning the agent loop into a synchronous callback system.
 
 See the [`rho.ext`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.ext/reference/),
+reference](https://rgenomicsetl.github.io/Rho/rho.ext/reference/),
 the upstream
-[`rho.agent`](https://sounkou-bioinfo.github.io/Rho/rho.agent/)
+[`rho.agent`](https://rgenomicsetl.github.io/Rho/rho.agent/)
 lifecycle, and the downstream
-[`rho.bio.agent`](https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/)
+[`rho.bio.agent`](https://rgenomicsetl.github.io/Rho/rho.bio.agent/)
 application.

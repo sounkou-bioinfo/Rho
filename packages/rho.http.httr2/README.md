@@ -7,9 +7,9 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-[`rho.http.httr2`](https://sounkou-bioinfo.github.io/Rho/rho.http.httr2/)
+[`rho.http.httr2`](https://rgenomicsetl.github.io/Rho/rho.http.httr2/)
 implements the
-[`rho.http`](https://sounkou-bioinfo.github.io/Rho/rho.http/) client
+[`rho.http`](https://rgenomicsetl.github.io/Rho/rho.http/) client
 interface in compute workers. Complete requests use httr2. Streaming
 requests use curl’s native multi event loop because httr2’s public
 connection API is a pull interface rather than an event driver.
@@ -41,6 +41,6 @@ does not change request translation, SSE decoding, or normalized
 provider events.
 
 See the [`rho.http.httr2`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.http.httr2/reference/)
+reference](https://rgenomicsetl.github.io/Rho/rho.http.httr2/reference/)
 and the shared [`rho.http`
-contract](https://sounkou-bioinfo.github.io/Rho/rho.http/).
+contract](https://rgenomicsetl.github.io/Rho/rho.http/).

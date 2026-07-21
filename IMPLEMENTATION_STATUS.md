@@ -19,8 +19,11 @@ results, real parallel mirai workers, cross-platform resolution of an actual
 Bash executable, shell execution in mirai workers, isolated R expression
 evaluation, an opt-in stateful current-session R evaluator, and a structural
 session journal with in-memory and worker-backed JSONL implementations. The
-JSONL fixtures cover lossless typed replay after restart, stale-writer
-rejection, and partial-tail refusal. Provider request builders require explicit
+JSONL fixtures cover semantic-record replay after restart, stable session
+identity, parent-linked branches, explicit leaf movement, stale-writer
+rejection, and partial-tail refusal. Its records contain stable
+semantic tags and declared fields, not reflected S7 class or package names.
+Provider request builders require explicit
 resolved `RhoModelAuth`; they do not read API keys from process-global
 environment variables. Successful login and refresh values can be retained by
 the process-scoped memory store or an explicitly selected, owner-only JSON
@@ -43,6 +46,21 @@ Agent provider context is projected from message, compaction, and exclusion
 entries held in memory. Compaction has manual and threshold triggers, open
 policy and compactor methods, typed successful skips and operational failures,
 lifecycle events, and one retry for typed provider input-limit values.
+Each assistant usage observation records the stable request-context revision it
+measured. Threshold and manual compaction account for the transformed system
+prompt, transcript, tools, operations, and dynamic tool activation state; an
+older provider count is reused only for the same model and context revision.
+Agent run results include a `UsageSummary` that keeps provider-reported,
+estimated, unavailable, and unpriced observations distinct while aggregating
+tokens, cache use, and nominal API-equivalent cost.
+
+`rho.coding` now supplies an open authored-memory port, a structural
+`MemoryStore` interface, and `remember`, `recall`, `edit_memory`, `forget`, and
+`memory_history` tools. The process-local implementation appends attributed
+content revisions and tombstones, rejects stale edit and forget requests, keeps
+historical revisions queryable, and records retracted links. A typed,
+session-pinned context-contribution plan and a durable observation-store adapter
+remain unimplemented.
 The HTTP stream retains a configurable bounded body for non-success responses so
 provider adapters can classify structured wire errors without matching message
 text.
@@ -93,8 +111,12 @@ Known incomplete work, stated directly:
   within one R process; a cross-process file lock remains work.
 - The coding-host JSONL session journal detects a partial final record and
   refuses further mutation. It does not yet repair that record, establish
-  storage synchronization beyond a flushed R connection, assign stable session
-  or entry identities, model branches, or expose a remote cursor.
+  storage synchronization beyond a flushed R connection, expose incremental or
+  remote cursors, or provide Pi-format import and export.
+- The authored-memory reference store is process-local. A DuckDB/NNG adapter,
+  as-of time queries, graph walks, and a pinned prompt-index contribution remain
+  downstream work; the tools do not silently add note bodies to the system
+  prompt.
 - Graphics, tool output, and bio resources do not yet share an artifact store.
 - `rho.compute` does not yet model pool lifecycle, placement, affinity, bounded
   queues, or remote execution receipts.

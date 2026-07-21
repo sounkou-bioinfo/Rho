@@ -40,6 +40,6 @@ Before changing repository visibility:
    remove the pin until an upstream release provides the semantics exercised by
    `rho.http`.
 
-After those conditions hold, change `sounkou-bioinfo/Rho` to public, enable the
+After those conditions hold, change `RGenomicsETL/Rho` to public, enable the
 pkgdown deployment workflow, and add the repository and its nanonext dependency
-to `sounkou-bioinfo/sounkou-bioinfo.r-universe.dev`.
+to `RGenomicsETL/rgenomicsetl.r-universe.dev`.

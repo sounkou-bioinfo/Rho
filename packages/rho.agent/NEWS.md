@@ -1,5 +1,13 @@
 # rho.agent 0.0.1.9001
 
+- Accounts for the complete transformed provider context before compaction.
+  Reported token counts are reused only for the same model, prompt, tool,
+  operation, and activation revision. Agent run results include cumulative
+  typed usage and nominal-cost summaries.
+- Marks prepared tool-call arguments explicitly, so policy events and execution
+  share one typed argument value without running wire preparation twice.
+- Represents idle, running, and compacting phases as S7 values. Agent behavior
+  no longer branches on phase-name strings.
 - Adds the structural `SessionJournal` contract and an in-memory implementation.
   Assistant partials remain in the active turn and only terminal messages enter
   the append-only journal; reset is represented by a committed entry instead of
@@ -9,7 +17,7 @@
   stale writer receives `RhoSessionConflictErrorValue` before journal mutation.
 
 - Uses only counted usage observations when projecting context usage; an
-  unavailable provider observation is estimated from message content instead.
+  unavailable provider observation causes a complete-context estimate.
 
 # rho.agent 0.0.1.9000
 

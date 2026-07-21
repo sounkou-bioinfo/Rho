@@ -31,7 +31,7 @@ or associated metadata.
 
 The detailed design and the distinction between properties, interfaces,
 traits, and progressive checks are in
-[Functional OOP in R](https://github.com/sounkou-bioinfo/Rho/blob/main/dev-notes/design/functional-oop.md).
+[Functional OOP in R](https://github.com/RGenomicsETL/Rho/blob/main/dev-notes/design/functional-oop.md).
 
 ## Tool scheduling and execution
 
@@ -109,6 +109,10 @@ Provider token reports become `Usage` values before entering the agent. Input,
 cache-read, cache-write, and output counts are disjoint; reasoning and one-hour
 cache writes are typed subsets of their parent counts. `rho_price_usage()` applies
 the model catalog's component rates and long-context tiers through S7 dispatch.
+`rho_summarize_usage()` retains the original `ProviderUsage`, `EstimatedUsage`,
+and `UsageUnavailable` values while calculating session totals, cache-hit
+proportion, and nominal cost. Its completeness properties prevent an absent
+subscription usage block from appearing as a measured zero.
 
 Provider request bodies are composed from `ProviderRequestSection` values, with
 OpenAI and Anthropic subclasses for their wire dialects. The standard OpenAI,
@@ -174,6 +178,27 @@ provide another compactor or specialize the public generics without replacing
 the loop. A provider-encrypted item is an input optimization, not a durable
 semantic summary.
 
+Compaction transforms only the selected session trajectory. It retains the
+original entries and commits a new node containing the semantic summary and the
+first retained entry identity. Base instructions and context contributions such
+as a session-pinned memory index are composed separately and are not summarized
+or refreshed by compaction. Recalled memory already present as a tool result is
+ordinary transcript and may be represented in the summary.
+
+The coding host owns the first authored-memory implementation. Its open
+`MemoryStore` interface is implemented by a process-local append-only store;
+typed commands drive `remember`, `recall`, `edit_memory`, `forget`, and history
+tools. A remembered note creates a revision, an edit is a complete replacement
+that names the revision it supersedes, and forgetting appends a tombstone. A
+stale expected revision resolves to `RhoMemoryConflict`. Historical revisions
+and retracted graph links remain visible in receipts.
+
+The remaining open agent contract is a context-contribution generic whose
+implementations return typed, receipted contributions. Provider request methods
+will lower the resulting pinned context plan. Extensions add implementations
+through S7 methods rather than mutating a system-prompt string through
+event-name conditionals.
+
 ## Session persistence and extension projections
 
 The authoritative conversation is a logical append-only agent session. A
@@ -186,8 +211,10 @@ the definition of durability.
 The first exercised journal contract is deliberately smaller: a typed
 compare-and-append request and a full snapshot. The in-memory implementation
 returns typed commits and snapshots. The coding-host JSONL implementation uses
-the same methods, a codec derived from session-reachable S7 classes, locked
-compare-and-append in a worker, and strict partial-tail detection. Journal
+the same methods, stable semantic records, locked compare-and-append
+in a worker, and strict partial-tail detection. Explicit adapters translate
+between wire records and current S7 classes; the file contains neither package
+names nor reflected class properties. Journal
 failure remains an operational value. Assistant partials stay inside the active
 turn; only a terminal assistant message is appended. Reset is also an entry, so
 it begins a new active context without deleting prior history. Snapshot
@@ -195,9 +222,12 @@ synchronization rebuilds an idle agent's projection; partial-tail recovery,
 storage synchronization, branch identity, and remote cursors remain refinements
 rather than methods added in anticipation.
 
+The schema and extension rules are specified in the
+[Rho JSONL session schema](session-jsonl-schema.md).
+
 Rho's JSONL schema is not Pi's session JSONL schema. Pi's version-3 file carries
-a session header and an ID-linked tree. Rho currently carries typed S7 entries
-at committed linear positions. A Pi interoperability codec may translate these
+a session header and an ID-linked tree. Rho carries semantic entries at
+committed linear positions. A Pi interoperability codec may translate these
 representations when session identity and lineage are part of the exercised Rho
 contract; the native codec does not silently erase either model's semantics.
 
@@ -246,7 +276,7 @@ over provider or agent scheduling.
 
 Candidate R-native presentation and secure-storage components, together with
 their package responsibilities, are recorded in
-[R-native interaction and secure storage](https://sounkou-bioinfo.github.io/Rho/docs/r-native-runtime.html).
+[R-native interaction and secure storage](https://rgenomicsetl.github.io/Rho/docs/r-native-runtime.html).
 
 ## Publication gate
 
@@ -255,5 +285,5 @@ is incomplete. A tagged release follows only after the parity ledger is
 satisfied, every package installs and checks on supported platforms, live provider checks
 pass without stored credentials, generated documentation is current, and a
 secret scan is clean. The public repository can then be added to
-`sounkou-bioinfo/sounkou-bioinfo.r-universe.dev`; r-universe inclusion is a
+`RGenomicsETL/rgenomicsetl.r-universe.dev`; r-universe inclusion is a
 release consequence, not a substitute for those checks.

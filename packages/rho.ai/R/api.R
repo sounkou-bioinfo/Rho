@@ -6,14 +6,15 @@
 #'
 #' @name rho_ai_messages
 #' @aliases Content TextContent ThinkingContent ImageContent ArtifactRefContent ToolCall
-#' @aliases UserMessage AssistantMessage ToolResultMessage ToolOverlap
+#' @aliases UserMessage AssistantMessage ToolResultMessage RhoContextRevision ToolOverlap
 #' @aliases ToolMayOverlap ToolRequiresExclusiveExecution ToolSpec ToolResult
 #' @aliases ToolErrorResult Tool ProviderInputLimitError
 #' @aliases ProviderContextOverflowError ProviderRequestTooLargeError
 #' @aliases rho_text rho_thinking rho_user_message
 #' @aliases rho_assistant_message rho_tool_result_message rho_tool_spec
 #' @aliases rho_tool_result rho_tool_error_result rho_validate_tool_args
-#' @aliases rho_execute_tool rho_tool_overlap
+#' @aliases rho_execute_tool rho_tool_overlap rho_context_signature
+#' @aliases rho_context_revision
 #' @export Content
 #' @export TextContent
 #' @export ThinkingContent
@@ -23,6 +24,7 @@
 #' @export UserMessage
 #' @export AssistantMessage
 #' @export ToolResultMessage
+#' @export RhoContextRevision
 #' @export ToolOverlap
 #' @export ToolMayOverlap
 #' @export ToolRequiresExclusiveExecution
@@ -44,6 +46,8 @@
 #' @export rho_validate_tool_args
 #' @export rho_execute_tool
 #' @export rho_tool_overlap
+#' @export rho_context_signature
+#' @export rho_context_revision
 NULL
 
 #' Semantic operations, handlers, and provider activity
@@ -146,12 +150,19 @@ NULL
 #' `NominalUsageCost`. It does not claim to report a subscription charge. Model
 #' subclasses may provide methods for provider-specific pricing rules.
 #'
+#' [rho_summarize_usage()] preserves every typed observation and reports
+#' disjoint token totals, nominal cost, and the latest cache-hit proportion.
+#' `complete` is false when any turn has `UsageUnavailable`; `cost_complete` is
+#' false when a counted turn has no nominal price. Zeroes therefore never hide
+#' missing provider data.
+#'
 #' @name rho_ai_usage
 #' @aliases UsageObservation
 #' @aliases Usage
 #' @aliases ProviderUsage
 #' @aliases EstimatedUsage
 #' @aliases UsageUnavailable
+#' @aliases UsageSummary
 #' @aliases UsageCost
 #' @aliases NominalUsageCost
 #' @aliases rho_provider_usage
@@ -159,11 +170,13 @@ NULL
 #' @aliases rho_usage_unavailable
 #' @aliases rho_nominal_usage_cost
 #' @aliases rho_price_usage
+#' @aliases rho_usage_observations rho_summarize_usage
 #' @export UsageObservation
 #' @export Usage
 #' @export ProviderUsage
 #' @export EstimatedUsage
 #' @export UsageUnavailable
+#' @export UsageSummary
 #' @export UsageCost
 #' @export NominalUsageCost
 #' @export rho_provider_usage
@@ -171,6 +184,8 @@ NULL
 #' @export rho_usage_unavailable
 #' @export rho_nominal_usage_cost
 #' @export rho_price_usage
+#' @export rho_usage_observations
+#' @export rho_summarize_usage
 NULL
 
 #' Typed OpenAI Responses request composition

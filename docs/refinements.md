@@ -21,21 +21,31 @@ compaction.
 Compare-and-append supplies the first concurrency rule: a writer presents its
 known committed position, and the journal rejects a stale position before
 mutation. This prevents a process-local agent from discovering divergence only
-after an external journal has already accepted its entry. Branch lineage,
-incremental cursors, and durable recovery remain unproven.
+after an external journal has already accepted its entry. Session nodes now
+carry parent identity, explicit leaf-movement records select a branch, and a
+trajectory projection follows one root-to-leaf path without erasing abandoned
+work. Incremental cursors and durable recovery remain unproven.
 
-The JSONL fixtures prove replay after restart, rejection of a stale writer, and
-strict detection of a partial final line. Detection is not repair: the adapter
-refuses further mutation until the file is repaired by an explicit host policy.
-It does not prove remote ownership, `fsync()` durability, branch lineage, or
-sub-agent composition.
+The JSONL fixtures prove replay after restart, rejection of a stale writer,
+branch selection after restart, and strict detection of a partial final line.
+Detection is not repair: the adapter refuses further mutation until the file
+is repaired by an explicit host policy. It does not prove remote ownership,
+`fsync()` durability, incremental delivery, or sub-agent composition.
 
-The native JSONL schema is not Pi's version-3 session schema. Pi stores a
-session header followed by an ID-linked entry tree. Rho stores lossless typed S7
-entries at monotonically committed positions. Preserve this as an explicit
-codec divergence until identity and branches exist in the shared journal
-contract; interoperability belongs in a Pi codec, not in conditionals inside
-the Rho codec.
+The first value codec reflected reachable S7 classes and wrote
+`package::Class` plus every current property. That made ordinary R refactoring
+an accidental storage migration and is rejected. The current codec registers
+explicit semantic adapters. Each adapter owns a stable wire tag, stable field
+names, and a mapping to current S7 properties; a test maps wire field `value`
+to an in-memory property named `current_value`. Unknown S7 objects fail closed.
+
+The native JSONL schema is not Pi's version-3 session schema. Both now store a
+session header and an ID-linked entry tree, but Rho's records use
+stable semantic tags and explicit leaf movements under Rho's own schema. S7
+class names and reflected property layouts are not part of that format.
+Interoperability belongs in a Pi codec, not in conditionals inside the native
+codec. A trajectory exporter may choose one branch for training; an archival
+export must retain the whole tree and leaf-movement audit records.
 
 Do not make a path part of the agent contract. First exercise committed append,
 ordered read, cursor/watermark, branch lineage, flush, and close through an
@@ -49,11 +59,11 @@ adapters. JSONL still needs an explicit recovery policy and a durability test
 that can distinguish a flushed R connection from storage synchronization.
 
 Current evidence: the
-[`SessionJournal` interface](https://github.com/sounkou-bioinfo/Rho/blob/main/packages/rho.agent/R/04-interfaces.R),
-[in-memory implementation](https://github.com/sounkou-bioinfo/Rho/blob/main/packages/rho.agent/R/06-session.R),
-[JSONL implementation](https://github.com/sounkou-bioinfo/Rho/blob/main/packages/rho.coding/R/03-session-jsonl.R),
-[authored in-memory fixture](https://github.com/sounkou-bioinfo/Rho/blob/main/packages/rho.agent/inst/tinytest/rmd/agent-loop.Rmd),
-and [authored JSONL fixture](https://github.com/sounkou-bioinfo/Rho/blob/main/packages/rho.coding/inst/tinytest/rmd/coding-tools.Rmd).
+[`SessionJournal` interface](https://github.com/RGenomicsETL/Rho/blob/main/packages/rho.agent/R/04-interfaces.R),
+[in-memory implementation](https://github.com/RGenomicsETL/Rho/blob/main/packages/rho.agent/R/06-session.R),
+[JSONL implementation](https://github.com/RGenomicsETL/Rho/blob/main/packages/rho.coding/R/03-session-jsonl.R),
+[authored in-memory fixture](https://github.com/RGenomicsETL/Rho/blob/main/packages/rho.agent/inst/tinytest/rmd/agent-loop.Rmd),
+and [authored JSONL fixture](https://github.com/RGenomicsETL/Rho/blob/main/packages/rho.coding/inst/tinytest/rmd/coding-tools.Rmd).
 
 ### Immutable content versus changing state
 
@@ -69,6 +79,66 @@ garbage collection can be claimed safe.
 Evidence required: oversized tool-result round trip; downstream projection
 rebuilt from journal entries and CAS bytes; concurrent read versus collection
 fixture for any shared CAS implementation.
+
+### Authored memory and prompt layers
+
+Agent-authored memory belongs to a temporal observation port. A successful
+write produces a receipt that can be linked to the originating session tool
+call; it does not append an invisible message or rewrite the base system
+prompt. A bounded memory index may be selected for a turn, while complete note
+bodies enter context through explicit recall or graph queries.
+
+`pi-bio-agent` proves the usefulness of this two-stage retrieval, but its
+current adapter concatenates the index onto a system-prompt string and omits it
+when the store is unavailable. Rho needs explicit semantics before adopting
+that behavior: base prompt, extension orientation, and dynamic memory layers
+carry distinct authority; a dynamic layer records its as-of instant, selected
+revision ids, limit, and digest; unavailable memory resolves to a typed policy
+decision whose continuation rule is supplied by the host.
+
+Cache preservation adds a second constraint. Base prompt and stable extension
+orientation precede a deterministically rendered memory index pinned to one
+revision set. A memory write does not rewrite that prefix during an active run.
+Complete recalled notes enter as late tool results. A provider may map these
+semantics to automatic prefix caching or explicit cache-control blocks through
+dispatch, while a provider without cache controls receives the same prompt
+meaning. Cache receipts and usage counts measure that lowering; they do not
+choose which memory is visible.
+
+The first implementation now lives in `rho.coding`. `MemoryStore` is a small
+structural interface over open S7 generics. The reference implementation and
+typed tool commands distinguish create, complete compare-and-supersede,
+tombstone, current recall, and ordered history. Dropped links are explicit in
+edit and forget receipts. The next movement is a smaller `rho.agent`
+context-contribution generic so another host or extension can provide a memory
+source without replacing the loop. The current whole-context transform remains
+useful as lifecycle orchestration, but is too permissive to be the durable
+memory contract.
+
+Compaction supplied the immediate counterexample to message-only accounting.
+It now evaluates the transformed `Context` and includes the system prompt,
+tools, operations, activation state, and transcript. Each assistant usage
+observation records the request-context revision it measured; a model, prompt,
+tool, operation, or activation change invalidates that count and causes a full
+estimate. A future pinned contribution participates in the same revision
+without changing the accounting rule.
+
+Current evidence: the authored memory fixture exercises create, duplicate
+rejection, stale conflict, superseding edit, historical recall, dropped-link
+retraction, tombstone, recreation, typed tools, and session-codec retention.
+The compaction fixture proves complete request accounting and invalidation when
+the stable request revision changes.
+
+Evidence still required: one complete agent-authored note flow linked to its
+tool call and journal entry; live-current and session-pinned index policies producing different declared
+receipts; full recall entering the transcript only through a tool result; and a
+store-unavailable fixture that exercises both continue-without-memory and
+require-memory host policies without hidden omission. Repeated requests with a
+pinned index must produce identical prefix bytes, while an explicit refresh
+must change the rendered digest and the declared cache expectation. A
+compaction fixture must keep the pinned index unchanged, preserve the original
+memory receipt in the journal, and account for the complete prompt plan while
+summarizing transcript entries only.
 
 ### Lazy resolver forcing
 
@@ -147,4 +217,4 @@ Do not reopen these without contradictory executable evidence:
 
 The abstractions that currently survive these pressures are summarized in
 [Current synthesis](synthesis.html). Concrete delivery order remains in the
-[roadmap](https://github.com/sounkou-bioinfo/Rho/blob/main/ROADMAP.md).
+[roadmap](https://github.com/RGenomicsETL/Rho/blob/main/ROADMAP.md).

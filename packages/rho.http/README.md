@@ -7,7 +7,7 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-[`rho.http`](https://sounkou-bioinfo.github.io/Rho/rho.http/) gives Rho
+[`rho.http`](https://rgenomicsetl.github.io/Rho/rho.http/) gives Rho
 one typed HTTP contract. Provider implementations build `RhoHttpRequest`
 values and receive tasks or SSE streams; request encoding, TLS, and
 connection handling remain in this package.
@@ -23,7 +23,7 @@ over those methods and never receives a transport handle.
 keeps that implementation pinned while [nanonext issue
 \#329](https://github.com/r-lib/nanonext/issues/329) establishes an
 upstream incremental-response API.
-[`rho.http.httr2`](https://sounkou-bioinfo.github.io/Rho/rho.http.httr2/)
+[`rho.http.httr2`](https://rgenomicsetl.github.io/Rho/rho.http.httr2/)
 implements the same interface with worker-owned httr2 connections;
 provider code and the SSE decoder are unchanged when that client is
 selected.
@@ -55,10 +55,10 @@ vapply(events, function(event) event@data, character(1))
 caller that requires peer authentication passes a configured `tlsConfig`
 value; the package never searches operating-system certificate paths.
 SSE values feed typed provider decoders in
-[`rho.ai`](https://sounkou-bioinfo.github.io/Rho/rho.ai/).
+[`rho.ai`](https://rgenomicsetl.github.io/Rho/rho.ai/).
 
 See the [`rho.http`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.http/reference/)
+reference](https://rgenomicsetl.github.io/Rho/rho.http/reference/)
 and the underlying
-[`rho.async`](https://sounkou-bioinfo.github.io/Rho/rho.async/)
+[`rho.async`](https://rgenomicsetl.github.io/Rho/rho.async/)
 contract.

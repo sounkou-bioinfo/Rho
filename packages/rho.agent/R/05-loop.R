@@ -19,12 +19,13 @@ rho_agent_run_result <- function(
     events = events,
     status = status,
     error = error,
-    context = context
+    context = context,
+    usage = rho.ai::rho_summarize_usage(agent@state$messages)
   )
 }
 
 rho_set_agent_idle <- function(agent) {
-  agent@state$phase <- "idle"
+  agent@state$phase <- RhoAgentIdle()
   agent@state$current_stream <- NULL
   agent@state$pending_tool_calls <- character()
   nanonext::cv_signal(agent@state$idle_condition)
@@ -106,7 +107,7 @@ rho_run_agent_loop <- function(
   application = NULL
 ) {
   events_before <- length(agent@state$events)
-  if (!identical(agent@state$phase, "idle")) {
+  if (!S7::S7_inherits(agent@state$phase, RhoAgentIdle)) {
     return(rho.async::rho_task(rho_invalid_agent_run(
       agent,
       events_before,
@@ -135,7 +136,7 @@ rho_run_agent_loop <- function(
   }
 
   run_context <- rho_run_context(agent, application)
-  agent@state$phase <- "running"
+  agent@state$phase <- RhoAgentRunning()
   agent@state$cancelled <- FALSE
   agent@state$cancel_reason <- NULL
 
@@ -181,7 +182,10 @@ rho_run_agent_loop <- function(
         model_context <- coro::await(rho.async::rho_as_promise(
           rho_context_after_threshold_compaction(agent)
         ))
-        if (S7::S7_inherits(model_context, RhoCompactionErrorValue)) {
+        if (
+          S7::S7_inherits(model_context, RhoCompactionErrorValue) ||
+            S7::S7_inherits(model_context, RhoAgentErrorValue)
+        ) {
           run_status <- "error"
           run_error <- model_context
           break
@@ -211,7 +215,8 @@ rho_run_agent_loop <- function(
               rho_run_compaction(
                 agent,
                 RhoProviderInputLimitCompaction(),
-                will_retry = TRUE
+                will_retry = TRUE,
+                context = model_context
               )
             ))
             if (S7::S7_inherits(compacted, RhoCompactionResult)) {

@@ -123,6 +123,153 @@ expect_equal(repl_result@details$value, 42L)
 expect_equal(session$answer, 41L)
 expect_true(S7::S7_inherits(r_repl@overlap, ToolRequiresExclusiveExecution))
 
+memory <- rho_in_memory_memory_store()
+expect_true(s7contract::implements(memory, MemoryStore))
+
+related <- rho_memory_link("related_to", "other-note")
+derived <- rho_memory_link("derived_from", "source-note")
+note <- rho_memory_note(
+  slug = "project-shape",
+  title = "Project shape",
+  hook = "How the project is organized",
+  body = "The core is provider and agent infrastructure.",
+  tags = c("architecture", "rho"),
+  links = list(related, derived),
+  sources = list(rho_memory_source(path = "docs/architecture.md"))
+)
+
+remembered <- rho_remember(memory, note, author = "agent:fixture") |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(remembered, RhoMemoryRemembered))
+expect_equal(remembered@supersedes_revision_id, "")
+
+duplicate <- rho_remember(memory, note, author = "agent:fixture") |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(duplicate, RhoMemoryAlreadyExists))
+expect_equal(duplicate@current_revision_id, remembered@revision_id)
+
+stale <- rho_edit_memory(
+  memory,
+  rho_memory_replacement(
+    rho_memory_note(
+      slug = "project-shape",
+      title = "Project shape",
+      body = "stale replacement"
+    ),
+    "memory:project-shape:stale"
+  ),
+  author = "agent:fixture"
+) |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(stale, RhoMemoryConflict))
+
+updated_note <- rho_memory_note(
+  slug = "project-shape",
+  title = note@title,
+  hook = note@hook,
+  body = "The core is provider and agent infrastructure; bio is downstream.",
+  tags = note@tags,
+  links = list(related),
+  sources = note@sources
+)
+edited <- rho_edit_memory(
+  memory,
+  rho_memory_replacement(updated_note, remembered@revision_id),
+  author = "agent:fixture"
+) |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(edited, RhoMemoryEdited))
+expect_equal(edited@supersedes_revision_id, remembered@revision_id)
+expect_identical(edited@retracted_links, list(derived))
+
+current <- rho_recall(memory, "project-shape") |>
+  rho_await(timeout = 1000L)
+historical <- rho_recall(
+  memory,
+  "project-shape",
+  revision_id = remembered@revision_id
+) |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(current, RhoMemoryFound))
+expect_true(S7::S7_inherits(historical, RhoMemoryFound))
+expect_equal(current@revision@note@body, edited@note@body)
+expect_equal(historical@revision@note@body, note@body)
+
+stale_forget <- rho_forget(
+  memory,
+  "project-shape",
+  remembered@revision_id,
+  author = "agent:fixture",
+  reason = "superseded guidance"
+) |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(stale_forget, RhoMemoryConflict))
+
+forgotten <- rho_forget(
+  memory,
+  "project-shape",
+  edited@revision_id,
+  author = "agent:fixture",
+  reason = "superseded guidance"
+) |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(forgotten, RhoMemoryForgotten))
+expect_identical(forgotten@retracted_links, list(related))
+
+absent <- rho_recall(memory, "project-shape") |>
+  rho_await(timeout = 1000L)
+history <- rho_memory_history(memory, "project-shape") |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(absent, RhoMemoryAbsent))
+expect_equal(length(history@revisions), 3L)
+expect_identical(
+  vapply(history@revisions, function(revision) revision@sequence, integer(1)),
+  1:3
+)
+
+recreated <- rho_remember(memory, note, author = "agent:fixture") |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(recreated, RhoMemoryRemembered))
+expect_equal(recreated@supersedes_revision_id, forgotten@revision_id)
+
+tool_memory <- rho_in_memory_memory_store()
+memory_tools <- rho_memory_tools(tool_memory, author = "agent:tool")
+expect_identical(
+  vapply(memory_tools, function(tool) tool@name, character(1)),
+  c("remember", "recall", "edit_memory", "forget", "memory_history")
+)
+expect_true(all(vapply(
+  memory_tools,
+  function(tool) S7::S7_inherits(tool@overlap, ToolRequiresExclusiveExecution),
+  logical(1)
+)))
+
+remember_tool_result <- rho_execute_tool(
+  memory_tools[[1L]],
+  ToolCall(
+    "memory-1",
+    "remember",
+    list(
+      slug = "tool-note",
+      title = "Tool note",
+      body = "Created through the tool contract.",
+      tags = list("tool")
+    )
+  ),
+  context = NULL
+) |>
+  rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(remember_tool_result, ToolResult))
+
+recall_tool_result <- rho_execute_tool(
+  memory_tools[[2L]],
+  ToolCall("memory-2", "recall", list(slug = "tool-note")),
+  context = NULL
+) |>
+  rho_await(timeout = 1000L)
+expect_true(grepl("Created through", recall_tool_result@content[[1L]]@text))
+expect_true(grepl("Revision:", recall_tool_result@content[[1L]]@text))
+
 codec <- rho_json_session_codec()
 usage <- ProviderUsage(
   input = 4,
@@ -154,12 +301,17 @@ entry <- RhoSessionMessageEntry(
 )
 
 document <- rho_encode_session_value(codec, entry)
+expect_equal(document$kind, "semantic")
+expect_equal(document$type, "session.message")
+expect_false("class" %in% names(document))
 json <- yyjsonr::write_json_str(
   document,
   auto_unbox = TRUE,
   null = "null",
   digits = -1L
 )
+expect_false(grepl("rho.agent::", json, fixed = TRUE))
+expect_false(grepl("rho.ai::", json, fixed = TRUE))
 parsed <- yyjsonr::read_json_str(
   json,
   arr_of_objs_to_df = FALSE,
@@ -171,21 +323,43 @@ expect_identical(restored, entry)
 expect_equal(restored@message@content[[2L]]@arguments$iterations, 2L)
 expect_true(is.na(restored@message@content[[2L]]@arguments$label))
 
+memory_message <- rho_tool_result_message(
+  tool_call_id = "memory-call",
+  tool_name = "remember",
+  content = remember_tool_result@content,
+  details = remember_tool_result@details,
+  timestamp = 2
+)
+memory_document <- rho_encode_session_value(codec, RhoSessionMessageEntry(
+  id = "memory-entry",
+  timestamp = 2,
+  message = memory_message
+))
+memory_restored <- rho_decode_session_value(codec, memory_document)
+expect_identical(memory_restored@message@details, memory_message@details)
+
 RhoFixtureSessionValue <- S7::new_class(
   "RhoFixtureSessionValue",
-  properties = list(value = S7::class_integer)
+  properties = list(current_value = S7::class_integer)
 )
-unsupported <- rho_encode_session_value(codec, RhoFixtureSessionValue(value = 1L))
+fixture <- RhoFixtureSessionValue(current_value = 1L)
+unsupported <- rho_encode_session_value(codec, fixture)
 expect_true(S7::S7_inherits(unsupported, RhoSessionCodecErrorValue))
 
-extended <- rho_json_session_codec(classes = list(RhoFixtureSessionValue))
+fixture_adapter <- rho_json_semantic_adapter(
+  "fixture.value",
+  RhoFixtureSessionValue,
+  c(value = "current_value")
+)
+extended <- rho_json_session_codec(adapters = list(fixture_adapter))
 extended_document <- rho_encode_session_value(
   extended,
-  RhoFixtureSessionValue(value = 1L)
+  fixture
 )
+expect_equal(names(extended_document$fields), "value")
 expect_identical(
   rho_decode_session_value(extended, extended_document),
-  RhoFixtureSessionValue(value = 1L)
+  fixture
 )
 
 invalid_atomic <- rho_decode_session_value(
@@ -216,8 +390,16 @@ writer <- rho_agent(
 )
 first_run <- rho_prompt(writer, "before restart") |>
   rho_await(timeout = 15000L)
+first_snapshot <- rho_session_snapshot(journal) |>
+  rho_await(timeout = 15000L)
 expect_equal(first_run@status, "completed")
-expect_equal(length(readLines(path, warn = FALSE)), 2L)
+expect_equal(length(readLines(path, warn = FALSE)), 3L)
+header <- yyjsonr::read_json_str(
+  readLines(path, n = 1L, warn = FALSE),
+  arr_of_objs_to_df = FALSE,
+  obj_of_arrs_to_df = FALSE
+)
+expect_false("version" %in% names(header))
 
 reopened <- rho_jsonl_session_journal(path, timeout_ms = 10000L)
 reader <- rho_agent(
@@ -238,9 +420,56 @@ snapshot <- rho_session_snapshot(reopened) |>
 expect_equal(second_run@status, "completed")
 expect_equal(snapshot@position, 4L)
 expect_equal(length(snapshot@entries), 4L)
+expect_identical(snapshot@identity, first_snapshot@identity)
+expect_equal(length(readLines(path, warn = FALSE)), 5L)
 if (.Platform$OS.type == "unix") {
   expect_equal(as.character(file.info(path)$mode), "600")
 }
+
+unlink(c(path, paste0(path, ".lock")))
+
+path <- tempfile(fileext = ".jsonl")
+journal <- rho_jsonl_session_journal(path, timeout_ms = 10000L)
+writer <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  journal = journal
+)
+
+rho_prompt(writer, "original") |> rho_await(timeout = 15000L)
+original <- rho_session_snapshot(journal) |> rho_await(timeout = 15000L)
+root_id <- original@entries[[1L]]@id
+abandoned_id <- original@leaf_id
+rho_move_session_leaf(writer, root_id) |> rho_await(timeout = 15000L)
+rho_prompt(writer, "alternative") |> rho_await(timeout = 15000L)
+written <- rho_session_snapshot(journal) |> rho_await(timeout = 15000L)
+
+reopened <- rho_jsonl_session_journal(path, timeout_ms = 10000L)
+reader <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  journal = reopened
+)
+rho_sync_session(reader) |> rho_await(timeout = 15000L)
+replayed <- rho_session_snapshot(reopened) |> rho_await(timeout = 15000L)
+trajectory <- rho_session_trajectory(replayed)
+
+expect_identical(replayed, written)
+expect_equal(replayed@position, 5L)
+expect_true(S7::S7_inherits(replayed@entries[[3L]], RhoSessionLeafEntry))
+expect_equal(replayed@entries[[3L]]@previous_leaf_id, abandoned_id)
+expect_false(abandoned_id %in% vapply(
+  trajectory@entries,
+  function(entry) entry@id,
+  character(1)
+))
+expect_equal(rho_state_messages(reader), lapply(
+  Filter(
+    function(entry) S7::S7_inherits(entry, RhoSessionMessageEntry),
+    trajectory@entries
+  ),
+  function(entry) entry@message
+))
 
 unlink(c(path, paste0(path, ".lock")))
 
@@ -269,7 +498,7 @@ snapshot <- rho_session_snapshot(first_journal) |>
 expect_equal(conflicted@status, "error")
 expect_true(S7::S7_inherits(conflicted@error, RhoSessionConflictErrorValue))
 expect_equal(snapshot@position, 2L)
-expect_equal(length(readLines(path, warn = FALSE)), 2L)
+expect_equal(length(readLines(path, warn = FALSE)), 3L)
 
 unlink(c(path, paste0(path, ".lock")))
 

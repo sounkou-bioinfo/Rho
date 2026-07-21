@@ -1,12 +1,63 @@
-rho_session_codec_classes <- S7::new_property(
+rho_session_adapter_tag <- S7::new_property(
+  S7::class_character,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value) || !nzchar(value)) {
+      "must be one non-empty stable wire tag"
+    }
+  }
+)
+
+rho_session_adapter_class <- S7::new_property(
+  S7::class_any,
+  validator = function(value) {
+    if (!inherits(value, "S7_class")) "must be an S7 class object"
+  }
+)
+
+rho_session_adapter_fields <- S7::new_property(
+  S7::class_character,
+  default = character(),
+  validator = function(value) {
+    if (length(value) && (is.null(names(value)) || any(!nzchar(names(value))))) {
+      return("must name every stable wire field")
+    }
+    if (anyDuplicated(names(value)) || anyDuplicated(value)) {
+      "must map unique wire fields to unique S7 properties"
+    }
+  }
+)
+
+RhoJsonSemanticAdapter <- S7::new_class(
+  "RhoJsonSemanticAdapter",
+  properties = list(
+    tag = rho_session_adapter_tag,
+    value_class = rho_session_adapter_class,
+    fields = rho_session_adapter_fields
+  ),
+  validator = function(self) {
+    unknown <- setdiff(unname(self@fields), names(self@value_class@properties))
+    if (length(unknown)) {
+      "@fields must identify properties declared by @value_class"
+    }
+  }
+)
+
+rho_session_codec_adapters <- S7::new_property(
   S7::class_list,
   validator = function(value) {
     if (is.null(names(value)) || any(!nzchar(names(value)))) {
-      return("must be a named class registry")
+      return("must be a named semantic-adapter registry")
     }
-    invalid <- Filter(function(class) !inherits(class, "S7_class"), value)
+    invalid <- Filter(
+      function(adapter) !S7::S7_inherits(adapter, RhoJsonSemanticAdapter),
+      value
+    )
     if (length(invalid)) {
-      "must contain only S7 class objects"
+      return("must contain only RhoJsonSemanticAdapter values")
+    }
+    tags <- unname(vapply(value, function(adapter) adapter@tag, character(1)))
+    if (!identical(names(value), tags) || anyDuplicated(tags)) {
+      "names must equal unique stable adapter tags"
     }
   }
 )
@@ -48,15 +99,6 @@ rho_session_document_size <- S7::new_property(
   }
 )
 
-rho_session_document_class <- S7::new_property(
-  S7::class_character,
-  validator = function(value) {
-    if (length(value) != 1L || is.na(value) || !nzchar(value)) {
-      "must be one non-empty S7 class key"
-    }
-  }
-)
-
 rho_session_property_documents <- S7::new_property(
   S7::class_list,
   validator = function(value) {
@@ -68,7 +110,7 @@ rho_session_property_documents <- S7::new_property(
 
 RhoJsonSessionCodec <- S7::new_class(
   "RhoJsonSessionCodec",
-  properties = list(classes = rho_session_codec_classes)
+  properties = list(adapters = rho_session_codec_adapters)
 )
 
 RhoSessionCodecErrorValue <- S7::new_class(
@@ -85,9 +127,118 @@ RhoJsonlSessionJournal <- S7::new_class(
   "RhoJsonlSessionJournal",
   properties = list(
     path = rho_jsonl_path,
+    identity = rho.agent::RhoSessionIdentity,
     codec = RhoJsonSessionCodec,
     compute = S7::class_any,
     timeout_ms = rho_jsonl_timeout
+  )
+)
+
+rho_jsonl_position <- S7::new_property(
+  S7::class_integer,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value) || value < 0L) {
+      "must be one non-negative integer"
+    }
+  }
+)
+
+rho_jsonl_entries <- S7::new_property(S7::class_list, default = list())
+
+rho_jsonl_message <- S7::new_property(
+  S7::class_character,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value) || !nzchar(value)) {
+      "must be one non-empty message"
+    }
+  }
+)
+
+rho_jsonl_session_id <- S7::new_property(
+  S7::class_character,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value) || !nzchar(value)) {
+      "must be one non-empty session identifier"
+    }
+  }
+)
+
+rho_jsonl_parent_session_id <- S7::new_property(
+  S7::class_character,
+  validator = function(value) {
+    if (length(value) != 1L || is.na(value)) {
+      "must be one non-missing parent session identifier"
+    }
+  }
+)
+
+RhoJsonlInspection <- S7::new_class(
+  "RhoJsonlInspection",
+  abstract = TRUE,
+  properties = list(
+    position = rho_jsonl_position,
+    entries = rho_jsonl_entries
+  )
+)
+
+RhoJsonlEmptyInspection <- S7::new_class(
+  "RhoJsonlEmptyInspection",
+  parent = RhoJsonlInspection,
+  validator = function(self) {
+    if (self@position != 0L || length(self@entries)) {
+      "must have position zero and no entries"
+    }
+  }
+)
+
+RhoJsonlPresentInspection <- S7::new_class(
+  "RhoJsonlPresentInspection",
+  parent = RhoJsonlInspection,
+  properties = list(
+    session_id = rho_jsonl_session_id,
+    parent_session_id = rho_jsonl_parent_session_id
+  )
+)
+
+RhoJsonlWorkerFailure <- S7::new_class(
+  "RhoJsonlWorkerFailure",
+  abstract = TRUE,
+  properties = list(
+    message = rho_jsonl_message,
+    retryable = S7::class_logical
+  )
+)
+
+RhoJsonlCorruptFile <- S7::new_class(
+  "RhoJsonlCorruptFile",
+  parent = RhoJsonlWorkerFailure
+)
+
+RhoJsonlIoFailure <- S7::new_class(
+  "RhoJsonlIoFailure",
+  parent = RhoJsonlWorkerFailure
+)
+
+RhoJsonlLockUnavailable <- S7::new_class(
+  "RhoJsonlLockUnavailable",
+  parent = RhoJsonlWorkerFailure
+)
+
+RhoJsonlPositionConflict <- S7::new_class(
+  "RhoJsonlPositionConflict",
+  properties = list(
+    expected = rho_jsonl_position,
+    current = rho_jsonl_position
+  )
+)
+
+RhoJsonlCommitted <- S7::new_class(
+  "RhoJsonlCommitted",
+  properties = list(
+    session_id = rho_jsonl_session_id,
+    parent_session_id = rho_jsonl_parent_session_id,
+    position = rho_jsonl_position,
+    entries = rho_jsonl_entries
   )
 )
 
@@ -173,11 +324,11 @@ RhoJsonListDocument <- S7::new_class(
   )
 )
 
-RhoJsonS7Document <- S7::new_class(
-  "RhoJsonS7Document",
+RhoJsonSemanticDocument <- S7::new_class(
+  "RhoJsonSemanticDocument",
   parent = RhoJsonSessionDocument,
   properties = list(
-    class_key = rho_session_document_class,
+    tag = rho_session_adapter_tag,
     property_documents = rho_session_property_documents
   )
 )
@@ -218,111 +369,333 @@ rho_jsonl_session_error <- function(message, path, retryable = FALSE, details = 
   )
 }
 
-rho_s7_class_key <- function(class) {
-  paste0(class@package, "::", class@name)
-}
-
-rho_s7_class_descends_from <- function(class, parent) {
-  parent_key <- rho_s7_class_key(parent)
-  current <- class
-  while (inherits(current, "S7_class")) {
-    if (identical(rho_s7_class_key(current), parent_key)) {
-      return(TRUE)
-    }
-    current <- current@parent
+rho_json_fields <- function(fields = character()) {
+  if (!length(fields) || !is.null(names(fields))) {
+    return(fields)
   }
-  FALSE
+  stats::setNames(fields, fields)
 }
 
-rho_namespace_s7_classes <- function(package) {
-  namespace <- asNamespace(package)
-  objects <- mget(ls(namespace, all.names = TRUE), namespace, inherits = FALSE)
-  classes <- Filter(function(value) inherits(value, "S7_class"), objects)
-  classes[!duplicated(vapply(classes, rho_s7_class_key, character(1)))]
+rho_json_semantic_adapter <- function(tag, class, fields = character()) {
+  RhoJsonSemanticAdapter(
+    tag = tag,
+    value_class = class,
+    fields = rho_json_fields(fields)
+  )
 }
 
-rho_derived_session_classes <- function(extra = list()) {
-  candidates <- c(
-    rho_namespace_s7_classes("rho.agent"),
-    rho_namespace_s7_classes("rho.ai"),
-    extra
-  )
-  keys <- vapply(candidates, rho_s7_class_key, character(1))
-  candidates <- candidates[!duplicated(keys)]
-
-  roots <- list(
-    rho.agent::RhoSessionEntry,
-    rho.agent::RhoCompactionReason,
-    rho.agent::RhoCompactionSource,
-    rho.agent::RhoCompactionOutcome,
-    rho.ai::Content,
-    rho.ai::UsageObservation,
-    rho.ai::UsageCost,
-    rho.ai::UserMessage,
-    rho.ai::AssistantMessage,
-    rho.ai::ToolResultMessage,
-    rho.ai::WebSearchResult
-  )
-  roots <- c(roots, extra)
-
-  selected <- candidates[vapply(
-    candidates,
-    function(class) {
-      any(vapply(
-        roots,
-        function(root) rho_s7_class_descends_from(class, root),
-        logical(1)
-      ))
-    },
-    logical(1)
-  )]
-
-  repeat {
-    property_roots <- unlist(
-      lapply(selected, function(class) {
-        Filter(
-          function(specification) inherits(specification, "S7_class"),
-          lapply(class@properties, function(property) property$class)
-        )
-      }),
-      recursive = FALSE
+rho_builtin_session_adapters <- function() {
+  list(
+    rho_json_semantic_adapter(
+      "session.message",
+      rho.agent::RhoSessionMessageEntry,
+      c("id", "timestamp", "parent_id", "message")
+    ),
+    rho_json_semantic_adapter(
+      "session.compaction",
+      rho.agent::RhoSessionCompactionEntry,
+      c("id", "timestamp", "parent_id", "result", "reason", "will_retry")
+    ),
+    rho_json_semantic_adapter(
+      "session.context_exclusion",
+      rho.agent::RhoSessionContextExclusionEntry,
+      c("id", "timestamp", "parent_id", "target_entry_id", "reason")
+    ),
+    rho_json_semantic_adapter(
+      "session.reset",
+      rho.agent::RhoSessionResetEntry,
+      c("id", "timestamp", "parent_id")
+    ),
+    rho_json_semantic_adapter(
+      "session.leaf",
+      rho.agent::RhoSessionLeafEntry,
+      c("id", "timestamp", "previous_leaf_id", "target_leaf_id")
+    ),
+    rho_json_semantic_adapter(
+      "message.user",
+      rho.ai::UserMessage,
+      c("content", "timestamp")
+    ),
+    rho_json_semantic_adapter(
+      "message.assistant",
+      rho.ai::AssistantMessage,
+      c(
+        "content",
+        "provider",
+        "model",
+        "stop_reason",
+        "usage",
+        "context_revision",
+        "response_id",
+        "timestamp"
+      )
+    ),
+    rho_json_semantic_adapter(
+      "message.tool_result",
+      rho.ai::ToolResultMessage,
+      c(
+        "tool_call_id",
+        "tool_name",
+        "content",
+        "details",
+        "is_error",
+        "terminate",
+        "timestamp",
+        "added_tool_names"
+      )
+    ),
+    rho_json_semantic_adapter(
+      "content.text",
+      rho.ai::TextContent,
+      c("text", "signature", "annotations")
+    ),
+    rho_json_semantic_adapter(
+      "content.thinking",
+      rho.ai::ThinkingContent,
+      c("text", "signature", "redacted")
+    ),
+    rho_json_semantic_adapter(
+      "content.image",
+      rho.ai::ImageContent,
+      c("data", "mime_type")
+    ),
+    rho_json_semantic_adapter(
+      "content.artifact_ref",
+      rho.ai::ArtifactRefContent,
+      c("artifact_id", "media_type")
+    ),
+    rho_json_semantic_adapter(
+      "content.tool_call",
+      rho.ai::ToolCall,
+      c("id", "name", "arguments", "arguments_prepared")
+    ),
+    rho_json_semantic_adapter(
+      "content.web_search_call",
+      rho.ai::WebSearchCallContent,
+      c("id", "status", "action")
+    ),
+    rho_json_semantic_adapter(
+      "content.web_search_result",
+      rho.ai::WebSearchResultContent,
+      c("call_id", "results", "error")
+    ),
+    rho_json_semantic_adapter(
+      "web_search.result",
+      rho.ai::WebSearchResult,
+      c("url", "title", "age", "encrypted_content")
+    ),
+    rho_json_semantic_adapter("operation.pending", rho.ai::OperationPending),
+    rho_json_semantic_adapter(
+      "operation.in_progress",
+      rho.ai::OperationInProgress
+    ),
+    rho_json_semantic_adapter("operation.completed", rho.ai::OperationCompleted),
+    rho_json_semantic_adapter("operation.failed", rho.ai::OperationFailed),
+    rho_json_semantic_adapter(
+      "web_search.action.unspecified",
+      rho.ai::WebSearchActionUnspecified
+    ),
+    rho_json_semantic_adapter(
+      "web_search.action.search",
+      rho.ai::WebSearchSearchAction,
+      c("queries", "sources")
+    ),
+    rho_json_semantic_adapter(
+      "web_search.action.open_page",
+      rho.ai::WebSearchOpenPageAction,
+      "url"
+    ),
+    rho_json_semantic_adapter(
+      "web_search.action.find_in_page",
+      rho.ai::WebSearchFindInPageAction,
+      c("url", "pattern")
+    ),
+    rho_json_semantic_adapter(
+      "web_search.action.unknown",
+      rho.ai::WebSearchUnknownAction,
+      "payload"
+    ),
+    rho_json_semantic_adapter(
+      "usage.provider",
+      rho.ai::ProviderUsage,
+      c(
+        "input",
+        "output",
+        "cache_read",
+        "cache_write",
+        "cache_write_1h",
+        "reasoning",
+        "total",
+        "cost",
+        "provider"
+      )
+    ),
+    rho_json_semantic_adapter(
+      "usage.estimated",
+      rho.ai::EstimatedUsage,
+      c(
+        "input",
+        "output",
+        "cache_read",
+        "cache_write",
+        "cache_write_1h",
+        "reasoning",
+        "total",
+        "cost",
+        "estimator",
+        "method"
+      )
+    ),
+    rho_json_semantic_adapter(
+      "usage.unavailable",
+      rho.ai::UsageUnavailable,
+      c("provider", "reason")
+    ),
+    rho_json_semantic_adapter(
+      "usage.cost.nominal",
+      rho.ai::NominalUsageCost,
+      c("input", "output", "cache_read", "cache_write", "total")
+    ),
+    rho_json_semantic_adapter(
+      "context.revision",
+      rho.ai::RhoContextRevision,
+      "digest"
+    ),
+    rho_json_semantic_adapter(
+      "compaction.result",
+      rho.agent::RhoCompactionResult,
+      c("summary", "first_kept_entry_id", "tokens_before", "details", "source")
+    ),
+    rho_json_semantic_adapter(
+      "compaction.reason.manual",
+      rho.agent::RhoManualCompaction
+    ),
+    rho_json_semantic_adapter(
+      "compaction.reason.threshold",
+      rho.agent::RhoThresholdCompaction
+    ),
+    rho_json_semantic_adapter(
+      "compaction.reason.provider_input_limit",
+      rho.agent::RhoProviderInputLimitCompaction
+    ),
+    rho_json_semantic_adapter(
+      "compaction.source.generated",
+      rho.agent::RhoGeneratedCompaction
+    ),
+    rho_json_semantic_adapter(
+      "compaction.source.provided",
+      rho.agent::RhoProvidedCompaction
+    ),
+    rho_json_semantic_adapter(
+      "memory.link",
+      RhoMemoryLink,
+      c("predicate", "to")
+    ),
+    rho_json_semantic_adapter(
+      "memory.source",
+      RhoMemorySource,
+      c("path", "url", "locator", "quote")
+    ),
+    rho_json_semantic_adapter(
+      "memory.note",
+      RhoMemoryNote,
+      c("slug", "title", "hook", "body", "tags", "links", "sources")
+    ),
+    rho_json_semantic_adapter(
+      "memory.remembered",
+      RhoMemoryRemembered,
+      c(
+        "revision_id",
+        "sequence",
+        "recorded_at",
+        "author",
+        "note",
+        "supersedes_revision_id"
+      )
+    ),
+    rho_json_semantic_adapter(
+      "memory.edited",
+      RhoMemoryEdited,
+      c(
+        "revision_id",
+        "sequence",
+        "recorded_at",
+        "author",
+        "note",
+        "supersedes_revision_id",
+        "retracted_links"
+      )
+    ),
+    rho_json_semantic_adapter(
+      "memory.forgotten",
+      RhoMemoryForgotten,
+      c(
+        "revision_id",
+        "sequence",
+        "recorded_at",
+        "author",
+        "slug",
+        "supersedes_revision_id",
+        "reason",
+        "retracted_links"
+      )
+    ),
+    rho_json_semantic_adapter("memory.found", RhoMemoryFound, "revision"),
+    rho_json_semantic_adapter(
+      "memory.absent",
+      RhoMemoryAbsent,
+      c("slug", "last_revision_id")
+    ),
+    rho_json_semantic_adapter(
+      "memory.history",
+      RhoMemoryHistory,
+      c("slug", "revisions")
+    ),
+    rho_json_semantic_adapter("memory.index", RhoMemoryIndex, "revisions"),
+    rho_json_semantic_adapter(
+      "memory.error.already_exists",
+      RhoMemoryAlreadyExists,
+      c("slug", "message", "current_revision_id")
+    ),
+    rho_json_semantic_adapter(
+      "memory.error.conflict",
+      RhoMemoryConflict,
+      c("slug", "message", "expected_revision_id", "actual_revision_id")
+    ),
+    rho_json_semantic_adapter(
+      "memory.error.not_found",
+      RhoMemoryNotFound,
+      c("slug", "message", "last_revision_id")
+    ),
+    rho_json_semantic_adapter(
+      "memory.error.edit_unsupported",
+      RhoMemoryEditUnsupported,
+      c("slug", "message")
     )
-    expanded <- candidates[vapply(
-      candidates,
-      function(class) {
-        any(vapply(
-          property_roots,
-          function(root) rho_s7_class_descends_from(class, root),
-          logical(1)
-        ))
-      },
-      logical(1)
-    )]
-    combined <- c(selected, expanded)
-    combined_keys <- vapply(combined, rho_s7_class_key, character(1))
-    combined <- combined[!duplicated(combined_keys)]
-    if (length(combined) == length(selected)) {
-      break
-    }
-    selected <- combined
-  }
-
-  selected_keys <- vapply(selected, rho_s7_class_key, character(1))
-  stats::setNames(selected, selected_keys)
+  )
 }
 
-rho_json_session_codec <- function(classes = list()) {
-  RhoJsonSessionCodec(classes = rho_derived_session_classes(classes))
+rho_json_session_codec <- function(adapters = list()) {
+  registered <- c(rho_builtin_session_adapters(), adapters)
+  tags <- vapply(registered, function(adapter) adapter@tag, character(1))
+  if (anyDuplicated(tags)) {
+    rho.async::rho_signal_contract_violation(
+      "Session semantic adapters must have unique stable wire tags"
+    )
+  }
+  RhoJsonSessionCodec(adapters = stats::setNames(registered, tags))
 }
 
 rho_jsonl_session_journal <- function(
   path,
+  identity = rho.agent::rho_session_identity(),
   codec = rho_json_session_codec(),
   compute = NULL,
   timeout_ms = 5000L
 ) {
   RhoJsonlSessionJournal(
     path = normalizePath(path.expand(path), mustWork = FALSE),
+    identity = identity,
     codec = codec,
     compute = compute,
     timeout_ms = timeout_ms
@@ -412,28 +785,34 @@ S7::method(
   rho_encode_session_value,
   list(RhoJsonSessionCodec, S7::S7_object)
 ) <- function(codec, value, ...) {
-  class <- S7::S7_class(value)
-  key <- rho_s7_class_key(class)
-  if (!key %in% names(codec@classes)) {
+  matches <- vapply(
+    codec@adapters,
+    function(adapter) S7::S7_inherits(value, adapter@value_class),
+    logical(1)
+  )
+  if (!any(matches)) {
     return(rho_session_codec_error(
-      "The session value class is not registered",
-      details = list(class = key)
+      "The session value has no semantic JSON adapter",
+      details = list(class = S7::S7_class(value)@name)
     ))
   }
-  properties <- lapply(
-    names(class@properties),
-    function(name) rho_encode_session_value(codec, S7::prop(value, name))
+  adapter <- codec@adapters[[which(matches)[[1L]]]]
+  documents <- lapply(
+    unname(adapter@fields),
+    function(property) {
+      rho_encode_session_value(codec, S7::prop(value, property))
+    }
   )
-  names(properties) <- names(class@properties)
+  names(documents) <- names(adapter@fields)
   invalid <- which(vapply(
-    properties,
+    documents,
     function(document) S7::S7_inherits(document, RhoSessionCodecErrorValue),
     logical(1)
   ))
   if (length(invalid)) {
-    return(properties[[invalid[[1L]]]])
+    return(documents[[invalid[[1L]]]])
   }
-  list(kind = "s7", class = key, properties = properties)
+  list(kind = "semantic", type = adapter@tag, fields = documents)
 }
 
 S7::method(
@@ -516,10 +895,10 @@ rho_json_session_document <- function(document) {
         names_document = as.list(value$names)
       )
     },
-    s7 = function(value) {
-      RhoJsonS7Document(
-        class_key = value$class,
-        property_documents = as.list(value$properties)
+    semantic = function(value) {
+      RhoJsonSemanticDocument(
+        tag = value$type,
+        property_documents = as.list(value$fields)
       )
     }
   )
@@ -646,20 +1025,20 @@ S7::method(
 
 S7::method(
   rho_decode_session_value,
-  list(RhoJsonSessionCodec, RhoJsonS7Document)
+  list(RhoJsonSessionCodec, RhoJsonSemanticDocument)
 ) <- function(codec, document, ...) {
-  if (!document@class_key %in% names(codec@classes)) {
+  adapter <- codec@adapters[[document@tag]]
+  if (is.null(adapter)) {
     return(rho_session_codec_error(
-      "The S7 session document names an unregistered class",
-      details = list(class = document@class_key)
+      "The semantic session record type is unsupported",
+      details = list(type = document@tag)
     ))
   }
-  class <- codec@classes[[document@class_key]]
-  expected <- names(class@properties)
+  expected <- names(adapter@fields)
   if (!setequal(names(document@property_documents), expected)) {
     return(rho_session_codec_error(
-      "The S7 session document properties do not match its class",
-      details = list(class = document@class_key)
+      "The semantic session record fields do not match its schema",
+      details = list(type = document@tag)
     ))
   }
   properties <- lapply(
@@ -670,14 +1049,29 @@ S7::method(
   if (!is.null(invalid)) {
     return(invalid)
   }
+  names(properties) <- unname(adapter@fields)
   tryCatch(
-    do.call(class, properties),
+    do.call(adapter@value_class, properties),
     error = function(error) {
       rho_session_codec_error(
-        "The S7 session document failed class validation",
-        details = list(class = document@class_key, message = conditionMessage(error))
+        "The semantic session record failed in-memory validation",
+        details = list(type = document@tag, message = conditionMessage(error))
       )
     }
+  )
+}
+
+rho_jsonl_header_line <- function(identity) {
+  yyjsonr::write_json_str(
+    list(
+      schema = "rho.session.jsonl",
+      type = "session",
+      id = identity@id,
+      parent_id = identity@parent_id
+    ),
+    auto_unbox = TRUE,
+    null = "null",
+    digits = -1L
   )
 }
 
@@ -689,7 +1083,7 @@ rho_jsonl_record_line <- function(codec, entry, position) {
   yyjsonr::write_json_str(
     list(
       schema = "rho.session.jsonl",
-      version = 1L,
+      type = "entry",
       position = position,
       entry = document
     ),
@@ -703,65 +1097,119 @@ rho_jsonl_inspect_file <- function(path) {
   tryCatch(
     {
       if (!file.exists(path)) {
-        return(list(status = "ok", position = 0L, entries = list()))
+        return(RhoJsonlEmptyInspection(position = 0L, entries = list()))
       }
       size <- file.info(path)$size
       if (is.na(size) || size > .Machine$integer.max) {
-        return(list(status = "corrupt", message = "The JSONL journal size is invalid"))
+        return(RhoJsonlCorruptFile(
+          message = "The JSONL journal size is invalid",
+          retryable = FALSE
+        ))
       }
       if (size == 0) {
-        return(list(status = "ok", position = 0L, entries = list()))
+        return(RhoJsonlEmptyInspection(position = 0L, entries = list()))
       }
       connection <- file(path, open = "rb")
       on.exit(close(connection), add = TRUE)
       bytes <- readBin(connection, what = "raw", n = as.integer(size))
       if (!identical(bytes[[length(bytes)]], as.raw(10L))) {
-        return(list(status = "corrupt", message = "The JSONL journal ends with a partial line"))
+        return(RhoJsonlCorruptFile(
+          message = "The JSONL journal ends with a partial line",
+          retryable = FALSE
+        ))
       }
       text <- rawToChar(bytes[-length(bytes)])
       if (!nzchar(text) || startsWith(text, "\n") || endsWith(text, "\n")) {
-        return(list(status = "corrupt", message = "The JSONL journal contains an empty line"))
+        return(RhoJsonlCorruptFile(
+          message = "The JSONL journal contains an empty line",
+          retryable = FALSE
+        ))
       }
       lines <- strsplit(text, "\n", fixed = TRUE)[[1L]]
       if (any(!nzchar(lines))) {
-        return(list(status = "corrupt", message = "The JSONL journal contains an empty line"))
+        return(RhoJsonlCorruptFile(
+          message = "The JSONL journal contains an empty line",
+          retryable = FALSE
+        ))
       }
-      entries <- vector("list", length(lines))
-      for (index in seq_along(lines)) {
-        if (endsWith(lines[[index]], "\r")) {
-          return(list(status = "corrupt", message = "The JSONL journal must use LF framing"))
+      header <- tryCatch(
+        yyjsonr::read_json_str(
+          lines[[1L]],
+          arr_of_objs_to_df = FALSE,
+          obj_of_arrs_to_df = FALSE
+        ),
+        error = function(error) error
+      )
+      valid_header <- !inherits(header, "error") &&
+        is.list(header) &&
+        identical(header$schema, "rho.session.jsonl") &&
+        identical(header$type, "session") &&
+        is.character(header$id) &&
+        length(header$id) == 1L &&
+        !is.na(header$id) &&
+        nzchar(header$id) &&
+        is.character(header$parent_id) &&
+        length(header$parent_id) == 1L &&
+        !is.na(header$parent_id)
+      if (!valid_header) {
+        return(RhoJsonlCorruptFile(
+          message = "The JSONL journal header is invalid",
+          retryable = FALSE
+        ))
+      }
+
+      record_lines <- lines[-1L]
+      entries <- vector("list", length(record_lines))
+      for (index in seq_along(record_lines)) {
+        line_number <- index + 1L
+        if (endsWith(record_lines[[index]], "\r")) {
+          return(RhoJsonlCorruptFile(
+            message = "The JSONL journal must use LF framing",
+            retryable = FALSE
+          ))
         }
         record <- tryCatch(
           yyjsonr::read_json_str(
-            lines[[index]],
+            record_lines[[index]],
             arr_of_objs_to_df = FALSE,
             obj_of_arrs_to_df = FALSE
           ),
           error = function(error) error
         )
         if (inherits(record, "error")) {
-          return(list(
-            status = "corrupt",
-            message = sprintf("JSONL line %d is not valid JSON", index)
+          return(RhoJsonlCorruptFile(
+            message = sprintf("JSONL line %d is not valid JSON", line_number),
+            retryable = FALSE
           ))
         }
         valid <- is.list(record) &&
           identical(record$schema, "rho.session.jsonl") &&
-          identical(as.integer(record$version), 1L) &&
+          identical(record$type, "entry") &&
           identical(as.integer(record$position), as.integer(index)) &&
           is.list(record$entry)
         if (!valid) {
-          return(list(
-            status = "corrupt",
-            message = sprintf("JSONL line %d has an invalid session record", index)
+          return(RhoJsonlCorruptFile(
+            message = sprintf(
+              "JSONL line %d has an invalid session record",
+              line_number
+            ),
+            retryable = FALSE
           ))
         }
         entries[[index]] <- record$entry
       }
-      list(status = "ok", position = as.integer(length(entries)), entries = entries)
+      RhoJsonlPresentInspection(
+        session_id = header$id,
+        parent_session_id = header$parent_id,
+        position = as.integer(length(entries)),
+        entries = entries
+      )
     },
     error = function(error) {
-      list(status = "io_error", message = conditionMessage(error))
+      RhoJsonlIoFailure(
+        message = conditionMessage(error),
+        retryable = FALSE
+      )
     }
   )
 }
@@ -770,7 +1218,16 @@ rho_jsonl_snapshot_worker <- function(path, inspect) {
   inspect(path)
 }
 
-rho_jsonl_commit_worker <- function(path, line, after, timeout_ms, inspect) {
+rho_jsonl_commit_worker <- function(
+  path,
+  header,
+  line,
+  session_id,
+  parent_session_id,
+  after,
+  timeout_ms,
+  inspect
+) {
   tryCatch(
     {
       directory <- dirname(path)
@@ -779,19 +1236,21 @@ rho_jsonl_commit_worker <- function(path, line, after, timeout_ms, inspect) {
       }
       lock <- filelock::lock(paste0(path, ".lock"), timeout = timeout_ms)
       if (is.null(lock)) {
-        return(list(status = "locked", message = "The JSONL journal lock timed out"))
+        return(RhoJsonlLockUnavailable(
+          message = "The JSONL journal lock timed out",
+          retryable = TRUE
+        ))
       }
       on.exit(filelock::unlock(lock), add = TRUE)
 
       inspected <- inspect(path)
-      if (!identical(inspected$status, "ok")) {
+      if (!S7::S7_inherits(inspected, RhoJsonlInspection)) {
         return(inspected)
       }
-      if (!identical(inspected$position, after)) {
-        return(list(
-          status = "conflict",
+      if (!identical(inspected@position, after)) {
+        return(RhoJsonlPositionConflict(
           expected = after,
-          current = inspected$position
+          current = inspected@position
         ))
       }
 
@@ -801,7 +1260,10 @@ rho_jsonl_commit_worker <- function(path, line, after, timeout_ms, inspect) {
         obj_of_arrs_to_df = FALSE
       )
       if (!identical(as.integer(record$position), after + 1L)) {
-        return(list(status = "io_error", message = "The append record position is invalid"))
+        return(RhoJsonlIoFailure(
+          message = "The append record position is invalid",
+          retryable = FALSE
+        ))
       }
       connection <- file(path, open = "ab")
       on.exit(
@@ -812,50 +1274,101 @@ rho_jsonl_commit_worker <- function(path, line, after, timeout_ms, inspect) {
         },
         add = TRUE
       )
+      empty <- S7::S7_inherits(inspected, RhoJsonlEmptyInspection)
+      if (empty) {
+        writeBin(c(charToRaw(header), as.raw(10L)), connection)
+      }
       writeBin(c(charToRaw(line), as.raw(10L)), connection)
       flush(connection)
       close(connection)
       connection <- NULL
       Sys.chmod(path, mode = "0600")
-      list(status = "committed", position = after + 1L)
+      RhoJsonlCommitted(
+        session_id = if (empty) session_id else inspected@session_id,
+        parent_session_id = if (empty) {
+          parent_session_id
+        } else {
+          inspected@parent_session_id
+        },
+        position = after + 1L,
+        entries = c(inspected@entries, list(record$entry))
+      )
     },
     error = function(error) {
-      list(status = "io_error", message = conditionMessage(error))
+      RhoJsonlIoFailure(
+        message = conditionMessage(error),
+        retryable = FALSE
+      )
     }
   )
 }
 
-rho_jsonl_worker_error <- function(result, journal) {
-  if (S7::S7_inherits(result, rho.compute::RhoComputeErrorValue)) {
-    return(rho_jsonl_session_error(
-      result@message,
-      journal@path,
-      retryable = TRUE,
-      details = list(source = result@source)
-    ))
-  }
-  if (!is.list(result) || length(result$status) != 1L) {
-    return(rho_jsonl_session_error(
-      "The JSONL journal worker returned an invalid result",
-      journal@path
-    ))
-  }
-  if (identical(result$status, "conflict")) {
-    return(rho.agent::rho_session_conflict(
-      "The JSONL session journal has advanced beyond the expected position",
-      details = list(
-        path = journal@path,
-        expected = result$expected,
-        current = result$current
-      )
-    ))
-  }
+rho_jsonl_worker_error <- S7::new_generic(
+  "rho_jsonl_worker_error",
+  c("result", "journal"),
+  function(result, journal, ...) S7::S7_dispatch()
+)
+
+S7::method(
+  rho_jsonl_worker_error,
+  list(rho.compute::RhoComputeErrorValue, RhoJsonlSessionJournal)
+) <- function(result, journal, ...) {
   rho_jsonl_session_error(
-    result$message,
+    result@message,
     journal@path,
-    retryable = identical(result$status, "locked"),
-    details = list(status = result$status)
+    retryable = TRUE,
+    details = list(source = result@source)
   )
+}
+
+S7::method(
+  rho_jsonl_worker_error,
+  list(RhoJsonlPositionConflict, RhoJsonlSessionJournal)
+) <- function(result, journal, ...) {
+  rho.agent::rho_session_conflict(
+    "The JSONL session journal has advanced beyond the expected position",
+    details = list(
+      path = journal@path,
+      expected = result@expected,
+      current = result@current
+    )
+  )
+}
+
+S7::method(
+  rho_jsonl_worker_error,
+  list(RhoJsonlWorkerFailure, RhoJsonlSessionJournal)
+) <- function(result, journal, ...) {
+  rho_jsonl_session_error(
+    result@message,
+    journal@path,
+    retryable = result@retryable,
+    details = list(source = result)
+  )
+}
+
+S7::method(
+  rho_jsonl_worker_error,
+  list(S7::class_any, RhoJsonlSessionJournal)
+) <- function(result, journal, ...) {
+  rho_jsonl_session_error(
+    "The JSONL journal worker returned an invalid result",
+    journal@path,
+    details = list(source = result)
+  )
+}
+
+rho_jsonl_decode_entries <- function(journal, documents) {
+  entries <- lapply(
+    documents,
+    function(document) rho_decode_session_value(journal@codec, document)
+  )
+  invalid <- which(vapply(
+    entries,
+    function(entry) S7::S7_inherits(entry, RhoSessionCodecErrorValue),
+    logical(1)
+  ))
+  if (length(invalid)) entries[[invalid[[1L]]]] else entries
 }
 
 S7::method(
@@ -870,11 +1383,15 @@ S7::method(
   if (S7::S7_inherits(line, RhoSessionCodecErrorValue)) {
     return(rho.async::rho_task(line))
   }
+  header <- rho_jsonl_header_line(journal@identity)
   task <- rho.compute::rho_mirai_call(
     rho_jsonl_commit_worker,
     args = list(
       path = journal@path,
+      header = header,
       line = line,
+      session_id = journal@identity@id,
+      parent_session_id = journal@identity@parent_id,
       after = append@after,
       timeout_ms = journal@timeout_ms,
       inspect = rho_jsonl_inspect_file
@@ -883,12 +1400,25 @@ S7::method(
     compute = journal@compute
   )
   rho.async::rho_then(task, function(result) {
-    if (!is.list(result) || !identical(result$status, "committed")) {
+    if (!S7::S7_inherits(result, RhoJsonlCommitted)) {
       return(rho_jsonl_worker_error(result, journal))
     }
+    entries <- rho_jsonl_decode_entries(journal, result@entries)
+    if (S7::S7_inherits(entries, RhoSessionCodecErrorValue)) {
+      return(entries)
+    }
+    replay <- rho.agent::rho_session_replay(entries)
+    if (S7::S7_inherits(replay, rho.agent::RhoSessionJournalErrorValue)) {
+      return(replay)
+    }
     rho.agent::RhoSessionCommit(
+      identity = rho.agent::RhoSessionIdentity(
+        id = result@session_id,
+        parent_id = result@parent_session_id
+      ),
       entry = append@entry,
-      position = as.integer(result$position)
+      position = result@position,
+      leaf_id = replay@leaf_id
     )
   })
 }
@@ -904,25 +1434,31 @@ S7::method(
     compute = journal@compute
   )
   rho.async::rho_then(task, function(result) {
-    if (!is.list(result) || !identical(result$status, "ok")) {
+    if (!S7::S7_inherits(result, RhoJsonlInspection)) {
       return(rho_jsonl_worker_error(result, journal))
     }
-    entries <- lapply(
-      result$entries,
-      function(document) rho_decode_session_value(journal@codec, document)
-    )
-    invalid <- which(vapply(
-      entries,
-      function(entry) S7::S7_inherits(entry, RhoSessionCodecErrorValue),
-      logical(1)
-    ))
-    if (length(invalid)) {
-      return(entries[[invalid[[1L]]]])
+    identity <- if (S7::S7_inherits(result, RhoJsonlEmptyInspection)) {
+      journal@identity
+    } else {
+      rho.agent::RhoSessionIdentity(
+        id = result@session_id,
+        parent_id = result@parent_session_id
+      )
+    }
+    entries <- rho_jsonl_decode_entries(journal, result@entries)
+    if (S7::S7_inherits(entries, RhoSessionCodecErrorValue)) {
+      return(entries)
+    }
+    replay <- rho.agent::rho_session_replay(entries)
+    if (S7::S7_inherits(replay, rho.agent::RhoSessionJournalErrorValue)) {
+      return(replay)
     }
     tryCatch(
       rho.agent::RhoSessionSnapshot(
+        identity = identity,
         entries = entries,
-        position = as.integer(result$position)
+        position = result@position,
+        leaf_id = replay@leaf_id
       ),
       error = function(error) {
         rho_jsonl_session_error(

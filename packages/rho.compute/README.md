@@ -7,9 +7,9 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-[`rho.compute`](https://sounkou-bioinfo.github.io/Rho/rho.compute/)
+[`rho.compute`](https://rgenomicsetl.github.io/Rho/rho.compute/)
 adapts mirai worker evaluation to
-[`rho.async`](https://sounkou-bioinfo.github.io/Rho/rho.async/).
+[`rho.async`](https://rgenomicsetl.github.io/Rho/rho.async/).
 Expressions and function calls are typed specifications; the agent sees
 only a `RhoTask` and does not acquire hidden worker policy.
 
@@ -42,7 +42,7 @@ Worker failures resolve as typed values, so callers can dispatch on
 their semantics. A tool chooses whether it uses this backend and
 separately declares whether multiple calls may overlap.
 
-[`rho.graphics`](https://sounkou-bioinfo.github.io/Rho/rho.graphics/)
+[`rho.graphics`](https://rgenomicsetl.github.io/Rho/rho.graphics/)
 uses the same backend to render away from the interactive device. See
 the [`rho.compute`
-reference](https://sounkou-bioinfo.github.io/Rho/rho.compute/reference/).
+reference](https://rgenomicsetl.github.io/Rho/rho.compute/reference/).

@@ -18,11 +18,11 @@ Imports:
 Suggests:
     tinytest, knitr, rho.bio (>= 0.0.1.9001)
 Remotes:
-    sounkou-bioinfo/Rho/packages/rho.async,
-    sounkou-bioinfo/Rho/packages/rho.ai,
-    sounkou-bioinfo/Rho/packages/rho.ext,
-    sounkou-bioinfo/Rho/packages/rho.bio
-URL: https://github.com/sounkou-bioinfo/Rho,
-    https://sounkou-bioinfo.github.io/Rho/rho.bio.agent/
-BugReports: https://github.com/sounkou-bioinfo/Rho/issues
+    RGenomicsETL/Rho/packages/rho.async,
+    RGenomicsETL/Rho/packages/rho.ai,
+    RGenomicsETL/Rho/packages/rho.ext,
+    RGenomicsETL/Rho/packages/rho.bio
+URL: https://github.com/RGenomicsETL/Rho,
+    https://rgenomicsetl.github.io/Rho/rho.bio.agent/
+BugReports: https://github.com/RGenomicsETL/Rho/issues
 Config/roxygen2/version: 8.0.0

@@ -26,8 +26,10 @@
 #' @aliases RhoProvidedCompaction RhoCompactor RhoSummaryCompactor
 #' @aliases RhoCompactionOutcome RhoCompactionSkipped
 #' @aliases RhoCompactionSettings RhoContextUsage RhoSessionEntry
-#' @aliases RhoSessionMessageEntry RhoSessionCompactionEntry
+#' @aliases RhoSessionNodeEntry RhoSessionMessageEntry RhoSessionCompactionEntry
 #' @aliases RhoSessionContextExclusionEntry RhoSessionResetEntry
+#' @aliases RhoSessionLeafEntry RhoSessionIdentity RhoSessionReplay
+#' @aliases RhoSessionTrajectory
 #' @aliases RhoSessionAppend RhoSessionCommit RhoSessionSnapshot
 #' @aliases RhoMemorySessionJournal
 #' @aliases RhoSessionJournalErrorValue RhoSessionConflictErrorValue
@@ -41,6 +43,8 @@
 #' @aliases RhoCompactionEndEvent rho_compaction_settings
 #' @aliases rho_before_compaction_decision rho_compaction_result rho_compact
 #' @aliases rho_state_entries rho_append_session_entry rho_commit_session_entry
+#' @aliases rho_session_identity rho_session_replay rho_move_session_leaf
+#' @aliases rho_session_trajectory
 #' @aliases rho_build_agent_context
 #' @aliases rho_memory_session_journal rho_session_snapshot rho_sync_session
 #' @aliases rho_apply_session_snapshot rho_session_journal_error
@@ -64,10 +68,15 @@
 #' @export RhoCompactionSettings
 #' @export RhoContextUsage
 #' @export RhoSessionEntry
+#' @export RhoSessionNodeEntry
 #' @export RhoSessionMessageEntry
 #' @export RhoSessionCompactionEntry
 #' @export RhoSessionContextExclusionEntry
 #' @export RhoSessionResetEntry
+#' @export RhoSessionLeafEntry
+#' @export RhoSessionIdentity
+#' @export RhoSessionReplay
+#' @export RhoSessionTrajectory
 #' @export RhoSessionAppend
 #' @export RhoSessionCommit
 #' @export RhoSessionSnapshot
@@ -95,9 +104,13 @@
 #' @export rho_compact
 #' @export rho_state_entries
 #' @export rho_append_session_entry
+#' @export rho_session_identity
+#' @export rho_session_replay
+#' @export rho_move_session_leaf
 #' @export rho_commit_session_entry
 #' @export rho_memory_session_journal
 #' @export rho_session_snapshot
+#' @export rho_session_trajectory
 #' @export rho_sync_session
 #' @export rho_apply_session_snapshot
 #' @export rho_session_journal_error

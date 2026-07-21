@@ -45,6 +45,10 @@ rho_tool_write <- function() {
   )
 }
 
-rho_coding_tools <- function() {
-  list(rho_tool_read(), rho_tool_write(), rho_tool_bash(), rho_tool_r())
+rho_coding_tools <- function(memory_store = NULL, memory_author = "agent") {
+  tools <- list(rho_tool_read(), rho_tool_write(), rho_tool_bash(), rho_tool_r())
+  if (!is.null(memory_store)) {
+    tools <- c(tools, rho_memory_tools(memory_store, memory_author))
+  }
+  tools
 }

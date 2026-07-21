@@ -100,3 +100,33 @@ expect_equal(unavailable@reason, "The provider response did not include token co
 expect_identical(rho_price_usage(model, unavailable), unavailable)
 expect_true(S7::S7_inherits(default_message@usage, UsageUnavailable))
 expect_equal(default_message@usage@provider, "subscription-provider")
+
+estimated_priced <- rho_price_usage(model, estimated)
+summary <- rho_summarize_usage(list(
+  rho_assistant_message(usage = priced),
+  rho_assistant_message(usage = estimated_priced),
+  rho_assistant_message(usage = unavailable)
+))
+
+expect_true(S7::S7_inherits(summary, UsageSummary))
+expect_equal(length(summary@reported), 1L)
+expect_equal(length(summary@estimated), 1L)
+expect_equal(length(summary@unavailable), 1L)
+expect_equal(summary@input, priced@input + estimated_priced@input)
+expect_equal(summary@output, priced@output + estimated_priced@output)
+expect_equal(summary@cache_read, priced@cache_read)
+expect_equal(summary@cache_write, priced@cache_write)
+expect_equal(
+  summary@nominal_cost@total,
+  priced@cost@total + estimated_priced@cost@total
+)
+expect_false(summary@complete)
+expect_false(summary@cost_complete)
+expect_equal(summary@latest_cache_hit_rate, 0)
+
+unpriced_summary <- rho_summarize_usage(list(
+  rho_assistant_message(usage = estimated)
+))
+expect_true(unpriced_summary@complete)
+expect_false(unpriced_summary@cost_complete)
+expect_equal(length(unpriced_summary@unpriced), 1L)

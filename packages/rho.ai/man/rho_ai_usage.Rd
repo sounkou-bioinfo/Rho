@@ -7,6 +7,7 @@
 \alias{ProviderUsage}
 \alias{EstimatedUsage}
 \alias{UsageUnavailable}
+\alias{UsageSummary}
 \alias{UsageCost}
 \alias{NominalUsageCost}
 \alias{rho_provider_usage}
@@ -14,6 +15,8 @@
 \alias{rho_usage_unavailable}
 \alias{rho_nominal_usage_cost}
 \alias{rho_price_usage}
+\alias{rho_usage_observations}
+\alias{rho_summarize_usage}
 \title{Usage observations and nominal pricing}
 \description{
 \code{ProviderUsage} records token and cache counts supplied by a provider.
@@ -31,4 +34,10 @@ method selects the highest matching long-context tier, prices every
 component, and returns a new counted usage value with a
 \code{NominalUsageCost}. It does not claim to report a subscription charge. Model
 subclasses may provide methods for provider-specific pricing rules.
+
+\code{\link[=rho_summarize_usage]{rho_summarize_usage()}} preserves every typed observation and reports
+disjoint token totals, nominal cost, and the latest cache-hit proportion.
+\code{complete} is false when any turn has \code{UsageUnavailable}; \code{cost_complete} is
+false when a counted turn has no nominal price. Zeroes therefore never hide
+missing provider data.
 }

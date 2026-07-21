@@ -14,17 +14,17 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:
-    S7, rho.async (>= 0.0.1.9001), rho.ai (>= 0.0.1.9001),
+    S7, s7contract, rho.async (>= 0.0.1.9001), rho.ai (>= 0.0.1.9001),
     rho.agent (>= 0.0.1.9001), rho.compute (>= 0.0.1.9001),
-    processx, yyjsonr, filelock
+    processx, yyjsonr, filelock, digest
 Suggests:
     tinytest, knitr
 Remotes:
-    sounkou-bioinfo/Rho/packages/rho.async,
-    sounkou-bioinfo/Rho/packages/rho.ai,
-    sounkou-bioinfo/Rho/packages/rho.agent,
-    sounkou-bioinfo/Rho/packages/rho.compute
-URL: https://github.com/sounkou-bioinfo/Rho,
-    https://sounkou-bioinfo.github.io/Rho/rho.coding/
-BugReports: https://github.com/sounkou-bioinfo/Rho/issues
+    RGenomicsETL/Rho/packages/rho.async,
+    RGenomicsETL/Rho/packages/rho.ai,
+    RGenomicsETL/Rho/packages/rho.agent,
+    RGenomicsETL/Rho/packages/rho.compute
+URL: https://github.com/RGenomicsETL/Rho,
+    https://rgenomicsetl.github.io/Rho/rho.coding/
+BugReports: https://github.com/RGenomicsETL/Rho/issues
 Config/roxygen2/version: 8.0.0

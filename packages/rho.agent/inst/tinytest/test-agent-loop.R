@@ -100,12 +100,63 @@ expect_equal(length(rho_build_agent_context(agent)@messages), 0L)
 
 duplicate <- reset_snapshot@entries[[3L]]
 expect_error(
-  RhoSessionSnapshot(entries = list(duplicate, duplicate), position = 2L),
+  RhoSessionSnapshot(
+    identity = reset_snapshot@identity,
+    entries = list(duplicate, duplicate),
+    position = 2L,
+    leaf_id = duplicate@id
+  ),
   "unique identifiers"
 )
 expect_error(
   RhoSessionAppend(entry = duplicate, after = -1L),
   "non-negative integer"
+)
+
+journal <- rho_memory_session_journal()
+agent <- rho_agent(
+  rho_faux_provider(),
+  rho_model("faux", "faux"),
+  journal = journal
+)
+
+rho_prompt(agent, "original question") |> rho_await(timeout = 5000L)
+before_branch <- rho_session_snapshot(journal) |> rho_await(timeout = 1000L)
+root_id <- before_branch@entries[[1L]]@id
+abandoned_id <- before_branch@entries[[2L]]@id
+
+move <- rho_move_session_leaf(agent, root_id) |> rho_await(timeout = 1000L)
+expect_true(S7::S7_inherits(move@entry, RhoSessionLeafEntry))
+expect_equal(move@entry@previous_leaf_id, abandoned_id)
+expect_equal(move@entry@target_leaf_id, root_id)
+
+rho_prompt(agent, "alternative question") |> rho_await(timeout = 5000L)
+branched <- rho_session_snapshot(journal) |> rho_await(timeout = 1000L)
+trajectory <- rho_session_trajectory(branched)
+
+expect_true(S7::S7_inherits(trajectory, RhoSessionTrajectory))
+expect_equal(branched@position, 5L)
+expect_equal(length(branched@entries), 5L)
+expect_equal(length(trajectory@entries), 3L)
+expect_equal(trajectory@entries[[1L]]@id, root_id)
+expect_false(abandoned_id %in% vapply(
+  trajectory@entries,
+  function(entry) entry@id,
+  character(1)
+))
+expect_equal(
+  trajectory@entries[[2L]]@parent_id,
+  root_id
+)
+expect_equal(
+  rho_state_messages(agent),
+  lapply(
+    Filter(
+      function(entry) S7::S7_inherits(entry, RhoSessionMessageEntry),
+      trajectory@entries
+    ),
+    function(entry) entry@message
+  )
 )
 
 journal <- rho_memory_session_journal()
@@ -282,7 +333,7 @@ expect_equal(result@messages[[3]]@content, "one more")
 expect_equal(provider@state$index, 2L)
 
 queue_agent <- rho_agent(rho_faux_provider(), rho_model("faux", "faux"))
-queue_agent@state$phase <- "provider"
+queue_agent@state$phase <- RhoAgentRunning()
 
 rho_steer(queue_agent, "first") |> rho_await()
 rho_steer(queue_agent, "second") |> rho_await()
@@ -398,7 +449,7 @@ expect_error(
   rho_prompt(agent, "wrong context", context = foreign_context),
   "different agent"
 )
-expect_equal(agent@state$phase, "idle")
+expect_true(S7::S7_inherits(agent@state$phase, RhoAgentIdle))
 
 trace <- character()
 make_async_tool <- function(name, overlap = ToolMayOverlap()) {
@@ -476,7 +527,7 @@ result <- rho_prompt(agent, "cancel") |> rho_await()
 expect_equal(result@status, "aborted")
 expect_true(S7::S7_inherits(result@error, RhoAgentErrorValue))
 expect_equal(result@error@message, "fixture cancellation")
-expect_equal(agent@state$phase, "idle")
+expect_true(S7::S7_inherits(agent@state$phase, RhoAgentIdle))
 
 state_agent <- rho_agent(rho_faux_provider(), rho_model("faux", "faux"))
 rho_prompt(state_agent, "state") |> rho_await()
